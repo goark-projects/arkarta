@@ -52,3 +52,7 @@ go vet ./...
 
 - [Arkarta Enterprise Web 1.0 标准路线](docs/spec/arkarta-enterprise-web-1.0.md)
 - [Arkarta Servlet 1.0 规范草案](docs/spec/arkarta-servlet-1.0.md)
+
+## 许可证
+
+Arkarta 使用 [Apache License 2.0](LICENSE) 发布。
