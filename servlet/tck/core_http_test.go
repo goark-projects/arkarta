@@ -24,6 +24,12 @@ func TestRunSessionManagerWithMemoryManager(t *testing.T) {
 	})
 }
 
+func TestRunSessionRequestBindingWithMemoryManager(t *testing.T) {
+	tck.RunSessionRequestBinding(t, func() session.Manager {
+		return session.NewMemoryManager()
+	})
+}
+
 func TestRunLifecycleWithManagedApplication(t *testing.T) {
 	tck.RunLifecycle(t, func(deployment *servletcontainer.Deployment) (servletcontainer.Application, error) {
 		return servletcontainer.NewApplication(t.Context(), deployment)

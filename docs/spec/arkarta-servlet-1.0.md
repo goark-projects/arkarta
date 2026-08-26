@@ -2,7 +2,7 @@
 
 状态：Draft 1  
 目标模块：`goark.dev/arkarta/servlet`  
-规范基线：Jakarta Servlet 6.1 正式规范、Jakarta Servlet 6.2 维护版动态、Java Servlet 4.0 / JSR 369 历史语义  
+规范基线：Jakarta Servlet 6.1 正式规范、Jakarta Servlet 6.2 开发中路线、Java Servlet 4.0 / JSR 369 历史语义
 发布日期：待定
 
 ## 1. 目标
@@ -128,6 +128,7 @@ Arkarta Servlet 1.0 定义一个必选核心 Profile 和若干可选 Profile。
 arkarta/servlet                 应用侧核心 API
 arkarta/servlet/container       容器实现 SPI
 arkarta/servlet/nethttp         标准库 net/http 适配
+arkarta/servlet/registration    Servlet、Filter、Listener 动态注册元模型
 arkarta/servlet/tck             容器兼容性测试工具
 arkarta/servlet/session         可选会话 Profile
 arkarta/servlet/multipart       可选上传 Profile
@@ -182,6 +183,8 @@ type Servlet interface {
 
 - HTTP 方法、协议、Scheme、Host、Path、Query。
 - Header、Cookie、Content-Length、RemoteAddr。
+- RequestURI、RequestURL、QueryString、ContextPath、ServletPath、PathInfo、Mapping。
+- Query 与 `application/x-www-form-urlencoded` 表单参数合并视图。
 - Body 读取与关闭。
 - TLS 与安全传输标记。
 - 请求属性。
@@ -210,8 +213,17 @@ func (r *Request) Method() string
 func (r *Request) Protocol() string
 func (r *Request) Scheme() string
 func (r *Request) Host() string
+func (r *Request) RequestURI() string
+func (r *Request) RequestURL() string
+func (r *Request) QueryString() string
+func (r *Request) ContextPath() string
 func (r *Request) Path() string
 func (r *Request) Query() url.Values
+func (r *Request) Parameter(name string) (string, bool, error)
+func (r *Request) ParameterValues(name string) ([]string, bool, error)
+func (r *Request) ServletPath() string
+func (r *Request) PathInfo() string
+func (r *Request) Mapping() RequestMapping
 func (r *Request) Header() http.Header
 func (r *Request) Cookie(name string) (*http.Cookie, error)
 func (r *Request) Body() io.ReadCloser
@@ -224,7 +236,7 @@ func (r *Request) HTTPRequest() *http.Request
 约束：
 
 - Header 名称必须按 Go `net/http` 规范进行规范化访问。
-- Query 必须只反映 URL 查询串，不得混入表单体参数。
+- Query 必须只反映 URL 查询串；Parameter 视图才合并查询串与表单体参数。
 - Body 只能被消费一次，容器不得默认缓存整个请求体。
 - 属性键推荐使用反向域名或包路径前缀，避免跨框架冲突。
 - `HTTPRequest()` 必须返回与当前请求等价的标准库请求；容器可以返回只读视图。
@@ -263,6 +275,7 @@ type Response interface {
 - 容器必须支持设置标准 HTTP 状态码；新增状态码优先使用 Go 标准库常量，缺失时允许直接传整数。
 - Redirect 必须允许调用者控制状态码，并允许写入可选响应体。
 - 字符编码通过 `Content-Type` 的 `charset` 参数表达，不引入 Java 风格重载方法。
+- `AddCookie`、`Redirect`、`SendError`、`SetContentType`、`SetCharacterEncoding`、`SetContentLength` 是标准便利 API，容器必须保持与底层 `Response` 提交状态一致。
 
 ## 11. 过滤器链
 
@@ -278,6 +291,13 @@ type Filter interface {
 	Filter(ctx context.Context, req *Request, res Response, chain Chain) error
 }
 
+// ManagedFilter 是带生命周期的容器托管过滤器。
+type ManagedFilter interface {
+	Filter
+	Init(ctx context.Context, cfg FilterConfig) error
+	Destroy(ctx context.Context) error
+}
+
 // Chain 表示当前过滤器之后的剩余链路。
 type Chain interface {
 	Next(ctx context.Context, req *Request, res Response) error
@@ -287,6 +307,8 @@ type Chain interface {
 约束：
 
 - 过滤器执行顺序必须确定。
+- Filter 初始化必须先于任何请求过滤，Destroy 必须晚于最后一次过滤调用。
+- FilterBinding 必须按 DispatchType 过滤，默认只匹配 `DispatchRequest`。
 - 过滤器可以不调用 `chain.Next`，用于短路响应。
 - 过滤器调用 `chain.Next` 不得超过一次。
 - 如果响应已经提交，后续错误不得再触发新的错误页写出，只能由容器记录或关闭连接。
@@ -321,12 +343,14 @@ Deploy -> Init -> Start -> Accept Requests -> Stop -> Destroy -> Undeploy
 - 日志入口。
 - 资源查找。
 - 处理器、过滤器和监听器注册。
+- `servlet/registration` 动态注册元模型。
 
 约束：
 
 - 上下文属性必须并发安全。
 - 初始化参数在 `Start` 后必须只读。
 - 动态注册默认只允许在 `Init` 阶段执行。
+- 动态注册元模型必须覆盖名称、实现类型名、初始化参数、异步标记、Servlet URL 映射、Filter URL/Servlet-name 映射、Listener 顺序和冻结快照。
 - 运行期热注册属于容器扩展能力，不属于 Core Profile。
 
 ## 14. 路径映射与分发
@@ -400,6 +424,9 @@ type StatusError interface {
 - `Session.ID()`。
 - `Session.Invalidate()`。
 - `Session.RenewID()`。
+- `session.Accessor.Get(ctx, req, res, create)` 请求绑定语义。
+- `session.Accessor.ChangeID(ctx, req, res)` 登录后会话 ID 轮换语义。
+- `RequestedID` 与 `RequestedIDValid`。
 - 空闲超时。
 - 属性增删改查。
 - 并发安全。
@@ -409,6 +436,7 @@ type StatusError interface {
 - 默认 Cookie 必须 `HttpOnly`。
 - TLS 请求下默认 Cookie 必须 `Secure`。
 - 默认应当使用 `SameSite=Lax`。
+- 默认 Cookie 名称为 `JSESSIONID`，默认 Path 按请求 ContextPath 计算，空 ContextPath 使用 `/`。
 - 登录成功后应当轮换 Session ID。
 - 容器不得把敏感会话数据写入客户端 Cookie，除非使用明确的加密和认证机制。
 
@@ -506,8 +534,11 @@ Core TCK 必须覆盖：
 - 请求 Header、Query、Cookie、Body 语义。
 - 响应状态码、Header、提交、Flush、Reset。
 - 过滤器顺序、短路、错误传播。
+- Filter 生命周期和 DispatcherType 过滤。
 - 路径映射优先级。
 - Forward、Include、Error 分发。
+- Servlet、Filter、Listener 注册元模型与冻结语义。
+- Session 请求/响应 Cookie 绑定、requested ID 校验和 ID 轮换。
 - `context.Context` 取消传播。
 - `net/http` 适配一致性。
 - panic 恢复与错误响应。
@@ -530,13 +561,32 @@ Profile TCK 按 Profile 独立运行。容器只能声明自己通过的 Profile
 1. `go.mod`：模块路径 `goark.dev/arkarta`。
 2. `servlet` 子包：`Handler`、`HandlerFunc`、`Servlet`、`Request`、`Response`、`Filter`、`Chain`、`DispatchType`、`StatusError`。
 3. `container` 包：`Container`、`Deployment`、`Application`、Profile 声明。
-4. `nethttp` 包：从 `net/http` 到 Arkarta Servlet 的适配。
-5. `session` 包：Session Profile 接口和内存会话管理器。
-6. `multipart` 包：Multipart Profile 解析器。
-7. `tck` 包：Core Profile 与 Session Profile 兼容性测试。
-8. README：说明标准定位、版本和容器兼容声明方式。
+4. `registration` 包：动态注册元模型和冻结快照。
+5. `nethttp` 包：从 `net/http` 到 Arkarta Servlet 的适配。
+6. `session` 包：Session Profile 接口、请求绑定和内存会话管理器。
+7. `multipart` 包：Multipart Profile 解析器。
+8. `tck` 包：Core Profile、注册模型与 Session Profile 兼容性测试。
+9. README：说明标准定位、版本和容器兼容声明方式。
 
-## 25. 暂不解决的问题
+## 25. Servlet 6.1 覆盖矩阵
+
+| Jakarta Servlet 6.1 领域 | Arkarta v0.0.1 状态 | 说明 |
+| --- | --- | --- |
+| Request 路径、参数、映射 | 已实现 | `RequestURI`、`QueryString`、`ContextPath`、`ServletPath`、`PathInfo`、`RequestMapping`、Parameter API |
+| Response 基础与便利 API | 已实现 | Header/Status/Write/Flush/Reset、Cookie、Redirect、SendError、Content-Type、Charset、Content-Length |
+| Servlet 路径映射 | 已实现 | exact、longest prefix、extension、default |
+| RequestDispatcher | 已实现 | Forward、Include、Error 分发和属性 |
+| Servlet/Filter/Listener 注册 | 已实现元模型 | `servlet/registration` 提供动态注册、映射冲突、初始化参数、冻结快照 |
+| Filter 链与 dispatcher type | 已实现 | Filter 顺序、短路、单次 `Next`、`ManagedFilter` 生命周期、REQUEST/FORWARD/INCLUDE/ERROR/ASYNC 位集合 |
+| WebApp 生命周期和事件 | 已实现 | Context、Request、Session 生命周期监听器基础 |
+| Session Profile | 已实现基础 | Manager、MemoryManager、Accessor、Cookie 绑定、requested ID 校验、ID 轮换 |
+| Multipart Profile | 已实现基础 | 表单、文件、大小限制、内存阈值 |
+| Async/Stream | 未实现 | 保留 Profile，不在 Core 中伪实现 |
+| Upgrade/WebSocket | 未实现 | 保留 Profile，由后续 `upgrade`/`websocket` 包完成 |
+| Security 声明式模型 | 未实现 | 由后续 `security` 包承载 |
+| 静态资源、Welcome file、Locale、URL rewriting | 未实现 | 下一批 Servlet 兼容性补全项 |
+
+## 26. 暂不解决的问题
 
 - 是否保留 `ServletContext` 作为公开类型名，还是只作为文档术语。
 - 是否在 Core Profile 内置静态资源服务。
