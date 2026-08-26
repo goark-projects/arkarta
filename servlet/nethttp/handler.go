@@ -49,14 +49,12 @@ func (a *adapter) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 		writeError(response, err)
 		return
 	}
+	defer response.finish()
 	defer a.recoverPanic(request, req, response)
 
 	if err := a.handler.Serve(request.Context(), req, response); err != nil {
 		a.writeError(request, req, response, err)
 		return
-	}
-	if !response.Committed() {
-		response.commit()
 	}
 }
 

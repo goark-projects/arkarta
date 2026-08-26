@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"testing"
+	"time"
 )
 
 func TestResponseHelpersSetHeaders(t *testing.T) {
@@ -88,5 +89,43 @@ func TestResponseHelpersRejectCommittedResponse(t *testing.T) {
 	}
 	if err := AddCookie(res, &http.Cookie{Name: "sid", Value: "abc"}); !errors.Is(err, ErrResponseCommitted) {
 		t.Fatalf("AddCookie err = %v, want ErrResponseCommitted", err)
+	}
+}
+
+func TestResponseTypedHeadersAndLocale(t *testing.T) {
+	t.Parallel()
+
+	res := newTestResponse()
+	if err := SetHeader(res, "X-Mode", "set"); err != nil {
+		t.Fatalf("SetHeader failed: %v", err)
+	}
+	if err := AddHeader(res, "X-Mode", "add"); err != nil {
+		t.Fatalf("AddHeader failed: %v", err)
+	}
+	instant := time.Date(2026, time.August, 26, 10, 0, 0, 0, time.UTC)
+	if err := SetDateHeader(res, "Last-Modified", instant); err != nil {
+		t.Fatalf("SetDateHeader failed: %v", err)
+	}
+	if err := SetIntHeader(res, "X-Count", 7); err != nil {
+		t.Fatalf("SetIntHeader failed: %v", err)
+	}
+	locale, _ := NewLocale("zh-cn")
+	if err := SetLocale(res, locale); err != nil {
+		t.Fatalf("SetLocale failed: %v", err)
+	}
+
+	values := HeaderValues(res, "X-Mode")
+	if len(values) != 2 || values[0] != "set" || values[1] != "add" {
+		t.Fatalf("X-Mode values = %#v", values)
+	}
+	if !ContainsHeader(res, "last-modified") {
+		t.Fatal("Last-Modified header should exist")
+	}
+	if res.Header().Get("X-Count") != "7" {
+		t.Fatalf("X-Count = %q, want 7", res.Header().Get("X-Count"))
+	}
+	gotLocale, ok := ResponseLocale(res)
+	if !ok || gotLocale.Tag() != "zh-CN" {
+		t.Fatalf("response locale = %s/%v, want zh-CN/true", gotLocale.Tag(), ok)
 	}
 }

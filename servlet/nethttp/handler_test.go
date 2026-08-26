@@ -187,3 +187,25 @@ func TestHandlerDispatchesPanicToErrorPage(t *testing.T) {
 		t.Fatalf("body = %q, want panic-page", recorder.Body.String())
 	}
 }
+
+func TestHandlerWritesTrailerFields(t *testing.T) {
+	t.Parallel()
+
+	handler := Handler(servlet.HandlerFunc(func(_ context.Context, _ *servlet.Request, res servlet.Response) error {
+		if err := servlet.SetTrailerFields(res, func() http.Header {
+			return http.Header{"X-Arkarta-Trailer": {"done"}}
+		}); err != nil {
+			return err
+		}
+		_, err := res.WriteString("body")
+		return err
+	}))
+
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/trailers", nil))
+
+	result := recorder.Result()
+	if result.Trailer.Get("X-Arkarta-Trailer") != "done" {
+		t.Fatalf("trailer = %q, want done", result.Trailer.Get("X-Arkarta-Trailer"))
+	}
+}

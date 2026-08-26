@@ -54,3 +54,18 @@ func TestResponseNormalizesInvalidStatus(t *testing.T) {
 		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusInternalServerError)
 	}
 }
+
+func TestResponseBufferControl(t *testing.T) {
+	t.Parallel()
+
+	response := NewResponse(httptest.NewRecorder())
+	if err := servlet.SetBufferSize(response, 8192); err != nil {
+		t.Fatalf("SetBufferSize failed: %v", err)
+	}
+	if servlet.BufferSize(response) != 8192 {
+		t.Fatalf("buffer size = %d, want 8192", servlet.BufferSize(response))
+	}
+	if err := servlet.ResetBuffer(response); err != nil {
+		t.Fatalf("ResetBuffer failed: %v", err)
+	}
+}

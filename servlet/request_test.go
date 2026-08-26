@@ -1,12 +1,15 @@
 package servlet
 
 import (
+	"context"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestRequestPathElementsWithContextPath(t *testing.T) {
@@ -75,5 +78,64 @@ func TestRequestParametersMergeQueryAndFormBody(t *testing.T) {
 	values, _, _ = req.ParameterValues("a")
 	if reflect.DeepEqual(values, []string{"mutated"}) {
 		t.Fatal("Parameters must return a defensive copy")
+	}
+}
+
+func TestRequestHTTPMetadata(t *testing.T) {
+	t.Parallel()
+
+	httpRequest := httptest.NewRequest(http.MethodPost, "https://example.com:8443/app/orders", nil)
+	httpRequest = httpRequest.WithContext(context.WithValue(
+		httpRequest.Context(),
+		http.LocalAddrContextKey,
+		&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 9443},
+	))
+	httpRequest.RemoteAddr = "192.0.2.10:53111"
+	httpRequest.Header.Set("Content-Type", "application/json; charset=utf-8")
+	httpRequest.Header.Set("Accept-Language", "en-US;q=0.8, zh-CN;q=0.9")
+	httpRequest.Header.Set("X-Count", "42")
+	modified := time.Date(2026, time.August, 26, 9, 30, 0, 0, time.UTC)
+	httpRequest.Header.Set("If-Modified-Since", modified.Format(http.TimeFormat))
+	httpRequest.Trailer = http.Header{"X-Trailer": nil}
+
+	req, err := NewRequest(httpRequest, WithRequestContextPath("/app"), WithRequestConnectionID("conn-1"))
+	if err != nil {
+		t.Fatalf("NewRequest failed: %v", err)
+	}
+
+	if req.ContentType() != "application/json" || req.CharacterEncoding() != "utf-8" {
+		t.Fatalf("content metadata = %q/%q", req.ContentType(), req.CharacterEncoding())
+	}
+	if req.ServerName() != "example.com" || req.ServerPort() != 8443 {
+		t.Fatalf("server = %s:%d, want example.com:8443", req.ServerName(), req.ServerPort())
+	}
+	if req.RemoteHost() != "192.0.2.10" || req.RemotePort() != 53111 {
+		t.Fatalf("remote = %s:%d", req.RemoteHost(), req.RemotePort())
+	}
+	if req.LocalName() != "127.0.0.1" || req.LocalPort() != 9443 {
+		t.Fatalf("local = %s:%d", req.LocalName(), req.LocalPort())
+	}
+	count, ok, err := req.IntHeader("X-Count")
+	if err != nil || !ok || count != 42 {
+		t.Fatalf("int header = %d/%v/%v, want 42/true/nil", count, ok, err)
+	}
+	date, ok, err := req.DateHeader("If-Modified-Since")
+	if err != nil || !ok || !date.Equal(modified) {
+		t.Fatalf("date header = %s/%v/%v, want modified", date, ok, err)
+	}
+	locale, ok := req.Locale()
+	if !ok || locale.Tag() != "zh-CN" {
+		t.Fatalf("locale = %s/%v, want zh-CN/true", locale.Tag(), ok)
+	}
+	if req.TrailerFieldsReady() {
+		t.Fatal("trailer must not be ready while declared values are nil")
+	}
+	httpRequest.Trailer.Set("X-Trailer", "done")
+	if !req.TrailerFieldsReady() || req.Trailer().Get("X-Trailer") != "done" {
+		t.Fatalf("trailer = %v ready=%v", req.Trailer(), req.TrailerFieldsReady())
+	}
+	connection := req.ConnectionInfo()
+	if connection.ID() != "conn-1" || connection.Protocol() != "HTTP/1.1" || !connection.Secure() {
+		t.Fatalf("connection = %#v", connection)
 	}
 }

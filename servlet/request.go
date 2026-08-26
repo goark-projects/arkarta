@@ -39,10 +39,18 @@ func WithDispatchType(dispatchType DispatchType) RequestOption {
 	}
 }
 
+// WithRequestConnectionID 设置容器分配的连接 ID。
+func WithRequestConnectionID(connectionID string) RequestOption {
+	return func(req *Request) {
+		req.connectionID = strings.TrimSpace(connectionID)
+	}
+}
+
 // Request 表示容器传给应用的请求视图。
 type Request struct {
 	httpRequest  *http.Request
 	dispatchType DispatchType
+	connectionID string
 	requestURI   string
 	queryString  string
 	contextPath  string
