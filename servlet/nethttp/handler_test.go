@@ -55,6 +55,32 @@ func TestHandlerMapsStatusError(t *testing.T) {
 	}
 }
 
+func TestHandlerUsesErrorPageRegistry(t *testing.T) {
+	t.Parallel()
+
+	registry := servlet.NewErrorPageRegistry()
+	if err := registry.RegisterStatus(http.StatusForbidden, servlet.HandlerFunc(func(_ context.Context, _ *servlet.Request, res servlet.Response) error {
+		res.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		_, err := res.WriteString("custom forbidden")
+		return err
+	})); err != nil {
+		t.Fatalf("RegisterStatus failed: %v", err)
+	}
+	handler := HandlerWithOptions(servlet.HandlerFunc(func(context.Context, *servlet.Request, servlet.Response) error {
+		return servlet.NewHTTPError(http.StatusForbidden, "forbidden", nil)
+	}), WithErrorPages(registry))
+
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/", nil))
+
+	if recorder.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusForbidden)
+	}
+	if recorder.Body.String() != "custom forbidden" {
+		t.Fatalf("body = %q, want custom forbidden", recorder.Body.String())
+	}
+}
+
 func TestHandlerMapsWrappedStatusError(t *testing.T) {
 	t.Parallel()
 
@@ -88,5 +114,36 @@ func TestHandlerHidesPlainError(t *testing.T) {
 	}
 	if recorder.Body.String() != "Internal Server Error\n" {
 		t.Fatalf("body = %q, want safe 500", recorder.Body.String())
+	}
+}
+
+func TestHandlerDispatchesPanicToErrorPage(t *testing.T) {
+	t.Parallel()
+
+	registry := servlet.NewErrorPageRegistry()
+	if err := registry.RegisterStatus(http.StatusInternalServerError, servlet.HandlerFunc(func(_ context.Context, req *servlet.Request, res servlet.Response) error {
+		if req.DispatchType() != servlet.DispatchError {
+			t.Fatalf("dispatch = %v, want error", req.DispatchType())
+		}
+		if _, ok := req.Attribute(servlet.AttributeErrorException); !ok {
+			t.Fatal("panic error should be attached to request")
+		}
+		_, err := res.WriteString("panic-page")
+		return err
+	})); err != nil {
+		t.Fatalf("RegisterStatus failed: %v", err)
+	}
+	handler := HandlerWithOptions(servlet.HandlerFunc(func(context.Context, *servlet.Request, servlet.Response) error {
+		panic("boom")
+	}), WithErrorPages(registry))
+
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/panic", nil))
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusInternalServerError)
+	}
+	if recorder.Body.String() != "panic-page" {
+		t.Fatalf("body = %q, want panic-page", recorder.Body.String())
 	}
 }
