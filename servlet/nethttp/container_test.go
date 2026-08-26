@@ -51,6 +51,21 @@ func TestContainerDeploysApplicationAndServesHTTP(t *testing.T) {
 	}
 }
 
+func TestContainerMetadataUsesReleaseVersion(t *testing.T) {
+	t.Parallel()
+
+	metadata := NewContainer().Metadata()
+	if metadata.Name() != "arkarta-nethttp" {
+		t.Fatalf("name = %q, want arkarta-nethttp", metadata.Name())
+	}
+	if metadata.Version() != "0.0.1" {
+		t.Fatalf("version = %q, want 0.0.1", metadata.Version())
+	}
+	if !metadata.Supports(servletcontainer.ProfileCore) {
+		t.Fatal("metadata must support core profile")
+	}
+}
+
 func TestContainerRejectsUnsupportedProfile(t *testing.T) {
 	t.Parallel()
 

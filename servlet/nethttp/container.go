@@ -13,7 +13,7 @@ import (
 
 const (
 	containerName    = "arkarta-nethttp"
-	containerVersion = "0.1.0"
+	containerVersion = "0.0.1"
 )
 
 // Container 是基于标准库 net/http 的 Arkarta Servlet 参考容器。
