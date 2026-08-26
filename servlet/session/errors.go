@@ -16,3 +16,6 @@ var ErrNilRequest = errors.New("arkarta/servlet/session: request is nil")
 
 // ErrInvalidCookieConfig 表示会话 Cookie 配置非法。
 var ErrInvalidCookieConfig = errors.New("arkarta/servlet/session: invalid cookie config")
+
+// ErrInvalidURLRewriteConfig 表示 URL 重写配置非法。
+var ErrInvalidURLRewriteConfig = errors.New("arkarta/servlet/session: invalid url rewrite config")

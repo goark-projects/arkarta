@@ -23,6 +23,9 @@ func RunSessionRequestBinding(t *testing.T, factory SessionManagerFactory) {
 	t.Run("change_session_id", func(t *testing.T) {
 		runChangeSessionID(t, factory)
 	})
+	t.Run("encode_session_url", func(t *testing.T) {
+		runEncodeSessionURL(t, factory)
+	})
 }
 
 func runCreateSessionWritesCookie(t *testing.T, factory SessionManagerFactory) {
@@ -97,6 +100,24 @@ func runChangeSessionID(t *testing.T, factory SessionManagerFactory) {
 	}
 	if cookie := res.Header().Get("Set-Cookie"); !strings.Contains(cookie, session.DefaultCookieName+"="+newID) {
 		t.Fatalf("Set-Cookie = %q, want new session id", cookie)
+	}
+}
+
+func runEncodeSessionURL(t *testing.T, factory SessionManagerFactory) {
+	t.Helper()
+	accessor := newTCKAccessor(t, factory())
+	req := newTCKSessionRequest(t, "")
+	current, ok, err := accessor.Get(context.Background(), req, newMemoryResponse(), true)
+	if err != nil || !ok {
+		t.Fatalf("Get create ok/err = %v/%v, want true/nil", ok, err)
+	}
+	encoded, err := accessor.EncodeURL(req, "/orders?q=1#top")
+	if err != nil {
+		t.Fatalf("EncodeURL failed: %v", err)
+	}
+	want := "/orders;" + session.DefaultURLParameterName + "=" + current.ID() + "?q=1#top"
+	if encoded != want {
+		t.Fatalf("encoded URL = %q, want %q", encoded, want)
 	}
 }
 
