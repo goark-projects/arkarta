@@ -98,12 +98,37 @@ func (d *Deployment) Handler() (servlet.Handler, error) {
 		return nil, ErrEmptyDeployment
 	}
 	router := servlet.NewRouter()
+	dispatchers := servlet.NewDispatcherRegistry(router)
 	for _, mapping := range d.mappings {
 		if err := router.Handle(mapping.Pattern(), mapping.servletHandler()); err != nil {
 			return nil, err
 		}
+		if path := dispatcherPathForPattern(mapping.Pattern()); path != "" {
+			dispatchers.RegisterName(mapping.Name(), path)
+		}
 	}
+	d.webApp.SetDispatcherProvider(dispatchers)
 	return router, nil
+}
+
+func dispatcherPathForPattern(pattern string) string {
+	if pattern == "" {
+		return ""
+	}
+	if pattern == "/" {
+		return "/"
+	}
+	if len(pattern) > 2 && pattern[len(pattern)-2:] == "/*" {
+		base := pattern[:len(pattern)-2]
+		if base == "" {
+			return "/"
+		}
+		return base
+	}
+	if pattern[0] == '/' {
+		return pattern
+	}
+	return ""
 }
 
 func (d *Deployment) servletMappings() []Mapping {

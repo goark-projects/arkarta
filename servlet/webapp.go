@@ -69,6 +69,7 @@ type WebApp struct {
 	requestCharacterEncoding  string
 	responseCharacterEncoding string
 	sessionTimeout            time.Duration
+	tempDir                   string
 	initParam                 map[string]string
 	mimeTypes                 map[string]string
 	resourceFS                fs.FS
@@ -81,6 +82,7 @@ type WebApp struct {
 	requestListeners          []RequestListener
 	contextAttributeListeners []ContextAttributeListener
 	requestAttributeListeners []RequestAttributeListener
+	dispatcherProvider        DispatcherProvider
 }
 
 // NewWebApp 创建 Web 应用上下文。

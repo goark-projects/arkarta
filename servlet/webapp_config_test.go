@@ -7,6 +7,8 @@ import (
 	"io"
 	"io/fs"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"reflect"
 	"strings"
 	"testing"
@@ -139,6 +141,70 @@ func TestWebAppResourceLookup(t *testing.T) {
 	}
 	if _, err := empty.OpenResource(context.Background(), "/missing.txt"); !errors.Is(err, fs.ErrNotExist) {
 		t.Fatalf("empty resource err = %v, want fs.ErrNotExist", err)
+	}
+}
+
+func TestWebAppResourcePathsAndTempDir(t *testing.T) {
+	t.Parallel()
+
+	app, err := NewWebApp("orders",
+		WithTempDir("/tmp/arkarta"),
+		WithResourceFS(fstest.MapFS{
+			"static/app.txt":      &fstest.MapFile{Data: []byte("ok")},
+			"static/css/site.css": &fstest.MapFile{Data: []byte("body{}")},
+		}),
+	)
+	if err != nil {
+		t.Fatalf("NewWebApp failed: %v", err)
+	}
+
+	paths, err := app.ResourcePaths(context.Background(), "/static")
+	if err != nil {
+		t.Fatalf("ResourcePaths failed: %v", err)
+	}
+	want := []string{"/static/app.txt", "/static/css/"}
+	if !reflect.DeepEqual(paths, want) {
+		t.Fatalf("paths = %#v, want %#v", paths, want)
+	}
+	if app.TempDir() != "/tmp/arkarta" {
+		t.Fatalf("temp dir = %q, want /tmp/arkarta", app.TempDir())
+	}
+	if value, ok := app.Attribute(AttributeTempDir); !ok || value != "/tmp/arkarta" {
+		t.Fatalf("temp attr = %v/%v, want /tmp/arkarta/true", value, ok)
+	}
+}
+
+func TestWebAppDispatcherProvider(t *testing.T) {
+	t.Parallel()
+
+	router := NewRouter()
+	if err := router.Handle("/target", HandlerFunc(func(_ context.Context, _ *Request, res Response) error {
+		_, err := res.WriteString("target")
+		return err
+	})); err != nil {
+		t.Fatalf("Handle failed: %v", err)
+	}
+	registry := NewDispatcherRegistry(router)
+	registry.RegisterName("targetServlet", "/target")
+	app, err := NewWebApp("orders", WithDispatcherProvider(registry))
+	if err != nil {
+		t.Fatalf("NewWebApp failed: %v", err)
+	}
+
+	dispatcher, err := app.NamedDispatcher("targetServlet")
+	if err != nil {
+		t.Fatalf("NamedDispatcher failed: %v", err)
+	}
+	req, err := NewRequest(httptest.NewRequest(http.MethodGet, "/source", nil))
+	if err != nil {
+		t.Fatalf("NewRequest failed: %v", err)
+	}
+	res := newTestResponse()
+	if err := dispatcher.Forward(context.Background(), req, res); err != nil {
+		t.Fatalf("Forward failed: %v", err)
+	}
+	if res.body.String() != "target" {
+		t.Fatalf("body = %q, want target", res.body.String())
 	}
 }
 
