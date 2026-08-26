@@ -6,11 +6,11 @@ import (
 
 // Mapping 表示一个 Servlet 路径映射。
 type Mapping struct {
-	pattern   string
-	name      string
-	handler   servlet.Handler
-	filters   []servlet.Filter
-	initParam map[string]string
+	pattern        string
+	name           string
+	handler        servlet.Handler
+	filterBindings []servlet.FilterBinding
+	initParam      map[string]string
 }
 
 // NewMapping 创建路径映射。
@@ -22,11 +22,15 @@ func NewMapping(pattern string, handler servlet.Handler, filters ...servlet.Filt
 	if err := router.Handle(pattern, handler); err != nil {
 		return Mapping{}, err
 	}
+	bindings, err := requestFilterBindings(filters)
+	if err != nil {
+		return Mapping{}, err
+	}
 	return Mapping{
-		pattern: pattern,
-		name:    pattern,
-		handler: handler,
-		filters: cloneFilters(filters),
+		pattern:        pattern,
+		name:           pattern,
+		handler:        handler,
+		filterBindings: bindings,
 	}, nil
 }
 
@@ -59,13 +63,39 @@ func (m Mapping) Handler() servlet.Handler {
 
 // Filters 返回过滤器副本。
 func (m Mapping) Filters() []servlet.Filter {
-	return cloneFilters(m.filters)
+	filters := make([]servlet.Filter, 0, len(m.filterBindings))
+	for _, binding := range m.filterBindings {
+		if binding.Filter() != nil {
+			filters = append(filters, binding.Filter())
+		}
+	}
+	return filters
+}
+
+// FilterBindings 返回带 DispatcherType 约束的过滤器映射副本。
+func (m Mapping) FilterBindings() []servlet.FilterBinding {
+	return cloneFilterBindings(m.filterBindings)
 }
 
 func (m Mapping) servletHandler() servlet.Handler {
-	return servlet.ChainFilters(m.handler, m.filters...)
+	return servlet.ChainFilterBindings(m.handler, m.filterBindings...)
 }
 
 func (m Mapping) servletConfig(app *servlet.WebApp) servlet.ServletConfig {
 	return servlet.NewServletConfig(m.name, app, m.initParam)
+}
+
+func requestFilterBindings(filters []servlet.Filter) ([]servlet.FilterBinding, error) {
+	bindings := make([]servlet.FilterBinding, 0, len(filters))
+	for _, filter := range filters {
+		if filter == nil {
+			continue
+		}
+		binding, err := servlet.NewFilterBinding("", filter)
+		if err != nil {
+			return nil, err
+		}
+		bindings = append(bindings, binding)
+	}
+	return bindings, nil
 }

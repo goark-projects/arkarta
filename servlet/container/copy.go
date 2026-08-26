@@ -22,11 +22,11 @@ func cloneStringMap(src map[string]string) map[string]string {
 	return dst
 }
 
-func cloneFilters(src []servlet.Filter) []servlet.Filter {
+func cloneFilterBindings(src []servlet.FilterBinding) []servlet.FilterBinding {
 	if len(src) == 0 {
 		return nil
 	}
-	dst := make([]servlet.Filter, len(src))
+	dst := make([]servlet.FilterBinding, len(src))
 	copy(dst, src)
 	return dst
 }
@@ -38,7 +38,7 @@ func cloneMappings(src []Mapping) []Mapping {
 	dst := make([]Mapping, len(src))
 	copy(dst, src)
 	for i := range dst {
-		dst[i].filters = cloneFilters(dst[i].filters)
+		dst[i].filterBindings = cloneFilterBindings(dst[i].filterBindings)
 		dst[i].initParam = cloneStringMap(dst[i].initParam)
 	}
 	return dst

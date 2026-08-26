@@ -1,9 +1,13 @@
 package servlet
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 )
+
+// ErrInvalidDispatchTypes 表示 DispatchType 位集合非法。
+var ErrInvalidDispatchTypes = errors.New("arkarta/servlet: invalid dispatch types")
 
 // StatusError 表示可映射到 HTTP 状态码的处理错误。
 type StatusError interface {

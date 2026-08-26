@@ -17,6 +17,7 @@ type ManagedApplication struct {
 	webApp   *servlet.WebApp
 	handler  servlet.Handler
 	servlets []servlet.Servlet
+	filters  []servlet.ManagedFilter
 
 	mu      sync.Mutex
 	stopped bool
@@ -75,6 +76,9 @@ func (a *ManagedApplication) Stop(ctx context.Context) error {
 	for i := len(a.servlets) - 1; i >= 0; i-- {
 		result = errors.Join(result, a.servlets[i].Destroy(ctx))
 	}
+	for i := len(a.filters) - 1; i >= 0; i-- {
+		result = errors.Join(result, a.filters[i].Destroy(ctx))
+	}
 	result = errors.Join(result, a.webApp.Destroy(ctx))
 	return result
 }
@@ -82,6 +86,13 @@ func (a *ManagedApplication) Stop(ctx context.Context) error {
 func (a *ManagedApplication) initialize(ctx context.Context, deployment *Deployment) error {
 	if err := a.webApp.Initialize(ctx); err != nil {
 		return err
+	}
+	for _, item := range deployment.filterInitializations() {
+		if err := item.filter.Init(ctx, servlet.NewFilterConfig(item.name, a.webApp, item.initParam)); err != nil {
+			_ = a.destroyInitialized(ctx)
+			return err
+		}
+		a.filters = append(a.filters, item.filter)
 	}
 	for _, mapping := range deployment.servletMappings() {
 		target := mapping.Handler().(servlet.Servlet)
@@ -102,6 +113,9 @@ func (a *ManagedApplication) destroyInitialized(ctx context.Context) error {
 	var result error
 	for i := len(a.servlets) - 1; i >= 0; i-- {
 		result = errors.Join(result, a.servlets[i].Destroy(ctx))
+	}
+	for i := len(a.filters) - 1; i >= 0; i-- {
+		result = errors.Join(result, a.filters[i].Destroy(ctx))
 	}
 	result = errors.Join(result, a.webApp.Destroy(ctx))
 	return result

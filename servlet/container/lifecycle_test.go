@@ -59,6 +59,79 @@ func TestManagedApplicationInitializesServletAndRequestEvents(t *testing.T) {
 	}
 }
 
+func TestManagedApplicationInitializesFilters(t *testing.T) {
+	t.Parallel()
+
+	var calls []string
+	app, err := servlet.NewWebApp("orders")
+	if err != nil {
+		t.Fatalf("NewWebApp failed: %v", err)
+	}
+	filter := &recordingFilter{calls: &calls}
+	deployment, err := NewDeployment(app, WithMapping("/orders", servlet.HandlerFunc(func(context.Context, *servlet.Request, servlet.Response) error {
+		calls = append(calls, "handler")
+		return nil
+	}), filter))
+	if err != nil {
+		t.Fatalf("NewDeployment failed: %v", err)
+	}
+	application, err := NewApplication(context.Background(), deployment)
+	if err != nil {
+		t.Fatalf("NewApplication failed: %v", err)
+	}
+	req, err := servlet.NewRequest(httptest.NewRequest(http.MethodGet, "/orders", nil))
+	if err != nil {
+		t.Fatalf("NewRequest failed: %v", err)
+	}
+	if err := application.Handler().Serve(context.Background(), req, nil); err != nil {
+		t.Fatalf("Serve failed: %v", err)
+	}
+	if err := application.Stop(context.Background()); err != nil {
+		t.Fatalf("Stop failed: %v", err)
+	}
+
+	want := []string{"filter-init:/orders#filter0", "filter", "handler", "filter-destroy"}
+	if !reflect.DeepEqual(calls, want) {
+		t.Fatalf("calls = %#v, want %#v", calls, want)
+	}
+}
+
+func TestDeploymentFiltersDefaultToRequestDispatcher(t *testing.T) {
+	t.Parallel()
+
+	var calls []string
+	app, err := servlet.NewWebApp("orders")
+	if err != nil {
+		t.Fatalf("NewWebApp failed: %v", err)
+	}
+	deployment, err := NewDeployment(app, WithMapping("/orders", servlet.HandlerFunc(func(context.Context, *servlet.Request, servlet.Response) error {
+		calls = append(calls, "handler")
+		return nil
+	}), servlet.FilterFunc(func(ctx context.Context, req *servlet.Request, res servlet.Response, chain servlet.Chain) error {
+		calls = append(calls, "filter")
+		return chain.Next(ctx, req, res)
+	})))
+	if err != nil {
+		t.Fatalf("NewDeployment failed: %v", err)
+	}
+	handler, err := deployment.Handler()
+	if err != nil {
+		t.Fatalf("Handler failed: %v", err)
+	}
+	req, err := servlet.NewRequest(httptest.NewRequest(http.MethodGet, "/orders", nil), servlet.WithDispatchType(servlet.DispatchForward))
+	if err != nil {
+		t.Fatalf("NewRequest failed: %v", err)
+	}
+	if err := handler.Serve(context.Background(), req, nil); err != nil {
+		t.Fatalf("Serve failed: %v", err)
+	}
+
+	want := []string{"handler"}
+	if !reflect.DeepEqual(calls, want) {
+		t.Fatalf("calls = %#v, want %#v", calls, want)
+	}
+}
+
 type recordingServlet struct {
 	calls *[]string
 }
@@ -75,5 +148,24 @@ func (s *recordingServlet) Serve(context.Context, *servlet.Request, servlet.Resp
 
 func (s *recordingServlet) Destroy(context.Context) error {
 	*s.calls = append(*s.calls, "destroy")
+	return nil
+}
+
+type recordingFilter struct {
+	calls *[]string
+}
+
+func (f *recordingFilter) Init(_ context.Context, cfg servlet.FilterConfig) error {
+	*f.calls = append(*f.calls, "filter-init:"+cfg.Name())
+	return nil
+}
+
+func (f *recordingFilter) Filter(ctx context.Context, req *servlet.Request, res servlet.Response, chain servlet.Chain) error {
+	*f.calls = append(*f.calls, "filter")
+	return chain.Next(ctx, req, res)
+}
+
+func (f *recordingFilter) Destroy(context.Context) error {
+	*f.calls = append(*f.calls, "filter-destroy")
 	return nil
 }
