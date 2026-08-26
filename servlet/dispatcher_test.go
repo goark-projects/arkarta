@@ -76,6 +76,44 @@ func TestDispatcherForwardRejectsCommittedResponse(t *testing.T) {
 	}
 }
 
+func TestDispatcherForwardAppliesQueryString(t *testing.T) {
+	t.Parallel()
+
+	router := NewRouter()
+	mustHandle(t, router, "/target", HandlerFunc(func(_ context.Context, req *Request, _ Response) error {
+		if req.QueryString() != "from=dispatcher&x=1" {
+			t.Fatalf("query string = %q, want dispatcher query", req.QueryString())
+		}
+		if req.Query().Get("from") != "dispatcher" {
+			t.Fatalf("from = %q, want dispatcher", req.Query().Get("from"))
+		}
+		value, ok, err := req.Parameter("x")
+		if err != nil {
+			t.Fatalf("Parameter failed: %v", err)
+		}
+		if !ok || value != "1" {
+			t.Fatalf("x = %q/%v, want 1/true", value, ok)
+		}
+		return nil
+	}))
+
+	req, err := NewRequest(httptest.NewRequest(http.MethodGet, "/source?from=source", nil))
+	if err != nil {
+		t.Fatalf("NewRequest failed: %v", err)
+	}
+	dispatcher, err := NewRequestDispatcher(router, "/target?from=dispatcher&x=1")
+	if err != nil {
+		t.Fatalf("NewRequestDispatcher failed: %v", err)
+	}
+
+	if err := dispatcher.Forward(context.Background(), req, newTestResponse()); err != nil {
+		t.Fatalf("Forward failed: %v", err)
+	}
+	if req.QueryString() != "from=source" {
+		t.Fatalf("query string restored = %q, want from=source", req.QueryString())
+	}
+}
+
 func TestDispatcherIncludeCannotChangeOuterStatusOrHeaders(t *testing.T) {
 	t.Parallel()
 

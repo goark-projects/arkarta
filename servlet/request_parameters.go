@@ -1,0 +1,93 @@
+package servlet
+
+import (
+	"mime"
+	"net/http"
+	"net/url"
+	"strings"
+)
+
+// ParseParameters 解析并缓存请求参数。
+func (r *Request) ParseParameters() error {
+	r.parametersOnce.Do(func() {
+		r.parameters, r.parametersErr = r.readParameters()
+	})
+	return r.parametersErr
+}
+
+// Parameters 返回查询串和表单体合并后的请求参数副本。
+func (r *Request) Parameters() (url.Values, error) {
+	if err := r.ParseParameters(); err != nil {
+		return nil, err
+	}
+	return cloneURLValues(r.parameters), nil
+}
+
+// Parameter 返回指定请求参数的第一个值。
+func (r *Request) Parameter(name string) (string, bool, error) {
+	values, err := r.Parameters()
+	if err != nil {
+		return "", false, err
+	}
+	list, ok := values[name]
+	if !ok || len(list) == 0 {
+		return "", false, nil
+	}
+	return list[0], true, nil
+}
+
+// ParameterValues 返回指定请求参数的全部值副本。
+func (r *Request) ParameterValues(name string) ([]string, bool, error) {
+	values, err := r.Parameters()
+	if err != nil {
+		return nil, false, err
+	}
+	list, ok := values[name]
+	if !ok {
+		return nil, false, nil
+	}
+	return append([]string(nil), list...), true, nil
+}
+
+func (r *Request) readParameters() (url.Values, error) {
+	values, err := url.ParseQuery(r.QueryString())
+	if err != nil {
+		return nil, err
+	}
+	if shouldParseFormParameters(r.httpRequest) {
+		if err := r.httpRequest.ParseForm(); err != nil {
+			return nil, err
+		}
+		for name, list := range r.httpRequest.PostForm {
+			values[name] = append(values[name], list...)
+		}
+	}
+	return values, nil
+}
+
+func shouldParseFormParameters(request *http.Request) bool {
+	if request == nil || request.Body == nil {
+		return false
+	}
+	switch request.Method {
+	case http.MethodPost, http.MethodPut, http.MethodPatch:
+	default:
+		return false
+	}
+	mediaType, _, err := mime.ParseMediaType(request.Header.Get("Content-Type"))
+	if err != nil {
+		return false
+	}
+	return strings.EqualFold(mediaType, "application/x-www-form-urlencoded")
+}
+
+func cloneURLValues(src url.Values) url.Values {
+	if len(src) == 0 {
+		return url.Values{}
+	}
+	dst := make(url.Values, len(src))
+	for key, values := range src {
+		dst[key] = append([]string(nil), values...)
+	}
+	return dst
+}

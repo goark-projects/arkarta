@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 
 	"goark.dev/arkarta/servlet"
@@ -30,6 +31,12 @@ func RunCoreHTTP(t *testing.T, factory HTTPHandlerFactory) {
 	})
 	t.Run("uses_servlet_mapping_priority", func(t *testing.T) {
 		runMappingPriority(t, factory)
+	})
+	t.Run("exposes_request_parameters", func(t *testing.T) {
+		runRequestParameters(t, factory)
+	})
+	t.Run("exposes_mapping_elements", func(t *testing.T) {
+		runMappingElements(t, factory)
 	})
 }
 
@@ -144,6 +151,57 @@ func runMappingPriority(t *testing.T, factory HTTPHandlerFactory) {
 		if recorder.Body.String() != want {
 			t.Fatalf("%s body = %q, want %q", path, recorder.Body.String(), want)
 		}
+	}
+}
+
+func runRequestParameters(t *testing.T, factory HTTPHandlerFactory) {
+	t.Helper()
+	handler := servlet.HandlerFunc(func(_ context.Context, req *servlet.Request, res servlet.Response) error {
+		values, ok, err := req.ParameterValues("q")
+		if err != nil {
+			t.Fatalf("ParameterValues failed: %v", err)
+		}
+		want := []string{"query", "form"}
+		if !ok || !reflect.DeepEqual(values, want) {
+			t.Fatalf("q values = %#v/%v, want %#v/true", values, ok, want)
+		}
+		body, _, err := req.Parameter("body")
+		if err != nil {
+			t.Fatalf("Parameter failed: %v", err)
+		}
+		_, err = res.WriteString(body)
+		return err
+	})
+
+	request := httptest.NewRequest(http.MethodPost, "/params?q=query", strings.NewReader("q=form&body=ok"))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	recorder := httptest.NewRecorder()
+	factory(handler).ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK || recorder.Body.String() != "ok" {
+		t.Fatalf("status/body = %d/%q, want 200/ok", recorder.Code, recorder.Body.String())
+	}
+}
+
+func runMappingElements(t *testing.T, factory HTTPHandlerFactory) {
+	t.Helper()
+	router := servlet.NewRouter()
+	mustHandle(t, router, "/api/*", servlet.HandlerFunc(func(_ context.Context, req *servlet.Request, res servlet.Response) error {
+		if req.Mapping().Type() != servlet.MappingPrefix {
+			t.Fatalf("mapping type = %v, want prefix", req.Mapping().Type())
+		}
+		if req.ServletPath() != "/api" || req.PathInfo() != "/orders" {
+			t.Fatalf("mapping paths = %q/%q, want /api//orders", req.ServletPath(), req.PathInfo())
+		}
+		_, err := res.WriteString(req.Mapping().Pattern())
+		return err
+	}))
+
+	recorder := httptest.NewRecorder()
+	factory(router).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/api/orders", nil))
+
+	if recorder.Code != http.StatusOK || recorder.Body.String() != "/api/*" {
+		t.Fatalf("status/body = %d/%q, want 200//api/*", recorder.Code, recorder.Body.String())
 	}
 }
 

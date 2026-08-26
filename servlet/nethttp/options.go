@@ -11,3 +11,10 @@ func WithErrorPages(registry *servlet.ErrorPageRegistry) Option {
 		adapter.errorPages = registry
 	}
 }
+
+// WithRequestContextPath 设置适配器创建请求时使用的 Web 应用上下文路径。
+func WithRequestContextPath(contextPath string) Option {
+	return func(adapter *adapter) {
+		adapter.requestOptions = append(adapter.requestOptions, servlet.WithRequestContextPath(contextPath))
+	}
+}

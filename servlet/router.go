@@ -31,6 +31,22 @@ type prefixRoute struct {
 	handler Handler
 }
 
+// RouteMatch 表示一次路由匹配结果。
+type RouteMatch struct {
+	handler Handler
+	mapping RequestMapping
+}
+
+// Handler 返回命中的处理器。
+func (m RouteMatch) Handler() Handler {
+	return m.handler
+}
+
+// Mapping 返回命中的 Servlet 映射信息。
+func (m RouteMatch) Mapping() RequestMapping {
+	return m.mapping
+}
+
 // NewRouter 创建空路由器。
 func NewRouter() *Router {
 	return &Router{
@@ -86,6 +102,15 @@ func (r *Router) Handle(pattern string, handler Handler) error {
 
 // Match 按 Servlet 映射优先级查找处理器。
 func (r *Router) Match(path string) (Handler, bool) {
+	match, ok := r.MatchRoute(path)
+	if !ok {
+		return nil, false
+	}
+	return match.Handler(), true
+}
+
+// MatchRoute 按 Servlet 映射优先级查找处理器和映射信息。
+func (r *Router) MatchRoute(path string) (RouteMatch, bool) {
 	if path == "" {
 		path = "/"
 	}
@@ -94,31 +119,64 @@ func (r *Router) Match(path string) (Handler, bool) {
 	defer r.mu.RUnlock()
 
 	if handler, ok := r.exact[path]; ok {
-		return handler, true
+		return RouteMatch{
+			handler: handler,
+			mapping: newRequestMapping(
+				path,
+				MappingExact,
+				path,
+				"",
+			),
+		}, true
 	}
 	for _, route := range r.prefix {
 		if matchPrefix(path, route.prefix) {
-			return route.handler, true
+			return RouteMatch{
+				handler: route.handler,
+				mapping: newRequestMapping(
+					route.pattern,
+					MappingPrefix,
+					route.prefix,
+					prefixPathInfo(path, route.prefix),
+				),
+			}, true
 		}
 	}
 	if ext := extensionOf(path); ext != "" {
 		if handler, ok := r.extension[ext]; ok {
-			return handler, true
+			return RouteMatch{
+				handler: handler,
+				mapping: newRequestMapping(
+					"*"+ext,
+					MappingExtension,
+					path,
+					"",
+				),
+			}, true
 		}
 	}
 	if r.defaultH != nil {
-		return r.defaultH, true
+		return RouteMatch{
+			handler: r.defaultH,
+			mapping: newRequestMapping(
+				"/",
+				MappingDefault,
+				path,
+				"",
+			),
+		}, true
 	}
-	return nil, false
+	return RouteMatch{}, false
 }
 
 // Serve 查找匹配处理器并执行。
 func (r *Router) Serve(ctx context.Context, req *Request, res Response) error {
-	handler, ok := r.Match(req.Path())
+	match, ok := r.MatchRoute(req.Path())
 	if !ok {
 		return NewHTTPError(http.StatusNotFound, http.StatusText(http.StatusNotFound), nil)
 	}
-	return handler.Serve(ctx, req, res)
+	req.applyMapping(match.Mapping())
+	return match.Handler().Serve(ctx, req, res)
 }
 
 type mappingKind uint8
@@ -161,6 +219,19 @@ func matchPrefix(path, prefix string) bool {
 		return true
 	}
 	return path == prefix || strings.HasPrefix(path, prefix+"/")
+}
+
+func prefixPathInfo(path, prefix string) string {
+	if prefix == "/" {
+		if path == "/" {
+			return ""
+		}
+		return path
+	}
+	if path == prefix {
+		return ""
+	}
+	return strings.TrimPrefix(path, prefix)
 }
 
 func extensionOf(path string) string {

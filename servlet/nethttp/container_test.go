@@ -51,6 +51,47 @@ func TestContainerDeploysApplicationAndServesHTTP(t *testing.T) {
 	}
 }
 
+func TestContainerServesApplicationRelativePath(t *testing.T) {
+	t.Parallel()
+
+	app, err := servlet.NewWebApp("orders", servlet.WithContextPath("/orders"))
+	if err != nil {
+		t.Fatalf("NewWebApp failed: %v", err)
+	}
+	deployment, err := servletcontainer.NewDeployment(app,
+		servletcontainer.WithMapping("/items", servlet.HandlerFunc(func(_ context.Context, req *servlet.Request, res servlet.Response) error {
+			if req.ContextPath() != "/orders" {
+				t.Fatalf("context path = %q, want /orders", req.ContextPath())
+			}
+			if req.Path() != "/items" {
+				t.Fatalf("path = %q, want /items", req.Path())
+			}
+			_, err := res.WriteString(req.ServletPath())
+			return err
+		})),
+	)
+	if err != nil {
+		t.Fatalf("NewDeployment failed: %v", err)
+	}
+	container := NewContainer()
+	if _, err := container.Deploy(context.Background(), deployment); err != nil {
+		t.Fatalf("Deploy failed: %v", err)
+	}
+	if err := container.Start(context.Background()); err != nil {
+		t.Fatalf("Start failed: %v", err)
+	}
+
+	recorder := httptest.NewRecorder()
+	container.Handler().ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/orders/items", nil))
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", recorder.Code)
+	}
+	if recorder.Body.String() != "/items" {
+		t.Fatalf("body = %q, want /items", recorder.Body.String())
+	}
+}
+
 func TestContainerMetadataUsesReleaseVersion(t *testing.T) {
 	t.Parallel()
 

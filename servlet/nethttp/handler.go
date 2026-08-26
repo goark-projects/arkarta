@@ -33,8 +33,9 @@ func ServeHTTP(writer http.ResponseWriter, request *http.Request, handler servle
 }
 
 type adapter struct {
-	handler    servlet.Handler
-	errorPages *servlet.ErrorPageRegistry
+	handler        servlet.Handler
+	errorPages     *servlet.ErrorPageRegistry
+	requestOptions []servlet.RequestOption
 }
 
 func (a *adapter) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
@@ -43,7 +44,7 @@ func (a *adapter) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 		writeError(response, servlet.NewHTTPError(http.StatusInternalServerError, "handler is nil", servlet.ErrNilHandler))
 		return
 	}
-	req, err := servlet.NewRequest(request)
+	req, err := servlet.NewRequest(request, a.requestOptions...)
 	if err != nil {
 		writeError(response, err)
 		return

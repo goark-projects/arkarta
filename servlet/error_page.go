@@ -65,7 +65,7 @@ func (r *ErrorPageRegistry) Handle(ctx context.Context, req *Request, res Respon
 	req.SetAttribute(AttributeErrorRequestURI, req.Path())
 
 	snapshot := req.dispatchSnapshot()
-	req.applyDispatch(req.Path(), DispatchError)
+	req.applyDispatch(req.Path(), snapshot.queryString, DispatchError)
 	defer req.restoreDispatch(snapshot)
 	return true, handler.Serve(ctx, req, res)
 }

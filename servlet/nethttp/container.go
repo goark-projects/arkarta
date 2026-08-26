@@ -103,7 +103,11 @@ func (c *Container) Handler() http.Handler {
 			http.NotFound(writer, request)
 			return
 		}
-		Handler(application.Handler()).ServeHTTP(writer, request)
+		var options []Option
+		if webApp := application.WebApp(); webApp != nil {
+			options = append(options, WithRequestContextPath(webApp.ContextPath()))
+		}
+		HandlerWithOptions(application.Handler(), options...).ServeHTTP(writer, request)
 	})
 }
 

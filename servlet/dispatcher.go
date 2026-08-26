@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/url"
+	"strings"
 )
 
 // ErrNilRouter 表示 RequestDispatcher 缺少路由器。
@@ -21,8 +23,10 @@ type RequestDispatcher interface {
 
 // Dispatcher 是基于 Router 的 RequestDispatcher 实现。
 type Dispatcher struct {
-	router *Router
-	path   string
+	router      *Router
+	path        string
+	queryString string
+	hasQuery    bool
 }
 
 // NewRequestDispatcher 创建指定目标路径的请求分发器。
@@ -30,10 +34,11 @@ func NewRequestDispatcher(router *Router, path string) (*Dispatcher, error) {
 	if router == nil {
 		return nil, ErrNilRouter
 	}
-	if path == "" || path[0] != '/' {
+	targetPath, queryString, hasQuery, err := splitDispatcherPath(path)
+	if err != nil {
 		return nil, ErrInvalidMappingPattern
 	}
-	return &Dispatcher{router: router, path: path}, nil
+	return &Dispatcher{router: router, path: targetPath, queryString: queryString, hasQuery: hasQuery}, nil
 }
 
 // Forward 在响应提交前转发请求。
@@ -74,13 +79,34 @@ func (d *Dispatcher) dispatch(ctx context.Context, req *Request, res Response, d
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	handler, ok := d.router.Match(d.path)
+	match, ok := d.router.MatchRoute(d.path)
 	if !ok {
 		return ErrDispatcherTargetNotFound
 	}
 
 	snapshot := req.dispatchSnapshot()
-	req.applyDispatch(d.path, dispatchType)
+	queryString := snapshot.queryString
+	if d.hasQuery {
+		queryString = d.queryString
+	}
+	req.applyDispatch(d.path, queryString, dispatchType)
+	req.applyMapping(match.Mapping())
 	defer req.restoreDispatch(snapshot)
-	return handler.Serve(ctx, req, res)
+	return match.Handler().Serve(ctx, req, res)
+}
+
+func splitDispatcherPath(path string) (string, string, bool, error) {
+	if path == "" || path[0] != '/' {
+		return "", "", false, ErrInvalidMappingPattern
+	}
+	targetPath, queryString, hasQuery := strings.Cut(path, "?")
+	if targetPath == "" || strings.Contains(targetPath, "*") {
+		return "", "", false, ErrInvalidMappingPattern
+	}
+	if queryString != "" {
+		if _, err := url.ParseQuery(queryString); err != nil {
+			return "", "", false, err
+		}
+	}
+	return targetPath, queryString, hasQuery, nil
 }

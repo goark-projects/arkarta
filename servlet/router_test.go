@@ -47,6 +47,35 @@ func TestRouterUsesServletMappingPriority(t *testing.T) {
 	}
 }
 
+func TestRouterAppliesServletMappingElements(t *testing.T) {
+	t.Parallel()
+
+	router := NewRouter()
+	mustHandle(t, router, "/orders/*", HandlerFunc(func(_ context.Context, req *Request, _ Response) error {
+		if req.Mapping().Type() != MappingPrefix {
+			t.Fatalf("mapping type = %v, want prefix", req.Mapping().Type())
+		}
+		if req.Mapping().Pattern() != "/orders/*" {
+			t.Fatalf("mapping pattern = %q, want /orders/*", req.Mapping().Pattern())
+		}
+		if req.ServletPath() != "/orders" {
+			t.Fatalf("servlet path = %q, want /orders", req.ServletPath())
+		}
+		if req.PathInfo() != "/42" {
+			t.Fatalf("path info = %q, want /42", req.PathInfo())
+		}
+		return nil
+	}))
+
+	req, err := NewRequest(httptest.NewRequest(http.MethodGet, "/orders/42", nil))
+	if err != nil {
+		t.Fatalf("NewRequest failed: %v", err)
+	}
+	if err := router.Serve(context.Background(), req, nil); err != nil {
+		t.Fatalf("Serve failed: %v", err)
+	}
+}
+
 func TestRouterReturnsNotFoundWithoutDefaultMapping(t *testing.T) {
 	t.Parallel()
 

@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 )
 
@@ -42,7 +43,17 @@ func WithDispatchType(dispatchType DispatchType) RequestOption {
 type Request struct {
 	httpRequest  *http.Request
 	dispatchType DispatchType
+	requestURI   string
+	queryString  string
+	contextPath  string
 	path         string
+	servletPath  string
+	pathInfo     string
+	mapping      RequestMapping
+
+	parametersOnce sync.Once
+	parameters     url.Values
+	parametersErr  error
 
 	mu        sync.RWMutex
 	attribute map[string]any
@@ -56,6 +67,8 @@ func NewRequest(httpRequest *http.Request, options ...RequestOption) (*Request, 
 	req := &Request{
 		httpRequest:  httpRequest,
 		dispatchType: DispatchRequest,
+		requestURI:   requestURI(httpRequest),
+		queryString:  requestQueryString(httpRequest),
 		path:         requestPath(httpRequest),
 		attribute:    make(map[string]any),
 	}
@@ -98,6 +111,32 @@ func (r *Request) Host() string {
 	return r.httpRequest.Host
 }
 
+// RequestURI 返回不含查询串的原始请求 URI 路径。
+func (r *Request) RequestURI() string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.requestURI
+}
+
+// RequestURL 返回不含查询串的完整请求 URL。
+func (r *Request) RequestURL() string {
+	return r.Scheme() + "://" + r.Host() + r.RequestURI()
+}
+
+// QueryString 返回当前分发视图下的原始查询串。
+func (r *Request) QueryString() string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.queryString
+}
+
+// ContextPath 返回 Web 应用上下文路径。
+func (r *Request) ContextPath() string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.contextPath
+}
+
 // Path 返回 URL 路径。
 func (r *Request) Path() string {
 	r.mu.RLock()
@@ -107,10 +146,32 @@ func (r *Request) Path() string {
 
 // Query 返回 URL 查询参数副本。
 func (r *Request) Query() url.Values {
-	if r.httpRequest.URL == nil {
+	values, err := url.ParseQuery(r.QueryString())
+	if err != nil {
 		return url.Values{}
 	}
-	return r.httpRequest.URL.Query()
+	return cloneURLValues(values)
+}
+
+// ServletPath 返回匹配到当前 Servlet 的路径前缀。
+func (r *Request) ServletPath() string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.servletPath
+}
+
+// PathInfo 返回除 ServletPath 外的剩余路径。
+func (r *Request) PathInfo() string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.pathInfo
+}
+
+// Mapping 返回当前请求命中的 Servlet 映射信息。
+func (r *Request) Mapping() RequestMapping {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.mapping
 }
 
 // Header 返回请求头。
@@ -176,7 +237,11 @@ func (r *Request) HTTPRequest() *http.Request {
 
 type dispatchSnapshot struct {
 	path         string
+	queryString  string
 	dispatchType DispatchType
+	servletPath  string
+	pathInfo     string
+	mapping      RequestMapping
 }
 
 func (r *Request) dispatchSnapshot() dispatchSnapshot {
@@ -184,14 +249,19 @@ func (r *Request) dispatchSnapshot() dispatchSnapshot {
 	defer r.mu.RUnlock()
 	return dispatchSnapshot{
 		path:         r.path,
+		queryString:  r.queryString,
 		dispatchType: r.dispatchType,
+		servletPath:  r.servletPath,
+		pathInfo:     r.pathInfo,
+		mapping:      r.mapping,
 	}
 }
 
-func (r *Request) applyDispatch(path string, dispatchType DispatchType) {
+func (r *Request) applyDispatch(path, queryString string, dispatchType DispatchType) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.path = path
+	r.queryString = queryString
 	r.dispatchType = dispatchType
 }
 
@@ -199,7 +269,19 @@ func (r *Request) restoreDispatch(snapshot dispatchSnapshot) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.path = snapshot.path
+	r.queryString = snapshot.queryString
 	r.dispatchType = snapshot.dispatchType
+	r.servletPath = snapshot.servletPath
+	r.pathInfo = snapshot.pathInfo
+	r.mapping = snapshot.mapping
+}
+
+func (r *Request) applyMapping(mapping RequestMapping) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.servletPath = mapping.ServletPath()
+	r.pathInfo = mapping.PathInfo()
+	r.mapping = mapping
 }
 
 func requestPath(httpRequest *http.Request) string {
@@ -207,4 +289,61 @@ func requestPath(httpRequest *http.Request) string {
 		return ""
 	}
 	return httpRequest.URL.Path
+}
+
+func requestURI(httpRequest *http.Request) string {
+	if httpRequest.URL == nil {
+		return ""
+	}
+	if uri := httpRequest.URL.EscapedPath(); uri != "" {
+		return uri
+	}
+	if httpRequest.URL.Path != "" {
+		return httpRequest.URL.Path
+	}
+	return "/"
+}
+
+func requestQueryString(httpRequest *http.Request) string {
+	if httpRequest.URL == nil {
+		return ""
+	}
+	return httpRequest.URL.RawQuery
+}
+
+// WithRequestContextPath 设置请求所属 Web 应用的上下文路径。
+func WithRequestContextPath(contextPath string) RequestOption {
+	return func(req *Request) {
+		req.contextPath = normalizeRequestContextPath(contextPath)
+		req.path = stripRequestContextPath(requestPath(req.httpRequest), req.contextPath)
+		req.servletPath = ""
+		req.pathInfo = ""
+		req.mapping = RequestMapping{}
+	}
+}
+
+func normalizeRequestContextPath(contextPath string) string {
+	if contextPath == "" || contextPath == "/" {
+		return ""
+	}
+	if !strings.HasPrefix(contextPath, "/") {
+		contextPath = "/" + contextPath
+	}
+	return strings.TrimRight(contextPath, "/")
+}
+
+func stripRequestContextPath(path, contextPath string) string {
+	if path == "" {
+		return ""
+	}
+	if contextPath == "" {
+		return path
+	}
+	if path == contextPath {
+		return "/"
+	}
+	if strings.HasPrefix(path, contextPath+"/") {
+		return strings.TrimPrefix(path, contextPath)
+	}
+	return path
 }
