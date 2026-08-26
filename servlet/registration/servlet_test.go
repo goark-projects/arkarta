@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"goark.dev/arkarta/servlet"
+	"goark.dev/arkarta/servlet/multipart"
 	"goark.dev/arkarta/servlet/registration"
 )
 
@@ -57,6 +58,14 @@ func TestServletRegistrationMappingsAndSnapshot(t *testing.T) {
 	if err := orders.SetRunAsRole("admin"); err != nil {
 		t.Fatalf("SetRunAsRole failed: %v", err)
 	}
+	config := multipart.NewConfig(
+		multipart.WithMaxFileSize(1024),
+		multipart.WithMaxRequestSize(4096),
+		multipart.WithFileSizeThreshold(128),
+	)
+	if err := orders.SetMultipartConfig(config); err != nil {
+		t.Fatalf("SetMultipartConfig failed: %v", err)
+	}
 
 	other, err := registry.AddServlet("other", servlet.HandlerFunc(noopServe))
 	if err != nil {
@@ -87,6 +96,10 @@ func TestServletRegistrationMappingsAndSnapshot(t *testing.T) {
 	}
 	if !reflect.DeepEqual(first.Mappings(), []string{"/orders", "/orders/*"}) {
 		t.Fatalf("mappings = %#v, want orders mappings", first.Mappings())
+	}
+	gotConfig, ok := first.MultipartConfig()
+	if !ok || gotConfig.MaxFileSize() != 1024 || gotConfig.MaxRequestSize() != 4096 || gotConfig.FileSizeThreshold() != 128 {
+		t.Fatalf("multipart config = %#v/%v", gotConfig, ok)
 	}
 	params := first.InitParams()
 	params["encoding"] = "changed"

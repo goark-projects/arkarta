@@ -1,6 +1,9 @@
 package registration
 
-import "goark.dev/arkarta/servlet"
+import (
+	"goark.dev/arkarta/servlet"
+	"goark.dev/arkarta/servlet/multipart"
+)
 
 // ServletDescriptor 是 Servlet 注册元数据快照。
 type ServletDescriptor struct {
@@ -13,6 +16,7 @@ type ServletDescriptor struct {
 	loadOnStartup    int
 	hasLoadOnStartup bool
 	runAsRole        string
+	multipartConfig  *multipart.Config
 }
 
 // FilterDescriptor 是 Filter 注册元数据快照。
@@ -72,6 +76,14 @@ func (d ServletDescriptor) LoadOnStartup() (int, bool) {
 // RunAsRole 返回 Servlet 执行身份角色。
 func (d ServletDescriptor) RunAsRole() string {
 	return d.runAsRole
+}
+
+// MultipartConfig 返回 Servlet multipart 解析配置。
+func (d ServletDescriptor) MultipartConfig() (multipart.Config, bool) {
+	if d.multipartConfig == nil {
+		return multipart.Config{}, false
+	}
+	return *d.multipartConfig, true
 }
 
 // Name 返回 Filter 名称。
@@ -140,6 +152,7 @@ func (r *ServletRegistration) descriptorLocked() ServletDescriptor {
 		loadOnStartup:    r.loadOnStartup,
 		hasLoadOnStartup: r.hasLoadOnStartup,
 		runAsRole:        r.runAsRole,
+		multipartConfig:  cloneMultipartConfig(r.multipartConfig),
 	}
 }
 
@@ -153,6 +166,14 @@ func (r *FilterRegistration) descriptorLocked() FilterDescriptor {
 		urlPatternMappings:  cloneURLPatternMappings(r.urlPatternMappings),
 		servletNameMappings: cloneServletNameMappings(r.servletNameMappings),
 	}
+}
+
+func cloneMultipartConfig(src *multipart.Config) *multipart.Config {
+	if src == nil {
+		return nil
+	}
+	dst := *src
+	return &dst
 }
 
 func (r *ListenerRegistration) descriptorLocked() ListenerDescriptor {

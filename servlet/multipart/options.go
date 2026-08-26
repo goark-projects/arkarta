@@ -20,3 +20,19 @@ func WithMaxBodySize(maxBodySize int64) Option {
 		parser.maxBodySize = maxBodySize
 	}
 }
+
+// WithParserMaxFileSize 设置单个文件大小上限。
+func WithParserMaxFileSize(maxFileSize int64) Option {
+	return func(parser *Parser) {
+		parser.maxFileSize = maxFileSize
+	}
+}
+
+// WithConfig 使用 multipart 配置创建解析器选项。
+func WithConfig(config Config) Option {
+	return func(parser *Parser) {
+		for _, option := range config.ParserOptions() {
+			option(parser)
+		}
+	}
+}
