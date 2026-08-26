@@ -4,6 +4,7 @@ import (
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"testing/fstest"
 	"time"
@@ -57,6 +58,52 @@ func RunStaticResources(t *testing.T, factory HTTPHandlerFactory) {
 		factory(handler).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/docs", nil))
 		if recorder.Code != http.StatusOK || recorder.Body.String() != "welcome" {
 			t.Fatalf("status/body = %d/%q, want 200/welcome", recorder.Code, recorder.Body.String())
+		}
+	})
+	t.Run("if_range_mismatch_serves_full_body", func(t *testing.T) {
+		t.Helper()
+		handler := staticResourceHandler(t)
+		request := httptest.NewRequest(http.MethodGet, "/public/app.json", nil)
+		request.Header.Set("Range", "bytes=1-4")
+		request.Header.Set("If-Range", `"strong-but-stale"`)
+		recorder := httptest.NewRecorder()
+		factory(handler).ServeHTTP(recorder, request)
+		if recorder.Code != http.StatusOK || recorder.Body.String() != `{"ok":true}` {
+			t.Fatalf("status/body = %d/%q, want 200/full body", recorder.Code, recorder.Body.String())
+		}
+		if recorder.Header().Get("Content-Range") != "" {
+			t.Fatalf("Content-Range = %q, want empty", recorder.Header().Get("Content-Range"))
+		}
+	})
+	t.Run("weak_if_range_does_not_allow_range", func(t *testing.T) {
+		t.Helper()
+		handler := staticResourceHandler(t)
+		request := httptest.NewRequest(http.MethodGet, "/public/app.json", nil)
+		request.Header.Set("Range", "bytes=1-4")
+		request.Header.Set("If-Range", `W/"weak"`)
+		recorder := httptest.NewRecorder()
+		factory(handler).ServeHTTP(recorder, request)
+		if recorder.Code != http.StatusOK || recorder.Body.String() != `{"ok":true}` {
+			t.Fatalf("status/body = %d/%q, want 200/full body", recorder.Code, recorder.Body.String())
+		}
+	})
+	t.Run("serves_multiple_ranges", func(t *testing.T) {
+		t.Helper()
+		handler := staticResourceHandler(t)
+		request := httptest.NewRequest(http.MethodGet, "/public/app.json", nil)
+		request.Header.Set("Range", "bytes=0-0,2-3")
+		recorder := httptest.NewRecorder()
+		factory(handler).ServeHTTP(recorder, request)
+		if recorder.Code != http.StatusPartialContent {
+			t.Fatalf("status = %d, want 206", recorder.Code)
+		}
+		if contentType := recorder.Header().Get("Content-Type"); !strings.HasPrefix(contentType, "multipart/byteranges; boundary=") {
+			t.Fatalf("Content-Type = %q, want multipart/byteranges", contentType)
+		}
+		body := recorder.Body.String()
+		if !strings.Contains(body, "Content-Range: bytes 0-0/11") ||
+			!strings.Contains(body, "Content-Range: bytes 2-3/11") {
+			t.Fatalf("multi-range body = %q, want both content ranges", body)
 		}
 	})
 }

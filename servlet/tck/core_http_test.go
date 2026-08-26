@@ -24,6 +24,12 @@ func TestRunSessionManagerWithMemoryManager(t *testing.T) {
 	})
 }
 
+func TestRunMemorySessionProfile(t *testing.T) {
+	tck.RunMemorySessionProfile(t, func(options ...session.MemoryManagerOption) *session.MemoryManager {
+		return session.NewMemoryManager(options...)
+	})
+}
+
 func TestRunSessionRequestBindingWithMemoryManager(t *testing.T) {
 	tck.RunSessionRequestBinding(t, func() session.Manager {
 		return session.NewMemoryManager()
@@ -50,6 +56,14 @@ func TestRunMultipartParser(t *testing.T) {
 	tck.RunMultipartParser(t, func(options ...multipart.Option) *multipart.Parser {
 		return multipart.NewParser(options...)
 	})
+}
+
+func TestRunAsyncLifecycle(t *testing.T) {
+	tck.RunAsyncLifecycle(t)
+}
+
+func TestRunSecurity(t *testing.T) {
+	tck.RunSecurity(t)
 }
 
 func TestRunRegistration(t *testing.T) {
