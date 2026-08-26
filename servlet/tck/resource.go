@@ -1,6 +1,7 @@
 package tck
 
 import (
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -35,6 +36,15 @@ func RunStaticResources(t *testing.T, factory HTTPHandlerFactory) {
 			t.Fatalf("status/body length = %d/%d, want 200/0", recorder.Code, recorder.Body.Len())
 		}
 	})
+	t.Run("serves_welcome_file", func(t *testing.T) {
+		t.Helper()
+		handler := staticResourceHandler(t)
+		recorder := httptest.NewRecorder()
+		factory(handler).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/docs", nil))
+		if recorder.Code != http.StatusOK || recorder.Body.String() != "welcome" {
+			t.Fatalf("status/body = %d/%q, want 200/welcome", recorder.Code, recorder.Body.String())
+		}
+	})
 }
 
 func staticResourceHandler(t *testing.T) servlet.Handler {
@@ -44,6 +54,8 @@ func staticResourceHandler(t *testing.T) servlet.Handler {
 			Data:    []byte(`{"ok":true}`),
 			ModTime: time.Date(2026, 8, 26, 10, 0, 0, 0, time.UTC),
 		},
+		"docs":            &fstest.MapFile{Mode: 0o755 | fs.ModeDir},
+		"docs/index.html": &fstest.MapFile{Data: []byte("welcome")},
 	})
 	if err != nil {
 		t.Fatalf("NewFSProvider failed: %v", err)

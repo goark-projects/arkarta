@@ -13,15 +13,31 @@ import (
 
 // DefaultServlet 负责按 Servlet default mapping 语义写出静态资源。
 type DefaultServlet struct {
-	provider Provider
+	provider     Provider
+	welcomeFiles []string
 }
 
+// DefaultServletOption 定制 default servlet 行为。
+type DefaultServletOption func(*DefaultServlet) error
+
 // NewDefaultServlet 创建静态资源 default servlet。
-func NewDefaultServlet(provider Provider) (*DefaultServlet, error) {
+func NewDefaultServlet(provider Provider, options ...DefaultServletOption) (*DefaultServlet, error) {
 	if provider == nil {
 		return nil, ErrNilProvider
 	}
-	return &DefaultServlet{provider: provider}, nil
+	servlet := &DefaultServlet{
+		provider:     provider,
+		welcomeFiles: cloneStrings(defaultWelcomeFiles),
+	}
+	for _, option := range options {
+		if option == nil {
+			continue
+		}
+		if err := option(servlet); err != nil {
+			return nil, err
+		}
+	}
+	return servlet, nil
 }
 
 // Serve 按请求路径写出静态资源。
@@ -36,7 +52,7 @@ func (s *DefaultServlet) Serve(ctx context.Context, req *servlet.Request, res se
 		res.Header().Set("Allow", http.MethodGet+", "+http.MethodHead)
 		return servlet.NewHTTPError(http.StatusMethodNotAllowed, http.StatusText(http.StatusMethodNotAllowed), nil)
 	}
-	item, err := s.provider.Open(ctx, resourcePath(req))
+	item, err := s.openResource(ctx, resourcePath(req))
 	if err != nil {
 		return mapResourceError(err)
 	}
@@ -60,6 +76,14 @@ func resourcePath(req *servlet.Request) string {
 		return pathInfo
 	}
 	return req.Path()
+}
+
+func (s *DefaultServlet) openResource(ctx context.Context, path string) (Resource, error) {
+	item, err := s.provider.Open(ctx, path)
+	if errors.Is(err, ErrDirectory) {
+		return s.openWelcome(ctx, path)
+	}
+	return item, err
 }
 
 func writeResourceHeaders(res servlet.Response, item Resource) {
