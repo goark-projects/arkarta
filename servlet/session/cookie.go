@@ -2,6 +2,7 @@ package session
 
 import (
 	"net/http"
+	"strings"
 
 	"goark.dev/arkarta/servlet"
 )
@@ -9,6 +10,8 @@ import (
 const (
 	// DefaultCookieName 是 Servlet 生态默认的会话 Cookie 名称。
 	DefaultCookieName = "JSESSIONID"
+	// AttributeCookieConfig 保存 WebApp 级 Session Cookie 配置。
+	AttributeCookieConfig = "arkarta.servlet.session.cookie_config"
 )
 
 // CookieConfig 描述会话 Cookie 的写出策略。
@@ -20,6 +23,82 @@ type CookieConfig struct {
 	secure   bool
 	httpOnly bool
 	sameSite http.SameSite
+}
+
+// CookieConfigOption 定制 Session Cookie 配置。
+type CookieConfigOption func(*CookieConfig) error
+
+// NewCookieConfig 创建 Session Cookie 配置。
+func NewCookieConfig(options ...CookieConfigOption) (CookieConfig, error) {
+	config := defaultCookieConfig()
+	for _, option := range options {
+		if option == nil {
+			continue
+		}
+		if err := option(&config); err != nil {
+			return CookieConfig{}, err
+		}
+	}
+	return config, nil
+}
+
+// WithCookieConfigName 设置 Session Cookie 名称。
+func WithCookieConfigName(name string) CookieConfigOption {
+	return func(config *CookieConfig) error {
+		if !validCookieName(name) {
+			return ErrInvalidCookieConfig
+		}
+		config.name = name
+		return nil
+	}
+}
+
+// WithCookieConfigPath 设置 Session Cookie Path。
+func WithCookieConfigPath(path string) CookieConfigOption {
+	return func(config *CookieConfig) error {
+		config.path = path
+		return nil
+	}
+}
+
+// WithCookieConfigDomain 设置 Session Cookie Domain。
+func WithCookieConfigDomain(domain string) CookieConfigOption {
+	return func(config *CookieConfig) error {
+		config.domain = domain
+		return nil
+	}
+}
+
+// WithCookieConfigMaxAge 设置 Session Cookie Max-Age。
+func WithCookieConfigMaxAge(maxAge int) CookieConfigOption {
+	return func(config *CookieConfig) error {
+		config.maxAge = maxAge
+		return nil
+	}
+}
+
+// WithCookieConfigSecure 设置是否强制写出 Secure。
+func WithCookieConfigSecure(secure bool) CookieConfigOption {
+	return func(config *CookieConfig) error {
+		config.secure = secure
+		return nil
+	}
+}
+
+// WithCookieConfigHTTPOnly 设置是否写出 HttpOnly。
+func WithCookieConfigHTTPOnly(httpOnly bool) CookieConfigOption {
+	return func(config *CookieConfig) error {
+		config.httpOnly = httpOnly
+		return nil
+	}
+}
+
+// WithCookieConfigSameSite 设置 SameSite 策略。
+func WithCookieConfigSameSite(sameSite http.SameSite) CookieConfigOption {
+	return func(config *CookieConfig) error {
+		config.sameSite = sameSite
+		return nil
+	}
 }
 
 func defaultCookieConfig() CookieConfig {
@@ -83,4 +162,47 @@ func (c CookieConfig) cookie(req *servlet.Request, id string) *http.Cookie {
 		HttpOnly: c.httpOnly,
 		SameSite: c.sameSite,
 	}
+}
+
+// ConfigureCookie 将 Session Cookie 配置绑定到 WebApp。
+func ConfigureCookie(app *servlet.WebApp, config CookieConfig) error {
+	if app == nil || !validCookieName(config.name) {
+		return ErrInvalidCookieConfig
+	}
+	switch app.State() {
+	case servlet.WebAppStateNew, servlet.WebAppStateInitialized:
+		app.SetAttribute(AttributeCookieConfig, config)
+		return nil
+	default:
+		return ErrCookieConfigLocked
+	}
+}
+
+// CookieConfigFor 返回 WebApp 级 Session Cookie 配置。
+func CookieConfigFor(app *servlet.WebApp) (CookieConfig, bool) {
+	if app == nil {
+		return CookieConfig{}, false
+	}
+	value, ok := app.Attribute(AttributeCookieConfig)
+	if !ok {
+		return CookieConfig{}, false
+	}
+	config, ok := value.(CookieConfig)
+	return config, ok
+}
+
+func validCookieName(name string) bool {
+	if strings.TrimSpace(name) == "" {
+		return false
+	}
+	for _, r := range name {
+		if r <= 0x20 || r >= 0x7f {
+			return false
+		}
+		switch r {
+		case '(', ')', '<', '>', '@', ',', ';', ':', '\\', '"', '/', '[', ']', '?', '=', '{', '}':
+			return false
+		}
+	}
+	return true
 }

@@ -8,10 +8,21 @@ type AccessorOption func(*Accessor) error
 // WithCookieName 设置会话 Cookie 名称。
 func WithCookieName(name string) AccessorOption {
 	return func(accessor *Accessor) error {
-		if name == "" {
+		if !validCookieName(name) {
 			return ErrInvalidCookieConfig
 		}
 		accessor.cookie.name = name
+		return nil
+	}
+}
+
+// WithCookieConfig 使用完整 Session Cookie 配置。
+func WithCookieConfig(config CookieConfig) AccessorOption {
+	return func(accessor *Accessor) error {
+		if !validCookieName(config.name) {
+			return ErrInvalidCookieConfig
+		}
+		accessor.cookie = config
 		return nil
 	}
 }

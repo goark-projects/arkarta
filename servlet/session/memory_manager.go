@@ -46,30 +46,57 @@ func (m *MemoryManager) Create(ctx context.Context) (Session, error) {
 		if err != nil {
 			return nil, err
 		}
-		now := m.clock()
-		session := &memorySession{
-			manager:             m,
-			id:                  id,
-			creationTime:        now,
-			lastAccessedTime:    now,
-			maxInactiveInterval: m.maxInactiveInterval,
-			isNew:               true,
-			valid:               true,
-			attribute:           make(map[string]any),
+		session, exists := m.createWithIDLocked(id)
+		if exists {
+			continue
 		}
-
-		m.mu.Lock()
-		if _, exists := m.sessions[id]; !exists {
-			m.sessions[id] = session
-			m.mu.Unlock()
-			if err := m.fireSessionCreated(ctx, session); err != nil {
-				_ = session.Invalidate()
-				return nil, err
-			}
-			return session, nil
+		if err := m.fireSessionCreated(ctx, session); err != nil {
+			_ = session.Invalidate()
+			return nil, err
 		}
-		m.mu.Unlock()
+		return session, nil
 	}
+}
+
+// CreateWithID 使用容器提供的稳定 ID 创建会话。
+func (m *MemoryManager) CreateWithID(ctx context.Context, id string) (Session, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if id == "" {
+		return nil, ErrSessionNotFound
+	}
+	session, exists := m.createWithIDLocked(id)
+	if exists {
+		return nil, ErrDuplicateSessionID
+	}
+	if err := m.fireSessionCreated(ctx, session); err != nil {
+		_ = session.Invalidate()
+		return nil, err
+	}
+	return session, nil
+}
+
+func (m *MemoryManager) createWithIDLocked(id string) (*memorySession, bool) {
+	now := m.clock()
+	session := &memorySession{
+		manager:             m,
+		id:                  id,
+		creationTime:        now,
+		lastAccessedTime:    now,
+		maxInactiveInterval: m.maxInactiveInterval,
+		isNew:               true,
+		valid:               true,
+		attribute:           make(map[string]any),
+	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if _, exists := m.sessions[id]; exists {
+		return nil, true
+	}
+	m.sessions[id] = session
+	return session, false
 }
 
 // Get 查找并访问会话。
@@ -139,6 +166,65 @@ func (m *MemoryManager) Destroy(ctx context.Context, id string) error {
 		return nil
 	}
 	return m.fireSessionDestroyed(ctx, session)
+}
+
+// Passivate 将当前会话保存到 Store，并触发属性值钝化回调。
+func (m *MemoryManager) Passivate(ctx context.Context, id string, store Store) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if store == nil {
+		return ErrNilStore
+	}
+	session, ok, err := m.Get(ctx, id)
+	if err != nil || !ok {
+		return err
+	}
+	record, err := Snapshot(session)
+	if err != nil {
+		return err
+	}
+	fireSessionWillPassivate(session, record.Attributes)
+	return store.Save(ctx, record)
+}
+
+// Activate 从 Store 恢复会话，并触发属性值激活回调。
+func (m *MemoryManager) Activate(ctx context.Context, id string, store Store) (Session, bool, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, false, err
+	}
+	if store == nil {
+		return nil, false, ErrNilStore
+	}
+	record, ok, err := store.Load(ctx, id)
+	if err != nil || !ok {
+		return nil, ok, err
+	}
+	now := m.clock()
+	attributes := cloneAttributes(record.Attributes)
+	session := &memorySession{
+		manager:             m,
+		id:                  record.ID,
+		creationTime:        record.CreationTime,
+		lastAccessedTime:    record.LastAccessedTime,
+		maxInactiveInterval: record.MaxInactiveInterval,
+		isNew:               false,
+		valid:               true,
+		attribute:           attributes,
+	}
+	if session.expired(now) {
+		_ = store.Delete(ctx, id)
+		return nil, false, nil
+	}
+	m.mu.Lock()
+	if existing, exists := m.sessions[record.ID]; exists {
+		m.mu.Unlock()
+		return existing, true, nil
+	}
+	m.sessions[record.ID] = session
+	m.mu.Unlock()
+	fireSessionDidActivate(session, attributes)
+	return session, true, nil
 }
 
 func (m *MemoryManager) invalidateSession(session *memorySession) error {

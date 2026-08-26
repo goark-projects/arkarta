@@ -124,6 +124,35 @@ func TestAccessorLoadsURLTrackedSession(t *testing.T) {
 	}
 }
 
+func TestAccessorCreatesSSLTrackedSessionFromConnectionID(t *testing.T) {
+	t.Parallel()
+
+	manager := NewMemoryManager()
+	accessor, err := NewAccessor(manager, WithTrackingModes(TrackingSSL))
+	if err != nil {
+		t.Fatalf("NewAccessor failed: %v", err)
+	}
+	req := newSessionRequest(t, http.MethodGet, "https://example.com/orders", "",
+		servlet.WithRequestConnectionID("tls-session-1"),
+	)
+
+	current, ok, err := accessor.Get(context.Background(), req, nil, true)
+	if err != nil {
+		t.Fatalf("Get create failed: %v", err)
+	}
+	if !ok || current.ID() != "tls-session-1" {
+		t.Fatalf("session = %v/%v, want tls-session-1/true", current, ok)
+	}
+	if source, ok := accessor.RequestedIDSource(req); source != TrackingSSL || !ok {
+		t.Fatalf("requested source = %q/%v, want SSL/true", source, ok)
+	}
+
+	loaded, ok, err := accessor.Get(context.Background(), req, nil, false)
+	if err != nil || !ok || loaded.ID() != "tls-session-1" {
+		t.Fatalf("loaded session = %v/%v/%v, want tls-session-1/true/nil", loaded, ok, err)
+	}
+}
+
 func TestAccessorURLOnlyCreateDoesNotWriteCookie(t *testing.T) {
 	t.Parallel()
 

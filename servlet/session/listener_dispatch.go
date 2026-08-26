@@ -6,6 +6,8 @@ import (
 )
 
 func (m *MemoryManager) listenerSnapshot() []Listener {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	if len(m.listeners) == 0 {
 		return nil
 	}

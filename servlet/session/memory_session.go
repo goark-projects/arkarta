@@ -1,6 +1,7 @@
 package session
 
 import (
+	"sort"
 	"sync"
 	"time"
 )
@@ -71,6 +72,20 @@ func (s *memorySession) Attribute(name string) (any, bool) {
 	}
 	value, ok := s.attribute[name]
 	return value, ok
+}
+
+func (s *memorySession) AttributeNames() []string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if !s.valid {
+		return nil
+	}
+	names := make([]string, 0, len(s.attribute))
+	for name := range s.attribute {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }
 
 func (s *memorySession) SetAttribute(name string, value any) error {

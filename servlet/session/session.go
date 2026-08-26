@@ -12,6 +12,7 @@ type Session interface {
 	IsNew() bool
 	IsValid() bool
 	Attribute(name string) (any, bool)
+	AttributeNames() []string
 	SetAttribute(name string, value any) error
 	RemoveAttribute(name string) error
 	Invalidate() error

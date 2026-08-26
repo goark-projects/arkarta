@@ -44,6 +44,14 @@ func NewAccessor(manager Manager, options ...AccessorOption) (*Accessor, error) 
 	return accessor, nil
 }
 
+// NewAccessorForWebApp 创建使用 WebApp 级 Session 配置的访问器。
+func NewAccessorForWebApp(manager Manager, app *servlet.WebApp, options ...AccessorOption) (*Accessor, error) {
+	if config, ok := CookieConfigFor(app); ok {
+		options = append([]AccessorOption{WithCookieConfig(config)}, options...)
+	}
+	return NewAccessor(manager, options...)
+}
+
 // Manager 返回底层 Session Manager。
 func (a *Accessor) Manager() Manager {
 	if a == nil {
@@ -98,7 +106,7 @@ func (a *Accessor) Get(ctx context.Context, req *servlet.Request, res servlet.Re
 	if a.tracking.Allows(TrackingCookie) && res == nil {
 		return nil, false, servlet.ErrNilResponse
 	}
-	created, err := a.manager.Create(ctx)
+	created, err := a.createSession(ctx, req)
 	if err != nil {
 		return nil, false, err
 	}
@@ -149,9 +157,27 @@ func (a *Accessor) requestedID(req *servlet.Request) (string, TrackingMode, bool
 			return id, TrackingURL, true
 		}
 	}
+	if a.tracking.Allows(TrackingSSL) && req.IsSecure() {
+		if id := req.ConnectionInfo().ID(); id != "" {
+			req.SetAttribute(AttributeRequestedSessionID, id)
+			req.SetAttribute(AttributeRequestedSessionIDSource, TrackingSSL)
+			return id, TrackingSSL, true
+		}
+	}
 	req.SetAttribute(AttributeRequestedSessionID, "")
 	req.SetAttribute(AttributeRequestedSessionIDSource, nil)
 	return "", "", false
+}
+
+func (a *Accessor) createSession(ctx context.Context, req *servlet.Request) (Session, error) {
+	if !a.tracking.Allows(TrackingCookie) && !a.tracking.Allows(TrackingURL) && a.tracking.Allows(TrackingSSL) {
+		if id, source, ok := a.requestedID(req); ok && source == TrackingSSL {
+			if manager, supports := a.manager.(IDBoundManager); supports {
+				return manager.CreateWithID(ctx, id)
+			}
+		}
+	}
+	return a.manager.Create(ctx)
 }
 
 func pathSessionID(path, name string) (string, bool) {

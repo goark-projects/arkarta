@@ -51,3 +51,23 @@ func fireValueUnbound(target Session, name string, value any) {
 	}
 	listener.ValueUnbound(BindingEvent{Session: target, Name: name, Value: value})
 }
+
+func fireSessionWillPassivate(target Session, values map[string]any) {
+	event := ActivationEvent{Session: target}
+	for _, value := range values {
+		listener, ok := value.(ActivationListener)
+		if ok && listener != nil {
+			listener.SessionWillPassivate(event)
+		}
+	}
+}
+
+func fireSessionDidActivate(target Session, values map[string]any) {
+	event := ActivationEvent{Session: target}
+	for _, value := range values {
+		listener, ok := value.(ActivationListener)
+		if ok && listener != nil {
+			listener.SessionDidActivate(event)
+		}
+	}
+}
