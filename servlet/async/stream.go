@@ -11,7 +11,7 @@ import (
 type Stream struct {
 	res servlet.Response
 
-	mu     sync.RWMutex
+	mu     sync.Mutex
 	closed bool
 }
 
@@ -28,10 +28,9 @@ func (s *Stream) Write(ctx context.Context, data []byte) (int, error) {
 	if err := ctx.Err(); err != nil {
 		return 0, err
 	}
-	s.mu.RLock()
-	closed := s.closed
-	s.mu.RUnlock()
-	if closed {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closed {
 		return 0, ErrCompleted
 	}
 	return s.res.Write(data)
@@ -42,10 +41,9 @@ func (s *Stream) Flush(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	s.mu.RLock()
-	closed := s.closed
-	s.mu.RUnlock()
-	if closed {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closed {
 		return ErrCompleted
 	}
 	return s.res.Flush()
@@ -57,11 +55,10 @@ func (s *Stream) Close(ctx context.Context) error {
 		return err
 	}
 	s.mu.Lock()
+	defer s.mu.Unlock()
 	if s.closed {
-		s.mu.Unlock()
 		return ErrCompleted
 	}
 	s.closed = true
-	s.mu.Unlock()
 	return s.res.Flush()
 }

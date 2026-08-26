@@ -2,6 +2,7 @@ package async
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 
@@ -40,9 +41,10 @@ type Context struct {
 	done      chan struct{}
 	listeners []Listener
 
-	mu        sync.RWMutex
-	completed bool
-	err       error
+	mu         sync.RWMutex
+	completed  bool
+	err        error
+	dispatches int
 }
 
 // NewContext 创建异步上下文。
@@ -71,10 +73,16 @@ func NewContext(parent context.Context, req *servlet.Request, res servlet.Respon
 	}
 	async.fireStart()
 	if async.timeout > 0 {
-		async.timer = time.AfterFunc(async.timeout, func() {
-			async.fireTimeout()
-			_ = async.Complete(ErrTimeout)
+		timer := time.AfterFunc(async.timeout, func() {
+			_ = async.complete(ErrTimeout, true)
 		})
+		async.mu.Lock()
+		if async.completed {
+			timer.Stop()
+		} else {
+			async.timer = timer
+		}
+		async.mu.Unlock()
 	}
 	return async, nil
 }
@@ -86,9 +94,6 @@ func (a *Context) Go(fn func(context.Context) error) {
 		if fn != nil {
 			err = fn(a.Context())
 		}
-		if err != nil {
-			a.fireError(err)
-		}
 		_ = a.Complete(err)
 	}()
 }
@@ -98,16 +103,60 @@ func (a *Context) Dispatch(handler servlet.Handler) error {
 	if handler == nil {
 		return ErrNilHandler
 	}
-	if err := a.ensureActive(); err != nil {
+	if err := a.markDispatch(); err != nil {
 		return err
 	}
-	return a.req.RunWithDispatchType(servlet.DispatchAsync, func() error {
+	err := a.req.RunWithDispatchType(servlet.DispatchAsync, func() error {
 		return handler.Serve(a.Context(), a.req, a.res)
 	})
+	if err != nil {
+		a.fireError(err)
+	}
+	return err
 }
 
 // Complete 标记异步请求完成。
 func (a *Context) Complete(err error) error {
+	return a.complete(err, false)
+}
+
+// Await 等待异步请求完成，并返回完成时记录的错误。
+func (a *Context) Await(ctx context.Context) error {
+	if a == nil {
+		return ErrCompleted
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	select {
+	case <-a.done:
+		return a.Err()
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+// Completed 判断异步请求是否已经完成。
+func (a *Context) Completed() bool {
+	if a == nil {
+		return true
+	}
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.completed
+}
+
+// DispatchCount 返回该异步上下文已经执行的 ASYNC 分发次数。
+func (a *Context) DispatchCount() int {
+	if a == nil {
+		return 0
+	}
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.dispatches
+}
+
+func (a *Context) complete(err error, timeout bool) error {
 	a.mu.Lock()
 	if a.completed {
 		a.mu.Unlock()
@@ -118,12 +167,17 @@ func (a *Context) Complete(err error) error {
 	timer := a.timer
 	a.mu.Unlock()
 
-	if timer != nil {
+	if timer != nil && !timeout {
 		timer.Stop()
 	}
+	if timeout {
+		a.fireTimeout()
+	} else if err != nil && !errors.Is(err, context.Canceled) {
+		a.fireError(err)
+	}
+	a.fireComplete(err)
 	a.cancel()
 	close(a.done)
-	a.fireComplete(err)
 	return nil
 }
 
@@ -161,6 +215,19 @@ func (a *Context) ensureActive() error {
 		return ErrCompleted
 	}
 	return a.ctx.Err()
+}
+
+func (a *Context) markDispatch() error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.completed {
+		return ErrCompleted
+	}
+	if err := a.ctx.Err(); err != nil {
+		return err
+	}
+	a.dispatches++
+	return nil
 }
 
 func (a *Context) fireStart() {
