@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"sort"
+	"strings"
 
 	"goark.dev/arkarta/servlet"
 )
@@ -31,6 +32,8 @@ const (
 // Constraint 描述 Servlet 安全约束。
 type Constraint struct {
 	roles              map[string]struct{}
+	roleMappings       map[string]string
+	methodConstraints  map[string]Constraint
 	emptyRoleSemantic  EmptyRoleSemantic
 	transportGuarantee TransportGuarantee
 }
@@ -42,6 +45,8 @@ type ConstraintOption func(*Constraint)
 func NewConstraint(options ...ConstraintOption) Constraint {
 	constraint := Constraint{
 		roles:             make(map[string]struct{}),
+		roleMappings:      make(map[string]string),
+		methodConstraints: make(map[string]Constraint),
 		emptyRoleSemantic: EmptyRolePermit,
 	}
 	for _, option := range options {
@@ -60,6 +65,27 @@ func WithRoles(roles ...string) ConstraintOption {
 				constraint.roles[role] = struct{}{}
 			}
 		}
+	}
+}
+
+// WithRoleMapping 将组件内角色名映射到应用实际角色名。
+func WithRoleMapping(declaredRole, actualRole string) ConstraintOption {
+	return func(constraint *Constraint) {
+		if declaredRole == "" || actualRole == "" {
+			return
+		}
+		constraint.roleMappings[declaredRole] = actualRole
+	}
+}
+
+// WithMethodConstraint 为指定 HTTP 方法设置专用约束。
+func WithMethodConstraint(method string, child Constraint) ConstraintOption {
+	return func(constraint *Constraint) {
+		method = normalizeMethod(method)
+		if method == "" {
+			return
+		}
+		constraint.methodConstraints[method] = child.withoutMethodConstraints()
 	}
 }
 
@@ -87,15 +113,46 @@ func (c Constraint) Roles() []string {
 	return result
 }
 
+// RoleMappings 返回角色映射副本。
+func (c Constraint) RoleMappings() map[string]string {
+	return cloneStringMap(c.roleMappings)
+}
+
+// MethodConstraint 返回指定 HTTP 方法的专用约束。
+func (c Constraint) MethodConstraint(method string) (Constraint, bool) {
+	child, ok := c.methodConstraints[normalizeMethod(method)]
+	if !ok {
+		return Constraint{}, false
+	}
+	return child.Clone(), true
+}
+
+// MethodConstraints 返回 HTTP 方法专用约束副本。
+func (c Constraint) MethodConstraints() map[string]Constraint {
+	if len(c.methodConstraints) == 0 {
+		return map[string]Constraint{}
+	}
+	result := make(map[string]Constraint, len(c.methodConstraints))
+	for method, child := range c.methodConstraints {
+		result[method] = child.Clone()
+	}
+	return result
+}
+
 // Clone 返回安全约束深拷贝。
 func (c Constraint) Clone() Constraint {
 	clone := Constraint{
 		roles:              make(map[string]struct{}, len(c.roles)),
+		roleMappings:       cloneStringMap(c.roleMappings),
+		methodConstraints:  make(map[string]Constraint, len(c.methodConstraints)),
 		emptyRoleSemantic:  c.emptyRoleSemantic,
 		transportGuarantee: c.transportGuarantee,
 	}
 	for role := range c.roles {
 		clone.roles[role] = struct{}{}
+	}
+	for method, child := range c.methodConstraints {
+		clone.methodConstraints[method] = child.Clone()
 	}
 	return clone
 }
@@ -115,6 +172,15 @@ func (c Constraint) Authorize(ctx context.Context, req *servlet.Request) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+	if req != nil {
+		if child, ok := c.methodConstraint(req.Method()); ok {
+			return child.authorizeBase(ctx, req)
+		}
+	}
+	return c.authorizeBase(ctx, req)
+}
+
+func (c Constraint) authorizeBase(ctx context.Context, req *servlet.Request) error {
 	if c.transportGuarantee == TransportConfidential && (req == nil || !req.IsSecure()) {
 		return servlet.NewHTTPError(http.StatusForbidden, "secure transport required", nil)
 	}
@@ -128,9 +194,45 @@ func (c Constraint) Authorize(ctx context.Context, req *servlet.Request) error {
 		return servlet.NewHTTPError(http.StatusUnauthorized, "authentication required", nil)
 	}
 	for role := range c.roles {
-		if UserInRole(req, role) {
+		if UserInRole(req, c.actualRole(role)) {
 			return nil
 		}
 	}
 	return servlet.NewHTTPError(http.StatusForbidden, "access denied", nil)
+}
+
+func (c Constraint) actualRole(role string) string {
+	if actual, ok := c.roleMappings[role]; ok && actual != "" {
+		return actual
+	}
+	return role
+}
+
+func (c Constraint) methodConstraint(method string) (Constraint, bool) {
+	child, ok := c.methodConstraints[normalizeMethod(method)]
+	if !ok {
+		return Constraint{}, false
+	}
+	return child.withoutMethodConstraints(), true
+}
+
+func (c Constraint) withoutMethodConstraints() Constraint {
+	clone := c.Clone()
+	clone.methodConstraints = make(map[string]Constraint)
+	return clone
+}
+
+func normalizeMethod(method string) string {
+	return strings.ToUpper(strings.TrimSpace(method))
+}
+
+func cloneStringMap(src map[string]string) map[string]string {
+	if len(src) == 0 {
+		return map[string]string{}
+	}
+	dst := make(map[string]string, len(src))
+	for key, value := range src {
+		dst[key] = value
+	}
+	return dst
 }

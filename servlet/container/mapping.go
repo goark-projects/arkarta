@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"goark.dev/arkarta/servlet"
+	"goark.dev/arkarta/servlet/security"
 )
 
 // Mapping 表示一个 Servlet 路径映射。
@@ -15,6 +16,7 @@ type Mapping struct {
 	initParam        map[string]string
 	loadOnStartup    int
 	hasLoadOnStartup bool
+	runAsRole        string
 }
 
 // NewMapping 创建路径映射。
@@ -51,7 +53,7 @@ func newServletMapping(pattern, name string, handler servlet.Servlet, filters ..
 	return mapping, nil
 }
 
-func newRegistrationMapping(pattern, name string, handler servlet.Handler, initParam map[string]string, loadOnStartup int, hasLoadOnStartup bool) (Mapping, error) {
+func newRegistrationMapping(pattern, name string, handler servlet.Handler, initParam map[string]string, loadOnStartup int, hasLoadOnStartup bool, runAsRole string) (Mapping, error) {
 	mapping, err := NewMapping(pattern, handler)
 	if err != nil {
 		return Mapping{}, err
@@ -62,6 +64,7 @@ func newRegistrationMapping(pattern, name string, handler servlet.Handler, initP
 	mapping.initParam = cloneStringMap(initParam)
 	mapping.loadOnStartup = loadOnStartup
 	mapping.hasLoadOnStartup = hasLoadOnStartup
+	mapping.runAsRole = runAsRole
 	return mapping, nil
 }
 
@@ -107,7 +110,15 @@ func (m Mapping) LoadOnStartup() (int, bool) {
 }
 
 func (m Mapping) servletHandler() servlet.Handler {
-	target := servlet.ChainFilterBindings(m.handler, m.filterBindings...)
+	handler := m.handler
+	if m.runAsRole != "" {
+		handler = servlet.HandlerFunc(func(ctx context.Context, req *servlet.Request, res servlet.Response) error {
+			return security.RunAs(req, m.runAsRole, func() error {
+				return m.handler.Serve(ctx, req, res)
+			})
+		})
+	}
+	target := servlet.ChainFilterBindings(handler, m.filterBindings...)
 	return servlet.HandlerFunc(func(ctx context.Context, req *servlet.Request, res servlet.Response) error {
 		previous, hadPrevious := req.Attribute(servlet.AttributeServletName)
 		req.SetAttribute(servlet.AttributeServletName, m.name)

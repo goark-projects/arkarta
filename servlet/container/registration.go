@@ -6,6 +6,7 @@ import (
 
 	"goark.dev/arkarta/servlet"
 	"goark.dev/arkarta/servlet/registration"
+	"goark.dev/arkarta/servlet/security"
 )
 
 // ErrUnknownServletName 表示 Filter 引用了不存在的 Servlet 名称。
@@ -38,8 +39,11 @@ func WithRegistration(snapshot registration.Snapshot) DeploymentOption {
 		for _, descriptor := range snapshot.Servlets() {
 			for _, pattern := range descriptor.Mappings() {
 				loadOrder, hasLoadOrder := descriptor.LoadOnStartup()
-				mapping, err := newRegistrationMapping(pattern, descriptor.Name(), descriptor.Handler(), descriptor.InitParams(), loadOrder, hasLoadOrder)
+				mapping, err := newRegistrationMapping(pattern, descriptor.Name(), descriptor.Handler(), descriptor.InitParams(), loadOrder, hasLoadOrder, descriptor.RunAsRole())
 				if err != nil {
+					return err
+				}
+				if err := attachSecurityFilter(&mapping, descriptor); err != nil {
 					return err
 				}
 				deployment.mappings = append(deployment.mappings, mapping)
@@ -48,6 +52,28 @@ func WithRegistration(snapshot registration.Snapshot) DeploymentOption {
 		}
 		return attachRegistrationFilters(deployment, start, nameIndex, snapshot.Filters())
 	}
+}
+
+func attachSecurityFilter(mapping *Mapping, descriptor registration.ServletDescriptor) error {
+	config, ok := descriptor.SecurityConfig()
+	if !ok {
+		return nil
+	}
+	dispatchers, err := servlet.NewDispatchTypes(servlet.DispatchRequest, servlet.DispatchForward, servlet.DispatchAsync)
+	if err != nil {
+		return err
+	}
+	binding, err := servlet.NewFilterBinding(
+		descriptor.Name()+"#security",
+		security.NewFilter(config),
+		servlet.WithFilterDispatchTypes(dispatchers),
+		servlet.WithFilterURLPattern(mapping.Pattern()),
+	)
+	if err != nil {
+		return err
+	}
+	mapping.filterBindings = append([]servlet.FilterBinding{binding}, mapping.filterBindings...)
+	return nil
 }
 
 func attachRegistrationListeners(app *servlet.WebApp, descriptors []registration.ListenerDescriptor) error {

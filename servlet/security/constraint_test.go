@@ -53,6 +53,49 @@ func TestConstraintRejectsMissingAuthAndInsecureTransport(t *testing.T) {
 	}
 }
 
+func TestConstraintSupportsRoleMapping(t *testing.T) {
+	t.Parallel()
+
+	req, err := servlet.NewRequest(httptest.NewRequest(http.MethodGet, "https://example.com/admin", nil))
+	if err != nil {
+		t.Fatalf("NewRequest failed: %v", err)
+	}
+	SetPrincipal(req, PrincipalFunc(func() string { return "alice" }), "BASIC", "admin")
+	constraint := NewConstraint(WithRoles("manager"), WithRoleMapping("manager", "admin"))
+
+	if err := constraint.Authorize(context.Background(), req); err != nil {
+		t.Fatalf("Authorize failed: %v", err)
+	}
+}
+
+func TestConstraintSupportsMethodSpecificRules(t *testing.T) {
+	t.Parallel()
+
+	constraint := NewConstraint(
+		WithMethodConstraint(http.MethodPost, NewConstraint(WithRoles("admin"))),
+	)
+	getReq, err := servlet.NewRequest(httptest.NewRequest(http.MethodGet, "https://example.com/admin", nil))
+	if err != nil {
+		t.Fatalf("NewRequest GET failed: %v", err)
+	}
+	if err := constraint.Authorize(context.Background(), getReq); err != nil {
+		t.Fatalf("GET Authorize failed: %v", err)
+	}
+
+	postReq, err := servlet.NewRequest(httptest.NewRequest(http.MethodPost, "https://example.com/admin", nil))
+	if err != nil {
+		t.Fatalf("NewRequest POST failed: %v", err)
+	}
+	if err := constraint.Authorize(context.Background(), postReq); !statusIs(err, http.StatusUnauthorized) {
+		t.Fatalf("POST without principal err = %v, want 401", err)
+	}
+
+	SetPrincipal(postReq, PrincipalFunc(func() string { return "alice" }), "BASIC", "admin")
+	if err := constraint.Authorize(context.Background(), postReq); err != nil {
+		t.Fatalf("POST with principal Authorize failed: %v", err)
+	}
+}
+
 func TestFilterShortCircuitsDeniedRequest(t *testing.T) {
 	t.Parallel()
 

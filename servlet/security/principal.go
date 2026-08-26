@@ -9,6 +9,8 @@ const (
 	AttributeAuthType = "arkarta.servlet.security.auth_type"
 	// AttributeRoles 保存当前主体角色集合。
 	AttributeRoles = "arkarta.servlet.security.roles"
+	// AttributeRunAsRole 保存当前 Servlet 执行身份角色。
+	AttributeRunAsRole = "arkarta.servlet.security.run_as_role"
 )
 
 // Principal 表示认证主体。
@@ -38,6 +40,24 @@ func SetPrincipal(req *servlet.Request, principal Principal, authType string, ro
 		}
 	}
 	req.SetAttribute(AttributeRoles, roleSet)
+}
+
+// BindIdentity 将认证身份写入当前请求。
+func BindIdentity(req *servlet.Request, identity Identity) {
+	if !identity.Valid() {
+		return
+	}
+	SetPrincipal(req, identity.Principal(), identity.AuthType(), identity.Roles()...)
+}
+
+// ClearPrincipal 清理当前请求认证上下文。
+func ClearPrincipal(req *servlet.Request) {
+	if req == nil {
+		return
+	}
+	req.SetAttribute(AttributePrincipal, nil)
+	req.SetAttribute(AttributeAuthType, nil)
+	req.SetAttribute(AttributeRoles, nil)
 }
 
 // CurrentPrincipal 返回当前请求认证主体。
@@ -77,6 +97,9 @@ func UserInRole(req *servlet.Request, role string) bool {
 	if req == nil || role == "" {
 		return false
 	}
+	if RunAsRole(req) == role {
+		return true
+	}
 	value, ok := req.Attribute(AttributeRoles)
 	if !ok {
 		return false
@@ -87,4 +110,37 @@ func UserInRole(req *servlet.Request, role string) bool {
 	}
 	_, ok = roles[role]
 	return ok
+}
+
+// RunAsRole 返回当前 Servlet 执行身份角色。
+func RunAsRole(req *servlet.Request) string {
+	if req == nil {
+		return ""
+	}
+	value, _ := req.Attribute(AttributeRunAsRole)
+	role, _ := value.(string)
+	return role
+}
+
+// RunAs 在指定执行身份下运行函数，并在返回后恢复旧身份。
+func RunAs(req *servlet.Request, role string, fn func() error) error {
+	if req == nil || role == "" {
+		if fn == nil {
+			return nil
+		}
+		return fn()
+	}
+	previous, hadPrevious := req.Attribute(AttributeRunAsRole)
+	req.SetAttribute(AttributeRunAsRole, role)
+	defer func() {
+		if hadPrevious {
+			req.SetAttribute(AttributeRunAsRole, previous)
+			return
+		}
+		req.SetAttribute(AttributeRunAsRole, nil)
+	}()
+	if fn == nil {
+		return nil
+	}
+	return fn()
 }
