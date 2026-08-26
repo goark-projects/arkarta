@@ -2,7 +2,7 @@
 
 Arkarta 是 Goark 的企业开发标准模块。它参考 Jakarta EE / Java EE 的成熟企业标准体系，但 API 和运行时边界必须 Go 化：显式注册、接口组合、`context.Context`、`net/http` 互操作、错误返回和可验证的 TCK。
 
-当前阶段先完成 Servlet 部分。Servlet 相关代码全部位于 `servlet` 包及其子包下，后续 Web、Validation、JSON、WebSocket 和上层安全集成等标准也会各自拆包，保持职责边界清晰。
+当前阶段先完成 Servlet 部分，并提供 WebSocket 第一版独立标准包。Servlet 相关代码全部位于 `servlet` 包及其子包下，WebSocket 位于根级 `websocket` 包；后续 Web、Validation、JSON 和上层安全集成等标准也会各自拆包，保持职责边界清晰。
 
 ## 当前版本
 
@@ -19,15 +19,16 @@ Arkarta 是 Goark 的企业开发标准模块。它参考 Jakarta EE / Java EE �
 - `servlet/session`：Session Profile 接口、请求/响应 Cookie 绑定、COOKIE/URL/SSL tracking policy、URL rewriting、属性监听和内存会话管理器。
 - `servlet/multipart`：Multipart Profile 解析器、Part API 和请求绑定。
 - `servlet/async`：Go 化 Async/Stream Profile，提供显式完成、超时、错误事件和流式写入。
-- `servlet/upgrade`：协议升级 Profile，定义连接交接契约；WebSocket 放在后续独立标准包。
-- `servlet/security`：声明式安全 Profile，提供 Principal、角色约束、传输保障和安全 Filter。
-- `servlet/tck`：Core HTTP、生命周期、分发、错误页、注册元模型、WebApp 上下文能力、静态资源、Session、Multipart 和 HTTP 容器入口的兼容性测试。
+- `servlet/upgrade`：协议升级 Profile，定义连接交接契约和 `net/http` hijack 适配。
+- `servlet/security`：声明式安全 Profile，提供 Principal、Basic 认证、Realm、角色约束、方法约束、run-as 和安全 Filter。
+- `servlet/tck`：Core HTTP、生命周期、分发、错误页、注册元模型、WebApp 上下文能力、静态资源、Session、Multipart、Async、Security 和 HTTP 容器入口的兼容性测试。
+- `websocket`：独立 WebSocket 标准包，覆盖端点、会话、消息、关闭原因、连接 SPI、服务循环和 JSON 文本编解码。
 
 `v0.0.1` 不包含：
 
 - Goark Tomcat、Goark Jetty 等独立具体容器。
 - Native I/O Profile。
-- 上层 MVC、REST、Validation、JSON 和 WebSocket 标准包。
+- 上层 MVC、REST、Validation、JSON 和企业级安全集成标准包。
 
 ## 安装
 
@@ -49,6 +50,7 @@ servlet/security   声明式安全 Profile
 servlet/session    Session Profile
 servlet/tck        Servlet 兼容性测试工具
 servlet/upgrade    协议升级 Profile
+websocket          WebSocket 标准包
 ```
 
 ## 验证

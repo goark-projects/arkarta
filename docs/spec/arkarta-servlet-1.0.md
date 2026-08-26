@@ -1,9 +1,9 @@
 # Arkarta Servlet 1.0 规范草案
 
-状态：Draft 1  
+状态：Release Candidate 1
 目标模块：`goark.dev/arkarta/servlet`  
 规范基线：Jakarta Servlet 6.1 正式规范、Jakarta Servlet 6.2 开发中路线、Java Servlet 4.0 / JSR 369 历史语义
-发布日期：待定
+发布日期：2026-08-26
 
 ## 1. 目标
 
@@ -13,7 +13,7 @@ Arkarta Servlet 1.0 定义 Goark Web 应用与 Web 容器之间的稳定契约�
 
 1. 统一 Goark Web 应用的请求、响应、过滤器、生命周期、上下文和错误处理契约。
 2. 让不同容器实现同一个标准，例如 Goark Tomcat、Goark Jetty、`net/http` 适配容器和未来的高性能原生容器。
-3. 给上层 `goark-web`、MVC、Security、WebSocket、静态资源、模板和观测模块提供稳定底座。
+3. 给上层 `goark.dev/arkarta/web`、MVC、Security、WebSocket、静态资源、模板和观测模块提供稳定底座。
 4. 通过 TCK 兼容性测试约束容器行为，避免标准只停留在接口声明。
 
 ## 2. 规范用语
@@ -136,6 +136,7 @@ arkarta/servlet/multipart       可选上传 Profile
 arkarta/servlet/async           可选异步与流式响应 Profile
 arkarta/servlet/upgrade         可选协议升级 Profile
 arkarta/servlet/security        可选声明式安全 Profile
+arkarta/websocket               WebSocket 独立标准包
 ```
 
 `servlet` 根包只放稳定、小型、应用高频使用的接口和类型。容器 SPI、TCK、Profile 不得反向污染根包。
@@ -430,8 +431,12 @@ type StatusError interface {
 - `session.Accessor.Get(ctx, req, res, create)` 请求绑定语义。
 - `session.Accessor.ChangeID(ctx, req, res)` 登录后会话 ID 轮换语义。
 - `RequestedID` 与 `RequestedIDValid`。
+- WebApp 级 Session Cookie 配置。
+- COOKIE、URL、SSL 三类 tracking policy。
+- Store SPI、内存 Store、passivation 和 activation 回调。
 - 空闲超时。
 - 属性增删改查。
+- 属性名快照。
 - 并发安全。
 
 安全要求：
@@ -452,6 +457,8 @@ type StatusError interface {
 - 最大单文件大小。
 - 内存阈值。
 - 临时目录。
+- 提交文件名归一化。
+- Part 读取、写入和删除。
 - 文件句柄关闭。
 - 请求结束后清理临时文件。
 
@@ -478,7 +485,7 @@ Upgrade Profile 用于 WebSocket、CONNECT、HTTP/2 扩展或未来 HTTP/3 能�
 - 升级必须在响应提交前完成。
 - 升级后连接所有权必须从 Servlet 响应模型转交给升级处理器。
 - 容器必须明确连接关闭责任。
-- 上层 WebSocket 标准不放在 Servlet Core 中。
+- WebSocket 标准不放在 Servlet Core 中，第一版由根级 `goark.dev/arkarta/websocket` 包承载。
 
 ## 20. 容器 SPI
 
@@ -521,7 +528,7 @@ Arkarta Servlet 与现有 Goark 模块的关系：
 
 - `goark` core：提供 DI、环境、生命周期、事件等通用基础设施。
 - `goark-boot`：负责启动装配、配置加载和容器选择。
-- `goark-web`：未来提供 MVC、路由、参数绑定、响应编解码等上层开发体验。
+- `goark.dev/arkarta/web`：未来提供 MVC、路由、参数绑定、响应编解码等上层开发体验。
 - `goark-security`：负责认证、授权、Principal、Session 固定防护和安全过滤器。
 - `goark-log` / observability：负责日志、Trace、Metrics。
 
@@ -542,10 +549,15 @@ Core TCK 必须覆盖：
 - 路径映射优先级。
 - Forward、Include、Error 分发。
 - Servlet、Filter、Listener 注册元模型与冻结语义。
+- 动态注册关闭、冻结快照转换、load-on-startup 顺序和同名 Servlet 单次初始化。
 - WebApp/ServletContext 版本、MIME、资源、日志和会话超时。
-- 静态资源、GET/HEAD、条件请求和 welcome file。
-- Session 请求/响应 Cookie 绑定、requested ID 校验和 ID 轮换。
-- Session URL rewriting。
+- 静态资源、GET/HEAD、条件请求、If-Range、多 Range 和 welcome file。
+- Session 请求/响应 Cookie 绑定、requested ID 校验、ID 轮换、SSL tracking、CookieConfig、Store 和 activation/passivation。
+- Session URL rewriting 和属性名快照。
+- Multipart 临时目录、提交文件名归一化、Part 删除和表单清理。
+- Async Await、完成幂等、dispatch 计数、超时事件顺序和 Stream 关闭后写入拒绝。
+- Security Basic 认证、角色映射、方法约束和 run-as 作用域。
+- 错误页默认映射、错误类型优先级和循环保护。
 - `context.Context` 取消传播。
 - `net/http` 适配一致性。
 - panic 恢复与错误响应。
@@ -576,8 +588,9 @@ Profile TCK 按 Profile 独立运行。容器只能声明自己通过的 Profile
 9. `async` 包：Async/Stream Profile。
 10. `upgrade` 包：协议升级 Profile。
 11. `security` 包：声明式安全 Profile。
-12. `tck` 包：Core Profile、注册模型、WebApp、静态资源与 Session Profile 兼容性测试。
-13. README：说明标准定位、版本和容器兼容声明方式。
+12. `websocket` 包：WebSocket 独立标准包。
+13. `tck` 包：Core Profile、注册模型、WebApp、静态资源、Session、Multipart、Async、Security 和 HTTP 容器兼容性测试。
+14. README：说明标准定位、版本和容器兼容声明方式。
 
 ## 25. Servlet 6.1 覆盖矩阵
 
@@ -590,17 +603,17 @@ Profile TCK 按 Profile 独立运行。容器只能声明自己通过的 Profile
 | Servlet/Filter/Listener 注册 | 已实现 | `servlet/registration` 提供动态注册、映射冲突、初始化参数、multipart config、security constraint、冻结快照，`container` 可转换为 Deployment |
 | Filter 链与 dispatcher type | 已实现 | Filter 顺序、短路、单次 `Next`、URL-pattern 约束、`ManagedFilter` 生命周期、REQUEST/FORWARD/INCLUDE/ERROR/ASYNC 位集合 |
 | WebApp 生命周期和事件 | 已实现 | Context、Request、Session 生命周期监听器、属性监听器、虚拟主机名、默认字符集、MIME 映射、会话超时、资源路径、临时目录和有效规范版本 |
-| Session Profile | 已实现 | Manager、MemoryManager、Accessor、Cookie 绑定、COOKIE/URL/SSL tracking policy、URL rewriting、requested ID 校验、ID 轮换、属性和绑定监听器 |
-| Multipart Profile | 已实现 | 表单、Part API、请求绑定、大小限制、内存阈值、注册元数据 |
-| 静态资源与 Welcome file | 已实现 | `servlet/resource` 提供 Provider、`fs.FS` 实现、default servlet、条件 GET、GET/HEAD、Range 和 welcome file |
-| Async/Stream | 已实现 | `servlet/async` 提供显式完成、超时、错误事件、ASYNC dispatch 和流式写入 |
-| Upgrade/WebSocket | 已实现 Upgrade | `servlet/upgrade` 提供连接交接契约和 `net/http` hijack 适配；WebSocket 独立标准后续完成 |
-| Security 声明式模型 | 已实现基础 | `servlet/security` 提供 Principal、角色约束、传输保障和安全 Filter；企业认证集成由 `goark-security` 承载 |
+| Session Profile | 已实现 | Manager、MemoryManager、Accessor、Cookie 绑定、COOKIE/URL/SSL tracking policy、URL rewriting、requested ID 校验、ID 轮换、属性和绑定监听器、Store、MemoryStore、passivation/activation |
+| Multipart Profile | 已实现 | 表单、Part API、请求绑定、大小限制、内存阈值、临时目录、文件名归一化、注册元数据 |
+| 静态资源与 Welcome file | 已实现 | `servlet/resource` 提供 Provider、`fs.FS` 实现、default servlet、条件 GET、GET/HEAD、If-Range、弱 ETag 保护、多 Range 和 welcome file |
+| Async/Stream | 已实现 | `servlet/async` 提供显式完成、Await、完成状态、dispatch 计数、超时、错误事件、ASYNC dispatch 和流式写入 |
+| Upgrade/WebSocket | 已实现 | `servlet/upgrade` 提供连接交接契约和 `net/http` hijack 适配；`websocket` 提供独立标准包 |
+| Security 声明式模型 | 已实现 | `servlet/security` 提供 Principal、Basic 认证、Realm、角色约束、方法约束、run-as、传输保障和安全 Filter；企业认证集成由 `goark-security` 承载 |
 | Locale | 已实现基础 | 请求 Accept-Language 解析与响应 Content-Language 设置；i18n 资源解析由后续上层模块补充 |
 
 ## 26. 暂不解决的问题
 
 - 是否提供 XML 描述符迁移工具。
-- 与未来 `goark-web` 路由和 MVC 参数绑定的边界。
+- 与未来 `goark.dev/arkarta/web` 路由和 MVC 参数绑定的边界。
 - 分布式 Session passivation/activation 的具体容器实现。
-- WebSocket 标准包与 Upgrade Profile 的边界。
+- WebSocket 容器握手、压缩扩展和子协议协商的完整实现。

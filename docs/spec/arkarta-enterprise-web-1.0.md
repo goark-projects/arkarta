@@ -1,6 +1,6 @@
 # Arkarta Enterprise Web 1.0 标准路线
 
-状态：Draft 1  
+状态：Release Candidate 1
 目标：把 Java 企业级 Web 标准体系完整复刻为 Goark 的 Go 化企业开发标准  
 基线：Jakarta EE 11 Web Profile、Jakarta Servlet 6.1、Jakarta RESTful Web Services 4.0、Jakarta WebSocket 2.2、Jakarta Security 4.0、Jakarta Validation 3.1、Jakarta JSON Binding 3.0、Jakarta JSON Processing 2.1、Jakarta CDI 4.1，以及 Oracle/JCP Java EE 历史规范语义  
 
@@ -58,7 +58,7 @@ Goark Enterprise Web
 
 ## 5. Web/MVC 标准负责什么
 
-未来 `goark.dev/web` 负责：
+未来 `goark.dev/arkarta/web` 负责：
 
 - Controller / Handler Method 模型。
 - 路由变量、查询参数、Header、Cookie、Body 绑定。
@@ -71,7 +71,7 @@ Goark Enterprise Web
 
 ## 6. Security 标准负责什么
 
-未来 `goark.dev/security` 负责：
+未来 `goark.dev/arkarta/security` 负责：
 
 - Principal 与认证结果。
 - 认证过滤器链。
@@ -84,7 +84,7 @@ Servlet 层只暴露足够的请求上下文、会话 Profile 和过滤器链。
 
 ## 7. Validation 标准负责什么
 
-未来 `goark.dev/validation` 负责：
+未来 `goark.dev/arkarta/validation` 负责：
 
 - Struct 字段约束。
 - 嵌套对象校验。
@@ -96,7 +96,7 @@ Web 层只消费校验结果并映射为 HTTP 错误。
 
 ## 8. JSON 标准负责什么
 
-未来 `goark.dev/json` 负责：
+未来 `goark.dev/arkarta/json` 负责：
 
 - 结构体绑定。
 - 流式 JSON 读写。
@@ -108,24 +108,26 @@ Servlet Core 只处理请求体与响应写出，不绑定 JSON 实现。
 
 ## 9. WebSocket 标准负责什么
 
-未来 `goark.dev/websocket` 负责：
+当前 `goark.dev/arkarta/websocket` 已落地第一版基础标准包，负责：
 
 - Endpoint 注册。
-- 握手升级。
 - 消息编解码。
 - Ping/Pong、关闭码、超时。
 - 会话属性和背压。
+- 连接 SPI 与服务循环。
 
-Servlet Upgrade Profile 只定义升级入口和连接所有权转移。
+Servlet Upgrade Profile 只定义升级入口和连接所有权转移；WebSocket 握手、压缩扩展和完整子协议协商由后续容器实现补齐。
 
 ## 10. 第一阶段实现范围
 
-当前第一阶段只实现 `goark.dev/arkarta/servlet` Core：
+当前第一阶段完成 `goark.dev/arkarta/servlet` 与 `goark.dev/arkarta/websocket` 的标准底座：
 
-1. Go 模块与根包 API。
-2. 路径映射与过滤器链。
-3. `net/http` 适配。
+1. Servlet 根包 API。
+2. 路径映射、过滤器链、分发和错误页。
+3. `net/http` 适配和参考容器入口。
 4. 容器 SPI 基础类型。
-5. TCK 风格测试。
+5. 动态注册、生命周期、静态资源、Session、Multipart、Async、Upgrade 和 Security Profile。
+6. WebSocket 端点、会话、消息、关闭码、连接 SPI 和 JSON 文本编解码。
+7. TCK 风格兼容性测试。
 
-上层企业标准先保留为接口路线，不在第一阶段混入实现。
+上层 MVC、REST、Validation、JSON 和企业级安全集成先保留为接口路线，不在第一阶段混入实现。
