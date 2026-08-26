@@ -63,6 +63,9 @@ func (s *DefaultServlet) Serve(ctx context.Context, req *servlet.Request, res se
 		res.SetStatus(http.StatusNotModified)
 		return nil
 	}
+	if handled, err := serveRange(req, res, item); handled || err != nil {
+		return err
+	}
 	res.SetStatus(http.StatusOK)
 	if req.Method() == http.MethodHead {
 		return nil
@@ -88,6 +91,7 @@ func (s *DefaultServlet) openResource(ctx context.Context, path string) (Resourc
 
 func writeResourceHeaders(res servlet.Response, item Resource) {
 	res.Header().Set("Content-Type", item.ContentType())
+	res.Header().Set("Accept-Ranges", "bytes")
 	if item.Size() >= 0 {
 		_ = servlet.SetContentLength(res, item.Size())
 	}
@@ -97,6 +101,29 @@ func writeResourceHeaders(res servlet.Response, item Resource) {
 	if item.ETag() != "" {
 		res.Header().Set("ETag", item.ETag())
 	}
+}
+
+func serveRange(req *servlet.Request, res servlet.Response, item Resource) (bool, error) {
+	target, ok, invalid := parseRange(req.Header().Get("Range"), item.Size())
+	if invalid {
+		res.Header().Set("Content-Range", unsatisfiedRange(item.Size()))
+		res.SetStatus(rangeNotSatisfiable())
+		return true, nil
+	}
+	if !ok {
+		return false, nil
+	}
+	res.Header().Set("Content-Range", target.contentRange(item.Size()))
+	_ = servlet.SetContentLength(res, target.length())
+	res.SetStatus(http.StatusPartialContent)
+	if req.Method() == http.MethodHead {
+		return true, nil
+	}
+	if _, err := io.CopyN(io.Discard, item.Body(), target.start); err != nil {
+		return true, err
+	}
+	_, err := io.CopyN(res.BodyWriter(), item.Body(), target.length())
+	return true, err
 }
 
 func mapResourceError(err error) error {

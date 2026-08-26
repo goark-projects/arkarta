@@ -86,6 +86,63 @@ func TestDefaultServletHandlesConditionalGET(t *testing.T) {
 	}
 }
 
+func TestDefaultServletHandlesRangeRequests(t *testing.T) {
+	t.Parallel()
+
+	handler := newTestDefaultServlet(t)
+	request := httptest.NewRequest(http.MethodGet, "/assets/app.json", nil)
+	request.Header.Set("Range", "bytes=1-4")
+	req, err := servlet.NewRequest(request)
+	if err != nil {
+		t.Fatalf("NewRequest failed: %v", err)
+	}
+	recorder := httptest.NewRecorder()
+	response := nethttp.NewResponse(recorder)
+	if err := handler.Serve(context.Background(), req, response); err != nil {
+		t.Fatalf("Serve range failed: %v", err)
+	}
+
+	if response.Status() != http.StatusPartialContent {
+		t.Fatalf("status = %d, want 206", response.Status())
+	}
+	if recorder.Body.String() != `"ok"` {
+		t.Fatalf("range body = %q, want %q", recorder.Body.String(), `"ok"`)
+	}
+	if recorder.Header().Get("Content-Range") != "bytes 1-4/11" {
+		t.Fatalf("Content-Range = %q", recorder.Header().Get("Content-Range"))
+	}
+	if recorder.Header().Get("Content-Length") != "4" {
+		t.Fatalf("Content-Length = %q, want 4", recorder.Header().Get("Content-Length"))
+	}
+}
+
+func TestDefaultServletRejectsInvalidRange(t *testing.T) {
+	t.Parallel()
+
+	handler := newTestDefaultServlet(t)
+	request := httptest.NewRequest(http.MethodGet, "/assets/app.json", nil)
+	request.Header.Set("Range", "bytes=99-100")
+	req, err := servlet.NewRequest(request)
+	if err != nil {
+		t.Fatalf("NewRequest failed: %v", err)
+	}
+	recorder := httptest.NewRecorder()
+	response := nethttp.NewResponse(recorder)
+	if err := handler.Serve(context.Background(), req, response); err != nil {
+		t.Fatalf("Serve range failed: %v", err)
+	}
+
+	if response.Status() != http.StatusRequestedRangeNotSatisfiable {
+		t.Fatalf("status = %d, want 416", response.Status())
+	}
+	if recorder.Header().Get("Content-Range") != "bytes */11" {
+		t.Fatalf("Content-Range = %q, want bytes */11", recorder.Header().Get("Content-Range"))
+	}
+	if recorder.Body.Len() != 0 {
+		t.Fatalf("body length = %d, want 0", recorder.Body.Len())
+	}
+}
+
 func TestDefaultServletMapsMissingAndDirectoryToNotFound(t *testing.T) {
 	t.Parallel()
 
