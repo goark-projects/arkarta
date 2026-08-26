@@ -42,6 +42,7 @@ func WithDispatchType(dispatchType DispatchType) RequestOption {
 type Request struct {
 	httpRequest  *http.Request
 	dispatchType DispatchType
+	path         string
 
 	mu        sync.RWMutex
 	attribute map[string]any
@@ -55,6 +56,7 @@ func NewRequest(httpRequest *http.Request, options ...RequestOption) (*Request, 
 	req := &Request{
 		httpRequest:  httpRequest,
 		dispatchType: DispatchRequest,
+		path:         requestPath(httpRequest),
 		attribute:    make(map[string]any),
 	}
 	for _, option := range options {
@@ -98,10 +100,9 @@ func (r *Request) Host() string {
 
 // Path 返回 URL 路径。
 func (r *Request) Path() string {
-	if r.httpRequest.URL == nil {
-		return ""
-	}
-	return r.httpRequest.URL.Path
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.path
 }
 
 // Query 返回 URL 查询参数副本。
@@ -163,10 +164,47 @@ func (r *Request) SetAttribute(key string, value any) {
 
 // DispatchType 返回当前分发类型。
 func (r *Request) DispatchType() DispatchType {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	return r.dispatchType
 }
 
 // HTTPRequest 返回底层标准库请求。
 func (r *Request) HTTPRequest() *http.Request {
 	return r.httpRequest
+}
+
+type dispatchSnapshot struct {
+	path         string
+	dispatchType DispatchType
+}
+
+func (r *Request) dispatchSnapshot() dispatchSnapshot {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return dispatchSnapshot{
+		path:         r.path,
+		dispatchType: r.dispatchType,
+	}
+}
+
+func (r *Request) applyDispatch(path string, dispatchType DispatchType) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.path = path
+	r.dispatchType = dispatchType
+}
+
+func (r *Request) restoreDispatch(snapshot dispatchSnapshot) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.path = snapshot.path
+	r.dispatchType = snapshot.dispatchType
+}
+
+func requestPath(httpRequest *http.Request) string {
+	if httpRequest.URL == nil {
+		return ""
+	}
+	return httpRequest.URL.Path
 }

@@ -1,0 +1,213 @@
+package servlet
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+)
+
+func TestDispatcherForwardUsesTargetPathAndRestoresRequest(t *testing.T) {
+	t.Parallel()
+
+	router := NewRouter()
+	mustHandle(t, router, "/target", HandlerFunc(func(_ context.Context, req *Request, res Response) error {
+		if req.DispatchType() != DispatchForward {
+			t.Fatalf("dispatch = %v, want forward", req.DispatchType())
+		}
+		value, ok := req.Attribute(AttributeForwardRequestURI)
+		if !ok || value != "/source" {
+			t.Fatalf("forward request uri = %v/%v, want /source/true", value, ok)
+		}
+		_, err := res.WriteString(req.Path())
+		return err
+	}))
+
+	req, err := NewRequest(httptest.NewRequest(http.MethodGet, "/source", nil))
+	if err != nil {
+		t.Fatalf("NewRequest failed: %v", err)
+	}
+	response := newTestResponse()
+	dispatcher, err := NewRequestDispatcher(router, "/target")
+	if err != nil {
+		t.Fatalf("NewRequestDispatcher failed: %v", err)
+	}
+
+	if err := dispatcher.Forward(context.Background(), req, response); err != nil {
+		t.Fatalf("Forward failed: %v", err)
+	}
+	if response.body.String() != "/target" {
+		t.Fatalf("body = %q, want /target", response.body.String())
+	}
+	if req.Path() != "/source" {
+		t.Fatalf("path = %s, want /source", req.Path())
+	}
+	if req.DispatchType() != DispatchRequest {
+		t.Fatalf("dispatch = %v, want request", req.DispatchType())
+	}
+}
+
+func TestDispatcherForwardRejectsCommittedResponse(t *testing.T) {
+	t.Parallel()
+
+	router := NewRouter()
+	mustHandle(t, router, "/target", HandlerFunc(func(context.Context, *Request, Response) error {
+		return nil
+	}))
+	req, err := NewRequest(httptest.NewRequest(http.MethodGet, "/source", nil))
+	if err != nil {
+		t.Fatalf("NewRequest failed: %v", err)
+	}
+	response := newTestResponse()
+	if _, err := response.WriteString("committed"); err != nil {
+		t.Fatalf("WriteString failed: %v", err)
+	}
+	dispatcher, err := NewRequestDispatcher(router, "/target")
+	if err != nil {
+		t.Fatalf("NewRequestDispatcher failed: %v", err)
+	}
+
+	err = dispatcher.Forward(context.Background(), req, response)
+	if !errors.Is(err, ErrResponseCommitted) {
+		t.Fatalf("Forward err = %v, want ErrResponseCommitted", err)
+	}
+}
+
+func TestDispatcherIncludeCannotChangeOuterStatusOrHeaders(t *testing.T) {
+	t.Parallel()
+
+	router := NewRouter()
+	mustHandle(t, router, "/fragment", HandlerFunc(func(_ context.Context, req *Request, res Response) error {
+		if req.DispatchType() != DispatchInclude {
+			t.Fatalf("dispatch = %v, want include", req.DispatchType())
+		}
+		res.SetStatus(http.StatusCreated)
+		res.Header().Set("X-Include", "ignored")
+		_, err := res.WriteString("fragment")
+		return err
+	}))
+
+	req, err := NewRequest(httptest.NewRequest(http.MethodGet, "/page", nil))
+	if err != nil {
+		t.Fatalf("NewRequest failed: %v", err)
+	}
+	response := newTestResponse()
+	response.SetStatus(http.StatusAccepted)
+	dispatcher, err := NewRequestDispatcher(router, "/fragment")
+	if err != nil {
+		t.Fatalf("NewRequestDispatcher failed: %v", err)
+	}
+
+	if err := dispatcher.Include(context.Background(), req, response); err != nil {
+		t.Fatalf("Include failed: %v", err)
+	}
+	if response.Status() != http.StatusAccepted {
+		t.Fatalf("status = %d, want %d", response.Status(), http.StatusAccepted)
+	}
+	if response.Header().Get("X-Include") != "" {
+		t.Fatalf("include header leaked: %q", response.Header().Get("X-Include"))
+	}
+	if response.body.String() != "fragment" {
+		t.Fatalf("body = %q, want fragment", response.body.String())
+	}
+}
+
+func TestDispatcherErrorSetsErrorAttributes(t *testing.T) {
+	t.Parallel()
+
+	cause := errors.New("boom")
+	router := NewRouter()
+	mustHandle(t, router, "/error", HandlerFunc(func(_ context.Context, req *Request, res Response) error {
+		status, _ := req.Attribute(AttributeErrorStatusCode)
+		errValue, _ := req.Attribute(AttributeErrorException)
+		path, _ := req.Attribute(AttributeErrorRequestURI)
+		if status != http.StatusBadGateway || errValue != cause || path != "/upstream" {
+			t.Fatalf("error attrs = %v/%v/%v", status, errValue, path)
+		}
+		_, err := res.WriteString("error")
+		return err
+	}))
+
+	req, err := NewRequest(httptest.NewRequest(http.MethodGet, "/upstream", nil))
+	if err != nil {
+		t.Fatalf("NewRequest failed: %v", err)
+	}
+	response := newTestResponse()
+	dispatcher, err := NewRequestDispatcher(router, "/error")
+	if err != nil {
+		t.Fatalf("NewRequestDispatcher failed: %v", err)
+	}
+
+	if err := dispatcher.Error(context.Background(), req, response, http.StatusBadGateway, cause); err != nil {
+		t.Fatalf("Error failed: %v", err)
+	}
+	if response.Status() != http.StatusBadGateway {
+		t.Fatalf("status = %d, want %d", response.Status(), http.StatusBadGateway)
+	}
+	if response.body.String() != "error" {
+		t.Fatalf("body = %q, want error", response.body.String())
+	}
+}
+
+type testResponse struct {
+	header    http.Header
+	status    int
+	committed bool
+	body      bytes.Buffer
+}
+
+func newTestResponse() *testResponse {
+	return &testResponse{
+		header: make(http.Header),
+		status: http.StatusOK,
+	}
+}
+
+func (r *testResponse) Header() http.Header {
+	return r.header
+}
+
+func (r *testResponse) SetStatus(code int) {
+	if !r.committed {
+		r.status = code
+	}
+}
+
+func (r *testResponse) Status() int {
+	return r.status
+}
+
+func (r *testResponse) Write(data []byte) (int, error) {
+	r.committed = true
+	return r.body.Write(data)
+}
+
+func (r *testResponse) WriteString(value string) (int, error) {
+	return r.Write([]byte(value))
+}
+
+func (r *testResponse) Flush() error {
+	r.committed = true
+	return nil
+}
+
+func (r *testResponse) Committed() bool {
+	return r.committed
+}
+
+func (r *testResponse) Reset() error {
+	if r.committed {
+		return ErrResponseCommitted
+	}
+	r.header = make(http.Header)
+	r.status = http.StatusOK
+	r.body.Reset()
+	return nil
+}
+
+func (r *testResponse) BodyWriter() io.Writer {
+	return r
+}
