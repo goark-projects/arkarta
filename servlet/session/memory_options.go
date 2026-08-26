@@ -29,3 +29,12 @@ func WithMaxInactiveInterval(interval time.Duration) MemoryManagerOption {
 		manager.maxInactiveInterval = interval
 	}
 }
+
+// WithListener 添加会话生命周期监听器。
+func WithListener(listener Listener) MemoryManagerOption {
+	return func(manager *MemoryManager) {
+		if listener != nil {
+			manager.listeners = append(manager.listeners, listener)
+		}
+	}
+}

@@ -39,6 +39,7 @@ func cloneMappings(src []Mapping) []Mapping {
 	copy(dst, src)
 	for i := range dst {
 		dst[i].filters = cloneFilters(dst[i].filters)
+		dst[i].initParam = cloneStringMap(dst[i].initParam)
 	}
 	return dst
 }

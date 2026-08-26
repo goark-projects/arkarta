@@ -15,6 +15,7 @@ type MemoryManager struct {
 	idGenerator         IDGenerator
 	clock               func() time.Time
 	maxInactiveInterval time.Duration
+	listeners           []Listener
 }
 
 // NewMemoryManager 创建内存会话管理器。
@@ -60,6 +61,10 @@ func (m *MemoryManager) Create(ctx context.Context) (Session, error) {
 		if _, exists := m.sessions[id]; !exists {
 			m.sessions[id] = session
 			m.mu.Unlock()
+			if err := m.fireSessionCreated(ctx, session); err != nil {
+				_ = session.Invalidate()
+				return nil, err
+			}
 			return session, nil
 		}
 		m.mu.Unlock()
@@ -112,9 +117,13 @@ func (m *MemoryManager) RenewID(ctx context.Context, id string) (Session, error)
 			m.mu.Unlock()
 			return nil, ErrSessionNotFound
 		}
-		delete(m.sessions, id)
+		oldID := id
+		delete(m.sessions, oldID)
 		m.sessions[newID] = session
 		m.mu.Unlock()
+		if err := m.fireSessionIDChanged(ctx, session, oldID, newID); err != nil {
+			return nil, err
+		}
 		return session, nil
 	}
 }
@@ -124,34 +133,40 @@ func (m *MemoryManager) Destroy(ctx context.Context, id string) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	m.invalidateID(id)
-	return nil
+	session := m.invalidateID(id)
+	if session == nil {
+		return nil
+	}
+	return m.fireSessionDestroyed(ctx, session)
 }
 
 func (m *MemoryManager) invalidateSession(session *memorySession) error {
 	m.mu.Lock()
-	defer m.mu.Unlock()
 	session.mu.Lock()
-	defer session.mu.Unlock()
 	if !session.valid {
+		session.mu.Unlock()
+		m.mu.Unlock()
 		return ErrInvalidSession
 	}
 	session.valid = false
 	delete(m.sessions, session.id)
 	session.attribute = make(map[string]any)
-	return nil
+	session.mu.Unlock()
+	m.mu.Unlock()
+	return m.fireSessionDestroyed(context.Background(), session)
 }
 
-func (m *MemoryManager) invalidateID(id string) {
+func (m *MemoryManager) invalidateID(id string) *memorySession {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	session, ok := m.sessions[id]
 	if !ok {
-		return
+		return nil
 	}
 	session.mu.Lock()
 	session.valid = false
 	session.attribute = make(map[string]any)
 	session.mu.Unlock()
 	delete(m.sessions, id)
+	return session
 }

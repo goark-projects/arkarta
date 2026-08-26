@@ -37,14 +37,37 @@ func WithInitParam(name, value string) WebAppOption {
 	}
 }
 
+// WithContextListener 添加应用上下文监听器。
+func WithContextListener(listener ContextListener) WebAppOption {
+	return func(app *WebApp) error {
+		if listener != nil {
+			app.contextListeners = append(app.contextListeners, listener)
+		}
+		return nil
+	}
+}
+
+// WithRequestListener 添加请求生命周期监听器。
+func WithRequestListener(listener RequestListener) WebAppOption {
+	return func(app *WebApp) error {
+		if listener != nil {
+			app.requestListeners = append(app.requestListeners, listener)
+		}
+		return nil
+	}
+}
+
 // WebApp 表示一个部署单元的应用上下文。
 type WebApp struct {
 	name        string
 	contextPath string
 	initParam   map[string]string
+	state       WebAppState
 
-	mu        sync.RWMutex
-	attribute map[string]any
+	mu               sync.RWMutex
+	attribute        map[string]any
+	contextListeners []ContextListener
+	requestListeners []RequestListener
 }
 
 // NewWebApp 创建 Web 应用上下文。
@@ -54,6 +77,7 @@ func NewWebApp(name string, options ...WebAppOption) (*WebApp, error) {
 		contextPath: "/",
 		initParam:   make(map[string]string),
 		attribute:   make(map[string]any),
+		state:       WebAppStateNew,
 	}
 	for _, option := range options {
 		if option == nil {

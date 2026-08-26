@@ -34,6 +34,18 @@ func WithMapping(pattern string, handler servlet.Handler, filters ...servlet.Fil
 	}
 }
 
+// WithServlet 添加带生命周期的 Servlet 路径映射。
+func WithServlet(pattern, name string, handler servlet.Servlet, filters ...servlet.Filter) DeploymentOption {
+	return func(deployment *Deployment) error {
+		mapping, err := newServletMapping(pattern, name, handler, filters...)
+		if err != nil {
+			return err
+		}
+		deployment.mappings = append(deployment.mappings, mapping)
+		return nil
+	}
+}
+
 // WithProfile 声明部署需要的 Profile。
 func WithProfile(profile Profile) DeploymentOption {
 	return func(deployment *Deployment) error {
@@ -92,4 +104,14 @@ func (d *Deployment) Handler() (servlet.Handler, error) {
 		}
 	}
 	return router, nil
+}
+
+func (d *Deployment) servletMappings() []Mapping {
+	result := make([]Mapping, 0, len(d.mappings))
+	for _, mapping := range d.mappings {
+		if _, ok := mapping.Handler().(servlet.Servlet); ok {
+			result = append(result, mapping)
+		}
+	}
+	return result
 }
