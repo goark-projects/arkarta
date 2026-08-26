@@ -31,6 +31,7 @@ func NewMapping(pattern string, handler servlet.Handler, filters ...servlet.Filt
 		name:           pattern,
 		handler:        handler,
 		filterBindings: bindings,
+		initParam:      make(map[string]string),
 	}, nil
 }
 
@@ -43,6 +44,18 @@ func newServletMapping(pattern, name string, handler servlet.Servlet, filters ..
 		return Mapping{}, err
 	}
 	mapping.name = name
+	return mapping, nil
+}
+
+func newRegistrationMapping(pattern, name string, handler servlet.Handler, initParam map[string]string) (Mapping, error) {
+	mapping, err := NewMapping(pattern, handler)
+	if err != nil {
+		return Mapping{}, err
+	}
+	if name != "" {
+		mapping.name = name
+	}
+	mapping.initParam = cloneStringMap(initParam)
 	return mapping, nil
 }
 
@@ -75,6 +88,11 @@ func (m Mapping) Filters() []servlet.Filter {
 // FilterBindings 返回带 DispatcherType 约束的过滤器映射副本。
 func (m Mapping) FilterBindings() []servlet.FilterBinding {
 	return cloneFilterBindings(m.filterBindings)
+}
+
+// InitParams 返回 Servlet 初始化参数副本。
+func (m Mapping) InitParams() map[string]string {
+	return cloneStringMap(m.initParam)
 }
 
 func (m Mapping) servletHandler() servlet.Handler {

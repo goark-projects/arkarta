@@ -2,7 +2,6 @@ package registration
 
 import (
 	"goark.dev/arkarta/servlet"
-	"goark.dev/arkarta/servlet/session"
 )
 
 // AddContextListener 注册上下文生命周期监听器。
@@ -16,7 +15,10 @@ func (r *Registry) AddRequestListener(listener servlet.RequestListener) (*Listen
 }
 
 // AddSessionListener 注册会话生命周期监听器。
-func (r *Registry) AddSessionListener(listener session.Listener) (*ListenerRegistration, error) {
+func (r *Registry) AddSessionListener(listener any) (*ListenerRegistration, error) {
+	if !isSessionListener(listener) {
+		return nil, ErrNilListener
+	}
 	return r.addListener(ListenerSession, listener)
 }
 
@@ -27,9 +29,10 @@ func (r *Registry) AddListener(listener any) (*ListenerRegistration, error) {
 		return r.AddContextListener(item)
 	case servlet.RequestListener:
 		return r.AddRequestListener(item)
-	case session.Listener:
-		return r.AddSessionListener(item)
 	default:
+		if isSessionListener(item) {
+			return r.AddSessionListener(item)
+		}
 		return nil, ErrNilListener
 	}
 }

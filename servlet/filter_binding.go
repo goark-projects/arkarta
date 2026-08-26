@@ -15,6 +15,7 @@ type FilterBindingOption func(*FilterBinding) error
 type FilterBinding struct {
 	name          string
 	filter        Filter
+	urlPattern    string
 	dispatchTypes DispatchTypes
 	initParam     map[string]string
 }
@@ -76,6 +77,34 @@ func WithFilterInitParam(name, value string) FilterBindingOption {
 	}
 }
 
+// WithFilterInitParams 批量设置 Filter 初始化参数。
+func WithFilterInitParams(params map[string]string) FilterBindingOption {
+	return func(binding *FilterBinding) error {
+		for name, value := range params {
+			if name == "" {
+				return ErrInvalidFilterConfig
+			}
+			binding.initParam[name] = value
+		}
+		return nil
+	}
+}
+
+// WithFilterURLPattern 设置 Filter 的 URL 模式约束。
+func WithFilterURLPattern(pattern string) FilterBindingOption {
+	return func(binding *FilterBinding) error {
+		if pattern == "" {
+			binding.urlPattern = ""
+			return nil
+		}
+		if _, _, err := parseMappingPattern(pattern); err != nil {
+			return err
+		}
+		binding.urlPattern = pattern
+		return nil
+	}
+}
+
 // Name 返回 Filter 名称。
 func (b FilterBinding) Name() string {
 	return b.name
@@ -84,6 +113,11 @@ func (b FilterBinding) Name() string {
 // Filter 返回 Filter 实例。
 func (b FilterBinding) Filter() Filter {
 	return b.filter
+}
+
+// URLPattern 返回 Filter 的 URL 模式约束；空字符串表示不限制请求路径。
+func (b FilterBinding) URLPattern() string {
+	return b.urlPattern
 }
 
 // DispatchTypes 返回匹配的分发类型集合。
@@ -99,4 +133,18 @@ func (b FilterBinding) InitParams() map[string]string {
 // Matches 判断当前分发类型是否应该执行该 Filter。
 func (b FilterBinding) Matches(dispatchType DispatchType) bool {
 	return b.dispatchTypes.Contains(dispatchType)
+}
+
+// MatchesRequest 判断当前请求是否应该执行该 Filter。
+func (b FilterBinding) MatchesRequest(req *Request) bool {
+	dispatchType := DispatchRequest
+	path := "/"
+	if req != nil {
+		dispatchType = req.DispatchType()
+		path = req.Path()
+	}
+	if !b.Matches(dispatchType) {
+		return false
+	}
+	return matchFilterURLPattern(path, b.urlPattern)
 }

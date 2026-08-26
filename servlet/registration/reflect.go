@@ -1,6 +1,14 @@
 package registration
 
-import "reflect"
+import (
+	"context"
+	"reflect"
+)
+
+var (
+	contextType = reflect.TypeOf((*context.Context)(nil)).Elem()
+	errorType   = reflect.TypeOf((*error)(nil)).Elem()
+)
 
 func isNil(value any) bool {
 	if value == nil {
@@ -27,4 +35,25 @@ func typeName(value any) string {
 		return reflected.String()
 	}
 	return reflected.PkgPath() + "." + reflected.Name()
+}
+
+func isSessionListener(value any) bool {
+	if isNil(value) {
+		return false
+	}
+	target := reflect.TypeOf(value)
+	for _, methodName := range []string{"SessionCreated", "SessionDestroyed", "SessionIDChanged"} {
+		method, ok := target.MethodByName(methodName)
+		if !ok || !isListenerMethod(method.Type) {
+			return false
+		}
+	}
+	return true
+}
+
+func isListenerMethod(method reflect.Type) bool {
+	return method.NumIn() == 3 &&
+		method.In(1).Implements(contextType) &&
+		method.NumOut() == 1 &&
+		method.Out(0).Implements(errorType)
 }

@@ -61,6 +61,44 @@ func TestFilterBindingDefaultsToRequestDispatcher(t *testing.T) {
 	}
 }
 
+func TestFilterBindingHonorsURLPattern(t *testing.T) {
+	t.Parallel()
+
+	var calls []string
+	target := HandlerFunc(func(context.Context, *Request, Response) error {
+		calls = append(calls, "handler")
+		return nil
+	})
+	binding, err := NewFilterBinding("secure", recordFilter("secure", &calls), WithFilterURLPattern("/secure/*"))
+	if err != nil {
+		t.Fatalf("NewFilterBinding failed: %v", err)
+	}
+	handler := ChainFilterBindings(target, binding)
+
+	publicReq, err := NewRequest(httptest.NewRequest(http.MethodGet, "/public/index.html", nil))
+	if err != nil {
+		t.Fatalf("NewRequest public failed: %v", err)
+	}
+	if err := handler.Serve(context.Background(), publicReq, nil); err != nil {
+		t.Fatalf("Serve public failed: %v", err)
+	}
+	secureReq, err := NewRequest(httptest.NewRequest(http.MethodGet, "/secure/orders", nil))
+	if err != nil {
+		t.Fatalf("NewRequest secure failed: %v", err)
+	}
+	if err := handler.Serve(context.Background(), secureReq, nil); err != nil {
+		t.Fatalf("Serve secure failed: %v", err)
+	}
+
+	want := []string{"handler", "secure", "handler"}
+	if !reflect.DeepEqual(calls, want) {
+		t.Fatalf("calls = %#v, want %#v", calls, want)
+	}
+	if binding.URLPattern() != "/secure/*" {
+		t.Fatalf("url pattern = %q, want /secure/*", binding.URLPattern())
+	}
+}
+
 func TestFilterBindingRejectsInvalidInput(t *testing.T) {
 	t.Parallel()
 
@@ -73,6 +111,9 @@ func TestFilterBindingRejectsInvalidInput(t *testing.T) {
 	}
 	if _, err := NewFilterBinding("bad", FilterFunc(noopBindingFilter), WithFilterInitParam("", "bad")); !errors.Is(err, ErrInvalidFilterConfig) {
 		t.Fatalf("invalid init param err = %v, want ErrInvalidFilterConfig", err)
+	}
+	if _, err := NewFilterBinding("bad", FilterFunc(noopBindingFilter), WithFilterURLPattern("bad")); !errors.Is(err, ErrInvalidMappingPattern) {
+		t.Fatalf("invalid URL pattern err = %v, want ErrInvalidMappingPattern", err)
 	}
 }
 
