@@ -75,15 +75,33 @@ func (s *memorySession) Attribute(name string) (any, bool) {
 
 func (s *memorySession) SetAttribute(name string, value any) error {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	if !s.valid {
+		s.mu.Unlock()
 		return ErrInvalidSession
 	}
+	oldValue, existed := s.attribute[name]
 	if value == nil {
 		delete(s.attribute, name)
+	} else {
+		s.attribute[name] = value
+	}
+	s.mu.Unlock()
+
+	if value == nil && existed {
+		fireValueUnbound(s, name, oldValue)
+		s.manager.fireAttributeRemoved(s, name, oldValue)
 		return nil
 	}
-	s.attribute[name] = value
+	if value != nil && existed {
+		fireValueUnbound(s, name, oldValue)
+		fireValueBound(s, name, value)
+		s.manager.fireAttributeReplaced(s, name, value, oldValue)
+		return nil
+	}
+	if value != nil {
+		fireValueBound(s, name, value)
+		s.manager.fireAttributeAdded(s, name, value)
+	}
 	return nil
 }
 

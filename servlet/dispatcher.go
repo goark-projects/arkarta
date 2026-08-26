@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strings"
 )
 
@@ -51,13 +52,13 @@ func (d *Dispatcher) Forward(ctx context.Context, req *Request, res Response) er
 			return err
 		}
 	}
-	req.SetAttribute(AttributeForwardRequestURI, req.Path())
+	setForwardAttributes(req)
 	return d.dispatch(ctx, req, res, DispatchForward)
 }
 
 // Include 包含目标处理器输出，但隔离目标状态码和 Header。
 func (d *Dispatcher) Include(ctx context.Context, req *Request, res Response) error {
-	req.SetAttribute(AttributeIncludeRequestURI, req.Path())
+	setIncludeAttributes(req)
 	return d.dispatch(ctx, req, newIncludeResponse(res), DispatchInclude)
 }
 
@@ -69,9 +70,7 @@ func (d *Dispatcher) Error(ctx context.Context, req *Request, res Response, stat
 	if res != nil && !res.Committed() {
 		res.SetStatus(statusCode)
 	}
-	req.SetAttribute(AttributeErrorStatusCode, statusCode)
-	req.SetAttribute(AttributeErrorException, cause)
-	req.SetAttribute(AttributeErrorRequestURI, req.Path())
+	setErrorAttributes(req, statusCode, cause)
 	return d.dispatch(ctx, req, res, DispatchError)
 }
 
@@ -109,4 +108,76 @@ func splitDispatcherPath(path string) (string, string, bool, error) {
 		}
 	}
 	return targetPath, queryString, hasQuery, nil
+}
+
+func setForwardAttributes(req *Request) {
+	if _, exists := req.Attribute(AttributeForwardRequestURI); exists {
+		return
+	}
+	setPathAttributeGroup(req, "forward")
+}
+
+func setIncludeAttributes(req *Request) {
+	setPathAttributeGroup(req, "include")
+}
+
+func setPathAttributeGroup(req *Request, group string) {
+	var requestURIKey, contextPathKey, servletPathKey, pathInfoKey, queryStringKey, mappingKey string
+	switch group {
+	case "forward":
+		requestURIKey = AttributeForwardRequestURI
+		contextPathKey = AttributeForwardContextPath
+		servletPathKey = AttributeForwardServletPath
+		pathInfoKey = AttributeForwardPathInfo
+		queryStringKey = AttributeForwardQueryString
+		mappingKey = AttributeForwardMapping
+	case "include":
+		requestURIKey = AttributeIncludeRequestURI
+		contextPathKey = AttributeIncludeContextPath
+		servletPathKey = AttributeIncludeServletPath
+		pathInfoKey = AttributeIncludePathInfo
+		queryStringKey = AttributeIncludeQueryString
+		mappingKey = AttributeIncludeMapping
+	default:
+		return
+	}
+	req.SetAttribute(requestURIKey, req.Path())
+	req.SetAttribute(contextPathKey, req.ContextPath())
+	req.SetAttribute(servletPathKey, req.ServletPath())
+	req.SetAttribute(pathInfoKey, req.PathInfo())
+	req.SetAttribute(queryStringKey, req.QueryString())
+	req.SetAttribute(mappingKey, req.Mapping())
+}
+
+func setErrorAttributes(req *Request, statusCode int, cause error) {
+	req.SetAttribute(AttributeErrorStatusCode, statusCode)
+	req.SetAttribute(AttributeErrorException, cause)
+	req.SetAttribute(AttributeErrorExceptionType, errorTypeName(cause))
+	req.SetAttribute(AttributeErrorMessage, errorMessage(statusCode, cause))
+	req.SetAttribute(AttributeErrorRequestURI, req.Path())
+	req.SetAttribute(AttributeErrorQueryString, req.QueryString())
+	if servletName, ok := req.Attribute(AttributeServletName); ok {
+		req.SetAttribute(AttributeErrorServletName, servletName)
+	}
+}
+
+func errorTypeName(cause error) string {
+	if cause == nil {
+		return ""
+	}
+	return reflect.TypeOf(cause).String()
+}
+
+func errorMessage(statusCode int, cause error) string {
+	var statusErr StatusError
+	if errors.As(cause, &statusErr) && statusErr.PublicMessage() != "" {
+		return statusErr.PublicMessage()
+	}
+	if text := http.StatusText(statusCode); text != "" {
+		return text
+	}
+	if cause != nil {
+		return cause.Error()
+	}
+	return ""
 }

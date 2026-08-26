@@ -1,6 +1,7 @@
 package servlet
 
 import (
+	"context"
 	"errors"
 	"io/fs"
 	"log/slog"
@@ -74,10 +75,12 @@ type WebApp struct {
 	logger                    *slog.Logger
 	state                     WebAppState
 
-	mu               sync.RWMutex
-	attribute        map[string]any
-	contextListeners []ContextListener
-	requestListeners []RequestListener
+	mu                        sync.RWMutex
+	attribute                 map[string]any
+	contextListeners          []ContextListener
+	requestListeners          []RequestListener
+	contextAttributeListeners []ContextAttributeListener
+	requestAttributeListeners []RequestAttributeListener
 }
 
 // NewWebApp 创建 Web 应用上下文。
@@ -137,13 +140,7 @@ func (a *WebApp) Attribute(key string) (any, bool) {
 
 // SetAttribute 设置应用属性；传入 nil 会删除该属性。
 func (a *WebApp) SetAttribute(key string, value any) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	if value == nil {
-		delete(a.attribute, key)
-		return
-	}
-	a.attribute[key] = value
+	a.SetAttributeContext(context.Background(), key, value)
 }
 
 func cloneStringMap(src map[string]string) map[string]string {

@@ -16,6 +16,7 @@ type MemoryManager struct {
 	clock               func() time.Time
 	maxInactiveInterval time.Duration
 	listeners           []Listener
+	attributeListeners  []AttributeListener
 }
 
 // NewMemoryManager 创建内存会话管理器。
@@ -150,23 +151,28 @@ func (m *MemoryManager) invalidateSession(session *memorySession) error {
 	}
 	session.valid = false
 	delete(m.sessions, session.id)
+	attributes := session.attribute
 	session.attribute = make(map[string]any)
 	session.mu.Unlock()
 	m.mu.Unlock()
+	m.fireAttributesRemoved(session, attributes)
 	return m.fireSessionDestroyed(context.Background(), session)
 }
 
 func (m *MemoryManager) invalidateID(id string) *memorySession {
 	m.mu.Lock()
-	defer m.mu.Unlock()
 	session, ok := m.sessions[id]
 	if !ok {
+		m.mu.Unlock()
 		return nil
 	}
 	session.mu.Lock()
 	session.valid = false
+	attributes := session.attribute
 	session.attribute = make(map[string]any)
 	session.mu.Unlock()
 	delete(m.sessions, id)
+	m.mu.Unlock()
+	m.fireAttributesRemoved(session, attributes)
 	return session
 }

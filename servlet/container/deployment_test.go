@@ -46,6 +46,55 @@ func TestDeploymentBuildsHandler(t *testing.T) {
 	}
 }
 
+func TestDeploymentSetsServletNameAttribute(t *testing.T) {
+	t.Parallel()
+
+	app, err := servlet.NewWebApp("orders")
+	if err != nil {
+		t.Fatalf("NewWebApp failed: %v", err)
+	}
+	deployment, err := NewDeployment(app,
+		WithServlet("/orders", "ordersServlet", servletNameServlet{t: t}),
+	)
+	if err != nil {
+		t.Fatalf("NewDeployment failed: %v", err)
+	}
+	handler, err := deployment.Handler()
+	if err != nil {
+		t.Fatalf("Handler failed: %v", err)
+	}
+	req, err := servlet.NewRequest(httptest.NewRequest(http.MethodGet, "/orders", nil))
+	if err != nil {
+		t.Fatalf("NewRequest failed: %v", err)
+	}
+	if err := handler.Serve(context.Background(), req, nil); err != nil {
+		t.Fatalf("Serve failed: %v", err)
+	}
+	if value, ok := req.Attribute(servlet.AttributeServletName); ok || value != nil {
+		t.Fatalf("servlet name should be restored, got %v/%v", value, ok)
+	}
+}
+
+type servletNameServlet struct {
+	t *testing.T
+}
+
+func (s servletNameServlet) Init(context.Context, servlet.ServletConfig) error {
+	return nil
+}
+
+func (s servletNameServlet) Serve(_ context.Context, req *servlet.Request, _ servlet.Response) error {
+	value, ok := req.Attribute(servlet.AttributeServletName)
+	if !ok || value != "ordersServlet" {
+		s.t.Fatalf("servlet name = %v/%v, want ordersServlet/true", value, ok)
+	}
+	return nil
+}
+
+func (s servletNameServlet) Destroy(context.Context) error {
+	return nil
+}
+
 func TestDeploymentRejectsDuplicateMappingAtBuild(t *testing.T) {
 	t.Parallel()
 

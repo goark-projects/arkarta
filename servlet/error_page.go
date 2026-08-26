@@ -60,9 +60,7 @@ func (r *ErrorPageRegistry) Handle(ctx context.Context, req *Request, res Respon
 	if res != nil {
 		res.SetStatus(statusCode)
 	}
-	req.SetAttribute(AttributeErrorStatusCode, statusCode)
-	req.SetAttribute(AttributeErrorException, cause)
-	req.SetAttribute(AttributeErrorRequestURI, req.Path())
+	setErrorAttributes(req, statusCode, cause)
 
 	snapshot := req.dispatchSnapshot()
 	req.applyDispatch(req.Path(), snapshot.queryString, DispatchError)

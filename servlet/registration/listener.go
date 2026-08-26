@@ -10,6 +10,12 @@ const (
 	ListenerRequest ListenerKind = "request"
 	// ListenerSession 表示 HttpSessionListener 与 HttpSessionIdListener。
 	ListenerSession ListenerKind = "session"
+	// ListenerContextAttribute 表示 ServletContextAttributeListener。
+	ListenerContextAttribute ListenerKind = "context_attribute"
+	// ListenerRequestAttribute 表示 ServletRequestAttributeListener。
+	ListenerRequestAttribute ListenerKind = "request_attribute"
+	// ListenerSessionAttribute 表示 HttpSessionAttributeListener。
+	ListenerSessionAttribute ListenerKind = "session_attribute"
 )
 
 // ListenerRegistration 保存单个 Listener 的动态注册信息。

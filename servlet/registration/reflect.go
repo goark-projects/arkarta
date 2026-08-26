@@ -51,9 +51,27 @@ func isSessionListener(value any) bool {
 	return true
 }
 
+func isSessionAttributeListener(value any) bool {
+	if isNil(value) {
+		return false
+	}
+	target := reflect.TypeOf(value)
+	for _, methodName := range []string{"AttributeAdded", "AttributeReplaced", "AttributeRemoved"} {
+		method, ok := target.MethodByName(methodName)
+		if !ok || !isAttributeListenerMethod(method.Type) {
+			return false
+		}
+	}
+	return true
+}
+
 func isListenerMethod(method reflect.Type) bool {
 	return method.NumIn() == 3 &&
 		method.In(1).Implements(contextType) &&
 		method.NumOut() == 1 &&
 		method.Out(0).Implements(errorType)
+}
+
+func isAttributeListenerMethod(method reflect.Type) bool {
+	return method.NumIn() == 2 && method.NumOut() == 0
 }

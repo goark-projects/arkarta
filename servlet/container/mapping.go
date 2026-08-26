@@ -1,6 +1,8 @@
 package container
 
 import (
+	"context"
+
 	"goark.dev/arkarta/servlet"
 )
 
@@ -96,7 +98,19 @@ func (m Mapping) InitParams() map[string]string {
 }
 
 func (m Mapping) servletHandler() servlet.Handler {
-	return servlet.ChainFilterBindings(m.handler, m.filterBindings...)
+	target := servlet.ChainFilterBindings(m.handler, m.filterBindings...)
+	return servlet.HandlerFunc(func(ctx context.Context, req *servlet.Request, res servlet.Response) error {
+		previous, hadPrevious := req.Attribute(servlet.AttributeServletName)
+		req.SetAttribute(servlet.AttributeServletName, m.name)
+		defer func() {
+			if hadPrevious {
+				req.SetAttribute(servlet.AttributeServletName, previous)
+				return
+			}
+			req.SetAttribute(servlet.AttributeServletName, nil)
+		}()
+		return target.Serve(ctx, req, res)
+	})
 }
 
 func (m Mapping) servletConfig(app *servlet.WebApp) servlet.ServletConfig {

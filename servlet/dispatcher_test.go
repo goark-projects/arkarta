@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 )
 
@@ -22,11 +23,15 @@ func TestDispatcherForwardUsesTargetPathAndRestoresRequest(t *testing.T) {
 		if !ok || value != "/source" {
 			t.Fatalf("forward request uri = %v/%v, want /source/true", value, ok)
 		}
+		query, _ := req.Attribute(AttributeForwardQueryString)
+		if query != "from=source" {
+			t.Fatalf("forward query = %v, want from=source", query)
+		}
 		_, err := res.WriteString(req.Path())
 		return err
 	}))
 
-	req, err := NewRequest(httptest.NewRequest(http.MethodGet, "/source", nil))
+	req, err := NewRequest(httptest.NewRequest(http.MethodGet, "/source?from=source", nil))
 	if err != nil {
 		t.Fatalf("NewRequest failed: %v", err)
 	}
@@ -122,13 +127,21 @@ func TestDispatcherIncludeCannotChangeOuterStatusOrHeaders(t *testing.T) {
 		if req.DispatchType() != DispatchInclude {
 			t.Fatalf("dispatch = %v, want include", req.DispatchType())
 		}
+		value, ok := req.Attribute(AttributeIncludeRequestURI)
+		if !ok || value != "/page" {
+			t.Fatalf("include request uri = %v/%v, want /page/true", value, ok)
+		}
+		query, _ := req.Attribute(AttributeIncludeQueryString)
+		if query != "mode=full" {
+			t.Fatalf("include query = %v, want mode=full", query)
+		}
 		res.SetStatus(http.StatusCreated)
 		res.Header().Set("X-Include", "ignored")
 		_, err := res.WriteString("fragment")
 		return err
 	}))
 
-	req, err := NewRequest(httptest.NewRequest(http.MethodGet, "/page", nil))
+	req, err := NewRequest(httptest.NewRequest(http.MethodGet, "/page?mode=full", nil))
 	if err != nil {
 		t.Fatalf("NewRequest failed: %v", err)
 	}
@@ -162,14 +175,20 @@ func TestDispatcherErrorSetsErrorAttributes(t *testing.T) {
 		status, _ := req.Attribute(AttributeErrorStatusCode)
 		errValue, _ := req.Attribute(AttributeErrorException)
 		path, _ := req.Attribute(AttributeErrorRequestURI)
+		query, _ := req.Attribute(AttributeErrorQueryString)
+		message, _ := req.Attribute(AttributeErrorMessage)
+		exceptionType, _ := req.Attribute(AttributeErrorExceptionType)
 		if status != http.StatusBadGateway || errValue != cause || path != "/upstream" {
 			t.Fatalf("error attrs = %v/%v/%v", status, errValue, path)
+		}
+		if query != "trace=1" || message != http.StatusText(http.StatusBadGateway) || exceptionType != reflect.TypeOf(cause).String() {
+			t.Fatalf("error extended attrs = %v/%v/%v", query, message, exceptionType)
 		}
 		_, err := res.WriteString("error")
 		return err
 	}))
 
-	req, err := NewRequest(httptest.NewRequest(http.MethodGet, "/upstream", nil))
+	req, err := NewRequest(httptest.NewRequest(http.MethodGet, "/upstream?trace=1", nil))
 	if err != nil {
 		t.Fatalf("NewRequest failed: %v", err)
 	}

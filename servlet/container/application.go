@@ -53,6 +53,7 @@ func (a *ManagedApplication) Handler() servlet.Handler {
 		if a.webApp.State() != servlet.WebAppStateStarted {
 			return servlet.NewHTTPError(http.StatusServiceUnavailable, http.StatusText(http.StatusServiceUnavailable), nil)
 		}
+		a.webApp.AttachRequestAttributeListeners(req)
 		if err := a.webApp.RequestInitialized(ctx, req); err != nil {
 			return err
 		}

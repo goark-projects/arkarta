@@ -22,6 +22,24 @@ func (r *Registry) AddSessionListener(listener any) (*ListenerRegistration, erro
 	return r.addListener(ListenerSession, listener)
 }
 
+// AddContextAttributeListener 注册上下文属性监听器。
+func (r *Registry) AddContextAttributeListener(listener servlet.ContextAttributeListener) (*ListenerRegistration, error) {
+	return r.addListener(ListenerContextAttribute, listener)
+}
+
+// AddRequestAttributeListener 注册请求属性监听器。
+func (r *Registry) AddRequestAttributeListener(listener servlet.RequestAttributeListener) (*ListenerRegistration, error) {
+	return r.addListener(ListenerRequestAttribute, listener)
+}
+
+// AddSessionAttributeListener 注册会话属性监听器。
+func (r *Registry) AddSessionAttributeListener(listener any) (*ListenerRegistration, error) {
+	if !isSessionAttributeListener(listener) {
+		return nil, ErrNilListener
+	}
+	return r.addListener(ListenerSessionAttribute, listener)
+}
+
 // AddListener 按监听器接口类型注册实例；多接口监听器应使用显式方法注册。
 func (r *Registry) AddListener(listener any) (*ListenerRegistration, error) {
 	switch item := listener.(type) {
@@ -29,9 +47,16 @@ func (r *Registry) AddListener(listener any) (*ListenerRegistration, error) {
 		return r.AddContextListener(item)
 	case servlet.RequestListener:
 		return r.AddRequestListener(item)
+	case servlet.ContextAttributeListener:
+		return r.AddContextAttributeListener(item)
+	case servlet.RequestAttributeListener:
+		return r.AddRequestAttributeListener(item)
 	default:
 		if isSessionListener(item) {
 			return r.AddSessionListener(item)
+		}
+		if isSessionAttributeListener(item) {
+			return r.AddSessionAttributeListener(item)
 		}
 		return nil, ErrNilListener
 	}

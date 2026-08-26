@@ -63,8 +63,9 @@ type Request struct {
 	parameters     url.Values
 	parametersErr  error
 
-	mu        sync.RWMutex
-	attribute map[string]any
+	mu                 sync.RWMutex
+	attribute          map[string]any
+	attributeListeners []RequestAttributeListener
 }
 
 // NewRequest 从标准库请求创建 Arkarta Servlet 请求。
@@ -222,13 +223,7 @@ func (r *Request) Attribute(key string) (any, bool) {
 
 // SetAttribute 设置请求属性；传入 nil 会删除该属性。
 func (r *Request) SetAttribute(key string, value any) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	if value == nil {
-		delete(r.attribute, key)
-		return
-	}
-	r.attribute[key] = value
+	r.setAttribute(r.Context(), key, value)
 }
 
 // DispatchType 返回当前分发类型。

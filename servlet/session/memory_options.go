@@ -38,3 +38,12 @@ func WithListener(listener Listener) MemoryManagerOption {
 		}
 	}
 }
+
+// WithAttributeListener 添加会话属性监听器。
+func WithAttributeListener(listener AttributeListener) MemoryManagerOption {
+	return func(manager *MemoryManager) {
+		if listener != nil {
+			manager.attributeListeners = append(manager.attributeListeners, listener)
+		}
+	}
+}

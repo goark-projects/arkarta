@@ -65,7 +65,25 @@ func attachRegistrationListeners(app *servlet.WebApp, descriptors []registration
 			if err := app.AddRequestListener(listener); err != nil {
 				return err
 			}
+		case registration.ListenerContextAttribute:
+			listener, ok := descriptor.Listener().(servlet.ContextAttributeListener)
+			if !ok {
+				return fmt.Errorf("%w: %s", registration.ErrNilListener, descriptor.ClassName())
+			}
+			if err := app.AddContextAttributeListener(listener); err != nil {
+				return err
+			}
+		case registration.ListenerRequestAttribute:
+			listener, ok := descriptor.Listener().(servlet.RequestAttributeListener)
+			if !ok {
+				return fmt.Errorf("%w: %s", registration.ErrNilListener, descriptor.ClassName())
+			}
+			if err := app.AddRequestAttributeListener(listener); err != nil {
+				return err
+			}
 		case registration.ListenerSession:
+			continue
+		case registration.ListenerSessionAttribute:
 			continue
 		default:
 			return fmt.Errorf("%w: %s", registration.ErrNilListener, descriptor.ClassName())
