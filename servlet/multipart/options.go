@@ -28,6 +28,13 @@ func WithParserMaxFileSize(maxFileSize int64) Option {
 	}
 }
 
+// WithParserLocation 设置解析器临时文件目录。
+func WithParserLocation(location string) Option {
+	return func(parser *Parser) {
+		parser.location = location
+	}
+}
+
 // WithConfig 使用 multipart 配置创建解析器选项。
 func WithConfig(config Config) Option {
 	return func(parser *Parser) {

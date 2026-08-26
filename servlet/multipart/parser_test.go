@@ -143,6 +143,86 @@ func TestParserEnforcesFileLimit(t *testing.T) {
 	}
 }
 
+func TestParserStoresFilesInConfiguredLocationAndDeletesThem(t *testing.T) {
+	t.Parallel()
+
+	var body bytes.Buffer
+	writer := stdmultipart.NewWriter(&body)
+	file, err := writer.CreateFormFile("artifact", "readme.txt")
+	if err != nil {
+		t.Fatalf("CreateFormFile failed: %v", err)
+	}
+	if _, err := file.Write([]byte("hello")); err != nil {
+		t.Fatalf("file write failed: %v", err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatalf("writer close failed: %v", err)
+	}
+
+	location := t.TempDir()
+	httpRequest := httptest.NewRequest(http.MethodPost, "/upload", &body)
+	httpRequest.Header.Set("Content-Type", writer.FormDataContentType())
+	req, err := servlet.NewRequest(httpRequest)
+	if err != nil {
+		t.Fatalf("NewRequest failed: %v", err)
+	}
+
+	form, err := NewParser(WithConfig(NewConfig(WithLocation(location)))).Parse(req)
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+	part, ok := form.Part("artifact")
+	if !ok {
+		t.Fatal("part should exist")
+	}
+	if part.path == "" || filepath.Dir(part.path) != location {
+		t.Fatalf("part path = %q, want under %q", part.path, location)
+	}
+	if _, err := os.Stat(part.path); err != nil {
+		t.Fatalf("temp file stat failed: %v", err)
+	}
+	if err := part.Delete(); err != nil {
+		t.Fatalf("Part.Delete failed: %v", err)
+	}
+	if _, err := os.Stat(part.path); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("temp file err = %v, want not exist", err)
+	}
+}
+
+func TestParserNormalizesSubmittedFileName(t *testing.T) {
+	t.Parallel()
+
+	var body bytes.Buffer
+	writer := stdmultipart.NewWriter(&body)
+	file, err := writer.CreateFormFile("artifact", `C:\fake\..\readme.txt`)
+	if err != nil {
+		t.Fatalf("CreateFormFile failed: %v", err)
+	}
+	if _, err := file.Write([]byte("hello")); err != nil {
+		t.Fatalf("file write failed: %v", err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatalf("writer close failed: %v", err)
+	}
+
+	httpRequest := httptest.NewRequest(http.MethodPost, "/upload", &body)
+	httpRequest.Header.Set("Content-Type", writer.FormDataContentType())
+	req, err := servlet.NewRequest(httpRequest)
+	if err != nil {
+		t.Fatalf("NewRequest failed: %v", err)
+	}
+	form, err := NewParser(WithConfig(NewConfig(WithLocation(t.TempDir())))).Parse(req)
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+	defer form.RemoveAll()
+
+	part, ok := form.Part("artifact")
+	if !ok || part.SubmittedFileName() != "readme.txt" {
+		t.Fatalf("submitted filename = %q/%v, want readme.txt/true", part.SubmittedFileName(), ok)
+	}
+}
+
 func TestParseRequestReusesBoundForm(t *testing.T) {
 	t.Parallel()
 

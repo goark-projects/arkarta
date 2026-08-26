@@ -1,6 +1,7 @@
 package multipart
 
 import (
+	"errors"
 	stdmultipart "mime/multipart"
 	"net/url"
 	"sort"
@@ -8,13 +9,23 @@ import (
 
 // Form 表示已解析的 multipart 表单。
 type Form struct {
-	form *stdmultipart.Form
+	form    *stdmultipart.Form
+	values  url.Values
+	parts   []Part
+	cleanup []func() error
 }
 
 // Value 返回指定表单字段的第一个值。
 func (f *Form) Value(name string) string {
 	if f == nil || f.form == nil {
-		return ""
+		if f == nil {
+			return ""
+		}
+		values := f.values[name]
+		if len(values) == 0 {
+			return ""
+		}
+		return values[0]
 	}
 	values := f.form.Value[name]
 	if len(values) == 0 {
@@ -26,7 +37,10 @@ func (f *Form) Value(name string) string {
 // Values 返回普通表单字段副本。
 func (f *Form) Values() url.Values {
 	if f == nil || f.form == nil {
-		return url.Values{}
+		if f == nil {
+			return url.Values{}
+		}
+		return cloneValues(f.values)
 	}
 	return cloneValues(f.form.Value)
 }
@@ -42,6 +56,14 @@ func (f *Form) File(name string) ([]*stdmultipart.FileHeader, bool) {
 
 // Part 返回指定字段的第一个文件段。
 func (f *Form) Part(name string) (Part, bool) {
+	if f != nil && f.form == nil {
+		for _, part := range f.parts {
+			if part.name == name {
+				return part, true
+			}
+		}
+		return Part{}, false
+	}
 	files, ok := f.File(name)
 	if !ok || len(files) == 0 {
 		return Part{}, false
@@ -51,6 +73,17 @@ func (f *Form) Part(name string) (Part, bool) {
 
 // Parts 返回所有文件段。
 func (f *Form) Parts() []Part {
+	if f != nil && f.form == nil {
+		result := make([]Part, len(f.parts))
+		copy(result, f.parts)
+		sort.SliceStable(result, func(i, j int) bool {
+			if result[i].name == result[j].name {
+				return result[i].SubmittedFileName() < result[j].SubmittedFileName()
+			}
+			return result[i].name < result[j].name
+		})
+		return result
+	}
 	files := f.Files()
 	names := make([]string, 0, len(files))
 	for name := range files {
@@ -81,10 +114,26 @@ func (f *Form) Files() map[string][]*stdmultipart.FileHeader {
 
 // RemoveAll 清理解析过程中产生的临时文件。
 func (f *Form) RemoveAll() error {
-	if f == nil || f.form == nil {
+	if f == nil {
 		return nil
 	}
-	return f.form.RemoveAll()
+	var result error
+	if f.form != nil {
+		result = errors.Join(result, f.form.RemoveAll())
+	}
+	for _, cleanup := range f.cleanup {
+		if cleanup != nil {
+			result = errors.Join(result, cleanup())
+		}
+	}
+	for _, part := range f.parts {
+		if part.path != "" {
+			if err := part.Delete(); err != nil {
+				result = errors.Join(result, err)
+			}
+		}
+	}
+	return result
 }
 
 func cloneValues(src map[string][]string) url.Values {

@@ -85,5 +85,6 @@ func (c Config) ParserOptions() []Option {
 		WithMaxMemory(c.FileSizeThreshold()),
 		WithMaxBodySize(c.MaxRequestSize()),
 		WithParserMaxFileSize(c.MaxFileSize()),
+		WithParserLocation(c.Location()),
 	}
 }

@@ -1,6 +1,7 @@
 package multipart
 
 import (
+	"bytes"
 	"io"
 	stdmultipart "mime/multipart"
 	"net/textproto"
@@ -9,9 +10,14 @@ import (
 
 // Part 表示 multipart/form-data 中的一个文件段。
 type Part struct {
-	name    string
-	file    *stdmultipart.FileHeader
-	cleanup func() error
+	name     string
+	file     *stdmultipart.FileHeader
+	header   textproto.MIMEHeader
+	size     int64
+	path     string
+	memory   []byte
+	filename string
+	cleanup  func() error
 }
 
 // Name 返回表单字段名。
@@ -22,7 +28,7 @@ func (p Part) Name() string {
 // SubmittedFileName 返回客户端提交的文件名。
 func (p Part) SubmittedFileName() string {
 	if p.file == nil {
-		return ""
+		return p.filename
 	}
 	return p.file.Filename
 }
@@ -30,19 +36,15 @@ func (p Part) SubmittedFileName() string {
 // Header 返回文件段头部副本。
 func (p Part) Header() textproto.MIMEHeader {
 	if p.file == nil {
-		return textproto.MIMEHeader{}
+		return cloneMIMEHeader(p.header)
 	}
-	result := make(textproto.MIMEHeader, len(p.file.Header))
-	for name, values := range p.file.Header {
-		result[name] = append([]string(nil), values...)
-	}
-	return result
+	return cloneMIMEHeader(p.file.Header)
 }
 
 // Size 返回文件段大小。
 func (p Part) Size() int64 {
 	if p.file == nil {
-		return 0
+		return p.size
 	}
 	return p.file.Size
 }
@@ -50,6 +52,12 @@ func (p Part) Size() int64 {
 // Open 打开文件段内容流。
 func (p Part) Open() (stdmultipart.File, error) {
 	if p.file == nil {
+		if p.path != "" {
+			return os.Open(p.path)
+		}
+		if p.memory != nil {
+			return nopSeekReadCloser{Reader: bytes.NewReader(p.memory)}, nil
+		}
 		return nil, os.ErrNotExist
 	}
 	return p.file.Open()
@@ -77,8 +85,32 @@ func (p Part) Write(path string) error {
 
 // Delete 清理该 Part 所属表单的临时文件。
 func (p Part) Delete() error {
+	if p.path != "" {
+		if err := os.Remove(p.path); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+	}
 	if p.cleanup == nil {
 		return nil
 	}
 	return p.cleanup()
+}
+
+type nopSeekReadCloser struct {
+	*bytes.Reader
+}
+
+func (r nopSeekReadCloser) Close() error {
+	return nil
+}
+
+func cloneMIMEHeader(src textproto.MIMEHeader) textproto.MIMEHeader {
+	if len(src) == 0 {
+		return textproto.MIMEHeader{}
+	}
+	dst := make(textproto.MIMEHeader, len(src))
+	for name, values := range src {
+		dst[name] = append([]string(nil), values...)
+	}
+	return dst
 }
