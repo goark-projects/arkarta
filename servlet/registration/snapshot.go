@@ -1,5 +1,7 @@
 package registration
 
+import "sort"
+
 // Snapshot 是注册表的不可变视图。
 type Snapshot struct {
 	frozen    bool
@@ -21,10 +23,29 @@ func (s Snapshot) Servlets() []ServletDescriptor {
 	dst := make([]ServletDescriptor, len(s.servlets))
 	copy(dst, s.servlets)
 	for i := range dst {
-		dst[i].initParam = cloneStringMap(dst[i].initParam)
-		dst[i].mappings = cloneStrings(dst[i].mappings)
+		dst[i] = dst[i].clone()
 	}
 	return dst
+}
+
+// Servlet 按名称查询 Servlet 快照。
+func (s Snapshot) Servlet(name string) (ServletDescriptor, bool) {
+	for _, descriptor := range s.servlets {
+		if descriptor.name == name {
+			return descriptor.clone(), true
+		}
+	}
+	return ServletDescriptor{}, false
+}
+
+// ServletNames 返回已注册 Servlet 名称集合。
+func (s Snapshot) ServletNames() []string {
+	result := make([]string, 0, len(s.servlets))
+	for _, descriptor := range s.servlets {
+		result = append(result, descriptor.name)
+	}
+	sort.Strings(result)
+	return result
 }
 
 // Filters 返回 Filter 元数据副本。
@@ -35,11 +56,29 @@ func (s Snapshot) Filters() []FilterDescriptor {
 	dst := make([]FilterDescriptor, len(s.filters))
 	copy(dst, s.filters)
 	for i := range dst {
-		dst[i].initParam = cloneStringMap(dst[i].initParam)
-		dst[i].urlPatternMappings = cloneURLPatternMappings(dst[i].urlPatternMappings)
-		dst[i].servletNameMappings = cloneServletNameMappings(dst[i].servletNameMappings)
+		dst[i] = dst[i].clone()
 	}
 	return dst
+}
+
+// Filter 按名称查询 Filter 快照。
+func (s Snapshot) Filter(name string) (FilterDescriptor, bool) {
+	for _, descriptor := range s.filters {
+		if descriptor.name == name {
+			return descriptor.clone(), true
+		}
+	}
+	return FilterDescriptor{}, false
+}
+
+// FilterNames 返回已注册 Filter 名称集合。
+func (s Snapshot) FilterNames() []string {
+	result := make([]string, 0, len(s.filters))
+	for _, descriptor := range s.filters {
+		result = append(result, descriptor.name)
+	}
+	sort.Strings(result)
+	return result
 }
 
 // Listeners 返回 Listener 元数据副本。
@@ -50,6 +89,17 @@ func (s Snapshot) Listeners() []ListenerDescriptor {
 	dst := make([]ListenerDescriptor, len(s.listeners))
 	copy(dst, s.listeners)
 	return dst
+}
+
+// ListenersByKind 返回指定类型的 Listener 快照。
+func (s Snapshot) ListenersByKind(kind ListenerKind) []ListenerDescriptor {
+	result := make([]ListenerDescriptor, 0)
+	for _, descriptor := range s.listeners {
+		if descriptor.kind == kind {
+			result = append(result, descriptor)
+		}
+	}
+	return result
 }
 
 func (r *Registry) snapshotLocked() Snapshot {

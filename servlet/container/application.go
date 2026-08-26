@@ -95,13 +95,12 @@ func (a *ManagedApplication) initialize(ctx context.Context, deployment *Deploym
 		}
 		a.filters = append(a.filters, item.filter)
 	}
-	for _, mapping := range deployment.servletMappings() {
-		target := mapping.Handler().(servlet.Servlet)
-		if err := target.Init(ctx, mapping.servletConfig(a.webApp)); err != nil {
+	for _, item := range deployment.servletInitializations() {
+		if err := item.target.Init(ctx, servlet.NewServletConfig(item.name, a.webApp, item.initParam)); err != nil {
 			_ = a.destroyInitialized(ctx)
 			return err
 		}
-		a.servlets = append(a.servlets, target)
+		a.servlets = append(a.servlets, item.target)
 	}
 	if err := a.webApp.Start(ctx); err != nil {
 		_ = a.destroyInitialized(ctx)

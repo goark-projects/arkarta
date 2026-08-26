@@ -8,6 +8,12 @@ var ErrNilRegistry = errors.New("arkarta/servlet/registration: registry is nil")
 // ErrRegistryFrozen 表示注册表已经冻结，不能再修改。
 var ErrRegistryFrozen = errors.New("arkarta/servlet/registration: registry is frozen")
 
+// ErrRegistrationClosed 表示 Web 应用已经越过动态注册阶段。
+var ErrRegistrationClosed = errors.New("arkarta/servlet/registration: registration phase is closed")
+
+// ErrSnapshotNotFrozen 表示部署使用了仍可变化的注册快照。
+var ErrSnapshotNotFrozen = errors.New("arkarta/servlet/registration: snapshot is not frozen")
+
 // ErrInvalidName 表示 Servlet、Filter 或 Listener 名称非法。
 var ErrInvalidName = errors.New("arkarta/servlet/registration: invalid name")
 

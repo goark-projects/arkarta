@@ -22,6 +22,9 @@ func DeploymentFromRegistration(app *servlet.WebApp, snapshot registration.Snaps
 // WithRegistration 将动态注册快照追加到部署描述。
 func WithRegistration(snapshot registration.Snapshot) DeploymentOption {
 	return func(deployment *Deployment) error {
+		if !snapshot.Frozen() {
+			return registration.ErrSnapshotNotFrozen
+		}
 		if err := attachRegistrationListeners(deployment.webApp, snapshot.Listeners()); err != nil {
 			return err
 		}
@@ -34,7 +37,8 @@ func WithRegistration(snapshot registration.Snapshot) DeploymentOption {
 		}
 		for _, descriptor := range snapshot.Servlets() {
 			for _, pattern := range descriptor.Mappings() {
-				mapping, err := newRegistrationMapping(pattern, descriptor.Name(), descriptor.Handler(), descriptor.InitParams())
+				loadOrder, hasLoadOrder := descriptor.LoadOnStartup()
+				mapping, err := newRegistrationMapping(pattern, descriptor.Name(), descriptor.Handler(), descriptor.InitParams(), loadOrder, hasLoadOrder)
 				if err != nil {
 					return err
 				}

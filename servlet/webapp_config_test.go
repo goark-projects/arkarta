@@ -92,6 +92,38 @@ func TestWebAppCustomCapabilities(t *testing.T) {
 	}
 }
 
+func TestWebAppInitParamsAreMutableOnlyBeforeStart(t *testing.T) {
+	t.Parallel()
+
+	app, err := NewWebApp("orders")
+	if err != nil {
+		t.Fatalf("NewWebApp failed: %v", err)
+	}
+	ok, err := app.SetInitParam("encoding", "utf-8")
+	if err != nil || !ok {
+		t.Fatalf("SetInitParam ok/err = %v/%v, want true/nil", ok, err)
+	}
+	ok, err = app.SetInitParam("encoding", "gbk")
+	if err != nil || ok {
+		t.Fatalf("duplicate SetInitParam ok/err = %v/%v, want false/nil", ok, err)
+	}
+	if value, exists := app.InitParam("encoding"); !exists || value != "utf-8" {
+		t.Fatalf("InitParam = %q/%v, want utf-8/true", value, exists)
+	}
+	if err := app.Initialize(context.Background()); err != nil {
+		t.Fatalf("Initialize failed: %v", err)
+	}
+	if ok, err := app.SetInitParam("locale", "zh-CN"); err != nil || !ok {
+		t.Fatalf("SetInitParam during initialized ok/err = %v/%v, want true/nil", ok, err)
+	}
+	if err := app.Start(context.Background()); err != nil {
+		t.Fatalf("Start failed: %v", err)
+	}
+	if ok, err := app.SetInitParam("late", "value"); ok || !errors.Is(err, ErrInvalidWebAppState) {
+		t.Fatalf("SetInitParam after start ok/err = %v/%v, want false/ErrInvalidWebAppState", ok, err)
+	}
+}
+
 func TestWebAppMimeMappingsAreIsolated(t *testing.T) {
 	t.Parallel()
 

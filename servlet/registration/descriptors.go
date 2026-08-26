@@ -96,6 +96,14 @@ func (d ServletDescriptor) SecurityConfig() (security.Constraint, bool) {
 	return *d.securityConfig, true
 }
 
+func (d ServletDescriptor) clone() ServletDescriptor {
+	d.initParam = cloneStringMap(d.initParam)
+	d.mappings = cloneStrings(d.mappings)
+	d.multipartConfig = cloneMultipartConfig(d.multipartConfig)
+	d.securityConfig = cloneSecurityConfig(d.securityConfig)
+	return d
+}
+
 // Name 返回 Filter 名称。
 func (d FilterDescriptor) Name() string {
 	return d.name
@@ -129,6 +137,13 @@ func (d FilterDescriptor) URLPatternMappings() []URLPatternMapping {
 // ServletNameMappings 返回 Servlet 名称映射副本。
 func (d FilterDescriptor) ServletNameMappings() []ServletNameMapping {
 	return cloneServletNameMappings(d.servletNameMappings)
+}
+
+func (d FilterDescriptor) clone() FilterDescriptor {
+	d.initParam = cloneStringMap(d.initParam)
+	d.urlPatternMappings = cloneURLPatternMappings(d.urlPatternMappings)
+	d.servletNameMappings = cloneServletNameMappings(d.servletNameMappings)
+	return d
 }
 
 // Kind 返回 Listener 类型。

@@ -34,7 +34,11 @@ func TestRegistrationContextWrapsWebAppAndRegistry(t *testing.T) {
 	if conflicts, err := orders.AddMapping("/orders"); err != nil || len(conflicts) != 0 {
 		t.Fatalf("AddMapping = %#v/%v, want none/nil", conflicts, err)
 	}
-	deployment, err := container.DeploymentFromRegistration(app, ctx.Snapshot())
+	snapshot, err := ctx.Freeze()
+	if err != nil {
+		t.Fatalf("Freeze failed: %v", err)
+	}
+	deployment, err := container.DeploymentFromRegistration(app, snapshot)
 	if err != nil {
 		t.Fatalf("DeploymentFromRegistration failed: %v", err)
 	}
@@ -67,6 +71,35 @@ func TestRegistrationContextRejectsNilWebApp(t *testing.T) {
 
 	if _, err := registration.NewContext(nil, nil); !errors.Is(err, registration.ErrNilWebApp) {
 		t.Fatalf("NewContext err = %v, want ErrNilWebApp", err)
+	}
+}
+
+func TestRegistrationContextRejectsMutationAfterStart(t *testing.T) {
+	t.Parallel()
+
+	app, err := servlet.NewWebApp("orders")
+	if err != nil {
+		t.Fatalf("NewWebApp failed: %v", err)
+	}
+	if err := app.Initialize(context.Background()); err != nil {
+		t.Fatalf("Initialize failed: %v", err)
+	}
+	if err := app.Start(context.Background()); err != nil {
+		t.Fatalf("Start failed: %v", err)
+	}
+	ctx, err := registration.NewContext(app, nil)
+	if err != nil {
+		t.Fatalf("NewContext failed: %v", err)
+	}
+
+	_, err = ctx.AddServlet("orders", servlet.HandlerFunc(func(context.Context, *servlet.Request, servlet.Response) error {
+		return nil
+	}))
+	if !errors.Is(err, registration.ErrRegistrationClosed) {
+		t.Fatalf("AddServlet err = %v, want ErrRegistrationClosed", err)
+	}
+	if ok, err := ctx.SetInitParam("encoding", "utf-8"); ok || !errors.Is(err, registration.ErrRegistrationClosed) {
+		t.Fatalf("SetInitParam ok/err = %v/%v, want false/ErrRegistrationClosed", ok, err)
 	}
 }
 

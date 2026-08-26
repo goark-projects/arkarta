@@ -47,6 +47,9 @@ func (c *Context) AddServlet(name string, target servlet.Handler) (*ServletRegis
 	if c == nil || c.registry == nil {
 		return nil, ErrNilRegistry
 	}
+	if err := c.ensureOpen(); err != nil {
+		return nil, err
+	}
 	return c.registry.AddServlet(name, target)
 }
 
@@ -54,6 +57,9 @@ func (c *Context) AddServlet(name string, target servlet.Handler) (*ServletRegis
 func (c *Context) AddFilter(name string, target servlet.Filter) (*FilterRegistration, error) {
 	if c == nil || c.registry == nil {
 		return nil, ErrNilRegistry
+	}
+	if err := c.ensureOpen(); err != nil {
+		return nil, err
 	}
 	return c.registry.AddFilter(name, target)
 }
@@ -63,7 +69,32 @@ func (c *Context) AddListener(listener any) (*ListenerRegistration, error) {
 	if c == nil || c.registry == nil {
 		return nil, ErrNilRegistry
 	}
+	if err := c.ensureOpen(); err != nil {
+		return nil, err
+	}
 	return c.registry.AddListener(listener)
+}
+
+// SetInitParam 设置 WebApp 初始化参数；返回 false 表示名称已存在。
+func (c *Context) SetInitParam(name, value string) (bool, error) {
+	if c == nil || c.app == nil {
+		return false, ErrNilWebApp
+	}
+	if err := c.ensureOpen(); err != nil {
+		return false, err
+	}
+	return c.app.SetInitParam(name, value)
+}
+
+// SetInitParams 批量设置 WebApp 初始化参数；存在冲突时不写入任何参数。
+func (c *Context) SetInitParams(params map[string]string) ([]string, error) {
+	if c == nil || c.app == nil {
+		return nil, ErrNilWebApp
+	}
+	if err := c.ensureOpen(); err != nil {
+		return nil, err
+	}
+	return c.app.SetInitParams(params)
 }
 
 // ServletRegistration 返回指定 Servlet 注册项。
@@ -90,6 +121,25 @@ func (c *Context) Snapshot() Snapshot {
 	return c.registry.Snapshot()
 }
 
+// Freeze 关闭动态注册阶段并返回不可变部署快照。
+func (c *Context) Freeze() (Snapshot, error) {
+	if c == nil || c.registry == nil {
+		return Snapshot{}, ErrNilRegistry
+	}
+	if err := c.ensureOpen(); err != nil {
+		return Snapshot{}, err
+	}
+	return c.registry.Freeze()
+}
+
+// Frozen 表示动态注册上下文是否已经冻结。
+func (c *Context) Frozen() bool {
+	if c == nil || c.registry == nil {
+		return false
+	}
+	return c.registry.Frozen()
+}
+
 // RequestDispatcher 返回指定路径的请求分发器。
 func (c *Context) RequestDispatcher(path string) (servlet.RequestDispatcher, error) {
 	if c == nil || c.app == nil {
@@ -104,4 +154,16 @@ func (c *Context) NamedDispatcher(name string) (servlet.RequestDispatcher, error
 		return nil, ErrNilWebApp
 	}
 	return c.app.NamedDispatcher(name)
+}
+
+func (c *Context) ensureOpen() error {
+	if c == nil || c.app == nil {
+		return ErrNilWebApp
+	}
+	switch c.app.State() {
+	case servlet.WebAppStateNew, servlet.WebAppStateInitialized:
+		return nil
+	default:
+		return ErrRegistrationClosed
+	}
 }

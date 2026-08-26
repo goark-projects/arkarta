@@ -8,11 +8,13 @@ import (
 
 // Mapping 表示一个 Servlet 路径映射。
 type Mapping struct {
-	pattern        string
-	name           string
-	handler        servlet.Handler
-	filterBindings []servlet.FilterBinding
-	initParam      map[string]string
+	pattern          string
+	name             string
+	handler          servlet.Handler
+	filterBindings   []servlet.FilterBinding
+	initParam        map[string]string
+	loadOnStartup    int
+	hasLoadOnStartup bool
 }
 
 // NewMapping 创建路径映射。
@@ -49,7 +51,7 @@ func newServletMapping(pattern, name string, handler servlet.Servlet, filters ..
 	return mapping, nil
 }
 
-func newRegistrationMapping(pattern, name string, handler servlet.Handler, initParam map[string]string) (Mapping, error) {
+func newRegistrationMapping(pattern, name string, handler servlet.Handler, initParam map[string]string, loadOnStartup int, hasLoadOnStartup bool) (Mapping, error) {
 	mapping, err := NewMapping(pattern, handler)
 	if err != nil {
 		return Mapping{}, err
@@ -58,6 +60,8 @@ func newRegistrationMapping(pattern, name string, handler servlet.Handler, initP
 		mapping.name = name
 	}
 	mapping.initParam = cloneStringMap(initParam)
+	mapping.loadOnStartup = loadOnStartup
+	mapping.hasLoadOnStartup = hasLoadOnStartup
 	return mapping, nil
 }
 
@@ -95,6 +99,11 @@ func (m Mapping) FilterBindings() []servlet.FilterBinding {
 // InitParams 返回 Servlet 初始化参数副本。
 func (m Mapping) InitParams() map[string]string {
 	return cloneStringMap(m.initParam)
+}
+
+// LoadOnStartup 返回注册声明的启动初始化顺序。
+func (m Mapping) LoadOnStartup() (int, bool) {
+	return m.loadOnStartup, m.hasLoadOnStartup
 }
 
 func (m Mapping) servletHandler() servlet.Handler {

@@ -36,6 +36,9 @@ func WithContextPath(contextPath string) WebAppOption {
 // WithInitParam 设置应用初始化参数。
 func WithInitParam(name, value string) WebAppOption {
 	return func(app *WebApp) error {
+		if strings.TrimSpace(name) == "" {
+			return ErrInvalidWebAppConfig
+		}
 		app.initParam[name] = value
 		return nil
 	}
