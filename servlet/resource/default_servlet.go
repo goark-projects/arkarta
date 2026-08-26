@@ -1,8 +1,10 @@
 package resource
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -104,7 +106,10 @@ func writeResourceHeaders(res servlet.Response, item Resource) {
 }
 
 func serveRange(req *servlet.Request, res servlet.Response, item Resource) (bool, error) {
-	target, ok, invalid := parseRange(req.Header().Get("Range"), item.Size())
+	if !ifRangeAllows(req, item) {
+		return false, nil
+	}
+	targets, ok, invalid := parseRanges(req.Header().Get("Range"), item.Size())
 	if invalid {
 		res.Header().Set("Content-Range", unsatisfiedRange(item.Size()))
 		res.SetStatus(rangeNotSatisfiable())
@@ -113,6 +118,10 @@ func serveRange(req *servlet.Request, res servlet.Response, item Resource) (bool
 	if !ok {
 		return false, nil
 	}
+	if len(targets) > 1 {
+		return serveMultipleRanges(req, res, item, targets)
+	}
+	target := targets[0]
 	res.Header().Set("Content-Range", target.contentRange(item.Size()))
 	_ = servlet.SetContentLength(res, target.length())
 	res.SetStatus(http.StatusPartialContent)
@@ -124,6 +133,65 @@ func serveRange(req *servlet.Request, res servlet.Response, item Resource) (bool
 	}
 	_, err := io.CopyN(res.BodyWriter(), item.Body(), target.length())
 	return true, err
+}
+
+func serveMultipleRanges(req *servlet.Request, res servlet.Response, item Resource, targets []byteRange) (bool, error) {
+	const boundary = "arkarta-resource-boundary"
+	res.Header().Set("Content-Type", "multipart/byteranges; boundary="+boundary)
+	res.Header().Del("Content-Length")
+	res.Header().Del("Content-Range")
+	res.SetStatus(http.StatusPartialContent)
+	if req.Method() == http.MethodHead {
+		return true, nil
+	}
+	data, err := io.ReadAll(item.Body())
+	if err != nil {
+		return true, err
+	}
+	for _, target := range targets {
+		start := int(target.start)
+		end := int(target.end) + 1
+		if start < 0 || end > len(data) || start > end {
+			return true, io.ErrUnexpectedEOF
+		}
+		if _, err := fmt.Fprintf(res.BodyWriter(),
+			"--%s\r\nContent-Type: %s\r\nContent-Range: %s\r\n\r\n",
+			boundary,
+			item.ContentType(),
+			target.contentRange(item.Size()),
+		); err != nil {
+			return true, err
+		}
+		if _, err := io.CopyN(res.BodyWriter(), bytes.NewReader(data[start:end]), target.length()); err != nil {
+			return true, err
+		}
+		if _, err := io.WriteString(res.BodyWriter(), "\r\n"); err != nil {
+			return true, err
+		}
+	}
+	_, err = fmt.Fprintf(res.BodyWriter(), "--%s--\r\n", boundary)
+	return true, err
+}
+
+func ifRangeAllows(req *servlet.Request, item Resource) bool {
+	value := strings.TrimSpace(req.Header().Get("If-Range"))
+	if value == "" {
+		return true
+	}
+	if strings.HasPrefix(value, "W/") {
+		return false
+	}
+	if strings.HasPrefix(value, `"`) {
+		return item.ETag() != "" && !strings.HasPrefix(item.ETag(), "W/") && value == item.ETag()
+	}
+	if item.ModTime().IsZero() {
+		return false
+	}
+	date, err := http.ParseTime(value)
+	if err != nil {
+		return false
+	}
+	return !item.ModTime().UTC().Truncate(time.Second).After(date)
 }
 
 func mapResourceError(err error) error {

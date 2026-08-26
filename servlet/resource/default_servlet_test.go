@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"testing/fstest"
 	"time"
@@ -113,6 +114,85 @@ func TestDefaultServletHandlesRangeRequests(t *testing.T) {
 	}
 	if recorder.Header().Get("Content-Length") != "4" {
 		t.Fatalf("Content-Length = %q, want 4", recorder.Header().Get("Content-Length"))
+	}
+}
+
+func TestDefaultServletIgnoresRangeWhenIfRangeDoesNotMatch(t *testing.T) {
+	t.Parallel()
+
+	handler := newTestDefaultServlet(t)
+	request := httptest.NewRequest(http.MethodGet, "/assets/app.json", nil)
+	request.Header.Set("Range", "bytes=1-4")
+	request.Header.Set("If-Range", `"other"`)
+	req, err := servlet.NewRequest(request)
+	if err != nil {
+		t.Fatalf("NewRequest failed: %v", err)
+	}
+	recorder := httptest.NewRecorder()
+	response := nethttp.NewResponse(recorder)
+	if err := handler.Serve(context.Background(), req, response); err != nil {
+		t.Fatalf("Serve If-Range failed: %v", err)
+	}
+
+	if response.Status() != http.StatusOK || recorder.Body.String() != `{"ok":true}` {
+		t.Fatalf("status/body = %d/%q, want 200/full", response.Status(), recorder.Body.String())
+	}
+	if recorder.Header().Get("Content-Range") != "" {
+		t.Fatalf("Content-Range = %q, want empty", recorder.Header().Get("Content-Range"))
+	}
+}
+
+func TestDefaultServletIgnoresRangeForWeakETagValidator(t *testing.T) {
+	t.Parallel()
+
+	handler := newTestDefaultServlet(t)
+	request := httptest.NewRequest(http.MethodGet, "/assets/app.json", nil)
+	request.Header.Set("Range", "bytes=1-4")
+	request.Header.Set("If-Range", `W/"weak"`)
+	req, err := servlet.NewRequest(request)
+	if err != nil {
+		t.Fatalf("NewRequest failed: %v", err)
+	}
+	recorder := httptest.NewRecorder()
+	response := nethttp.NewResponse(recorder)
+	if err := handler.Serve(context.Background(), req, response); err != nil {
+		t.Fatalf("Serve weak If-Range failed: %v", err)
+	}
+
+	if response.Status() != http.StatusOK || recorder.Body.String() != `{"ok":true}` {
+		t.Fatalf("status/body = %d/%q, want 200/full", response.Status(), recorder.Body.String())
+	}
+}
+
+func TestDefaultServletHandlesMultipleRanges(t *testing.T) {
+	t.Parallel()
+
+	handler := newTestDefaultServlet(t)
+	request := httptest.NewRequest(http.MethodGet, "/assets/app.json", nil)
+	request.Header.Set("Range", "bytes=0-0,2-3")
+	req, err := servlet.NewRequest(request)
+	if err != nil {
+		t.Fatalf("NewRequest failed: %v", err)
+	}
+	recorder := httptest.NewRecorder()
+	response := nethttp.NewResponse(recorder)
+	if err := handler.Serve(context.Background(), req, response); err != nil {
+		t.Fatalf("Serve multi-range failed: %v", err)
+	}
+
+	if response.Status() != http.StatusPartialContent {
+		t.Fatalf("status = %d, want 206", response.Status())
+	}
+	contentType := recorder.Header().Get("Content-Type")
+	if !strings.HasPrefix(contentType, "multipart/byteranges; boundary=") {
+		t.Fatalf("Content-Type = %q, want multipart/byteranges", contentType)
+	}
+	body := recorder.Body.String()
+	if !strings.Contains(body, "Content-Range: bytes 0-0/11") ||
+		!strings.Contains(body, "Content-Range: bytes 2-3/11") ||
+		!strings.Contains(body, "{") ||
+		!strings.Contains(body, "ok") {
+		t.Fatalf("multi-range body = %q", body)
 	}
 }
 

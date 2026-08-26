@@ -13,42 +13,69 @@ type byteRange struct {
 }
 
 func parseRange(header string, size int64) (byteRange, bool, bool) {
+	ranges, ok, invalid := parseRanges(header, size)
+	if invalid || !ok {
+		return byteRange{}, false, invalid
+	}
+	if len(ranges) != 1 {
+		return byteRange{}, false, true
+	}
+	return ranges[0], true, false
+}
+
+func parseRanges(header string, size int64) ([]byteRange, bool, bool) {
 	if header == "" || size < 0 {
-		return byteRange{}, false, false
+		return nil, false, false
 	}
 	unit, spec, ok := strings.Cut(header, "=")
-	if !ok || !strings.EqualFold(strings.TrimSpace(unit), "bytes") || strings.Contains(spec, ",") {
-		return byteRange{}, false, true
+	if !ok || !strings.EqualFold(strings.TrimSpace(unit), "bytes") {
+		return nil, false, true
 	}
-	startText, endText, ok := strings.Cut(strings.TrimSpace(spec), "-")
+	items := strings.Split(spec, ",")
+	ranges := make([]byteRange, 0, len(items))
+	for _, item := range items {
+		target, invalid := parseByteRange(strings.TrimSpace(item), size)
+		if invalid {
+			return nil, false, true
+		}
+		ranges = append(ranges, target)
+	}
+	if len(ranges) == 0 {
+		return nil, false, true
+	}
+	return ranges, true, false
+}
+
+func parseByteRange(spec string, size int64) (byteRange, bool) {
+	startText, endText, ok := strings.Cut(spec, "-")
 	if !ok {
-		return byteRange{}, false, true
+		return byteRange{}, true
 	}
 	if startText == "" {
 		suffix, err := strconv.ParseInt(endText, 10, 64)
 		if err != nil || suffix <= 0 {
-			return byteRange{}, false, true
+			return byteRange{}, true
 		}
 		if suffix > size {
 			suffix = size
 		}
-		return byteRange{start: size - suffix, end: size - 1}, true, false
+		return byteRange{start: size - suffix, end: size - 1}, false
 	}
 	start, err := strconv.ParseInt(startText, 10, 64)
 	if err != nil || start < 0 || start >= size {
-		return byteRange{}, false, true
+		return byteRange{}, true
 	}
 	end := size - 1
 	if endText != "" {
 		end, err = strconv.ParseInt(endText, 10, 64)
 		if err != nil || end < start {
-			return byteRange{}, false, true
+			return byteRange{}, true
 		}
 		if end >= size {
 			end = size - 1
 		}
 	}
-	return byteRange{start: start, end: end}, true, false
+	return byteRange{start: start, end: end}, false
 }
 
 func (r byteRange) length() int64 {

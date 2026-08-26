@@ -82,6 +82,65 @@ func TestErrorPageRegistryPrefersErrorTypeMapping(t *testing.T) {
 	}
 }
 
+func TestErrorPageRegistryPrefersMostSpecificErrorTypeMapping(t *testing.T) {
+	t.Parallel()
+
+	registry := NewErrorPageRegistry()
+	if err := RegisterErrorType[baseFailure](registry, HandlerFunc(func(_ context.Context, _ *Request, res Response) error {
+		_, err := res.WriteString("base-page")
+		return err
+	})); err != nil {
+		t.Fatalf("RegisterErrorType base failed: %v", err)
+	}
+	if err := RegisterErrorType[*specificFailure](registry, HandlerFunc(func(_ context.Context, _ *Request, res Response) error {
+		_, err := res.WriteString("specific-page")
+		return err
+	})); err != nil {
+		t.Fatalf("RegisterErrorType specific failed: %v", err)
+	}
+
+	req, err := NewRequest(httptest.NewRequest(http.MethodGet, "/boom", nil))
+	if err != nil {
+		t.Fatalf("NewRequest failed: %v", err)
+	}
+	response := newTestResponse()
+	handled, err := registry.Handle(context.Background(), req, response, http.StatusInternalServerError, &specificFailure{})
+	if err != nil || !handled {
+		t.Fatalf("Handle handled/err = %v/%v, want true/nil", handled, err)
+	}
+	if response.body.String() != "specific-page" {
+		t.Fatalf("body = %q, want specific-page", response.body.String())
+	}
+}
+
+func TestErrorPageRegistryUsesDefaultAndPreventsLoop(t *testing.T) {
+	t.Parallel()
+
+	registry := NewErrorPageRegistry()
+	if err := registry.RegisterDefault(HandlerFunc(func(ctx context.Context, req *Request, res Response) error {
+		if handled, err := registry.Handle(ctx, req, res, http.StatusInternalServerError, errors.New("loop")); handled || !errors.Is(err, ErrErrorPageLoop) {
+			t.Fatalf("loop handled/err = %v/%v, want false/ErrErrorPageLoop", handled, err)
+		}
+		_, err := res.WriteString("default-page")
+		return err
+	})); err != nil {
+		t.Fatalf("RegisterDefault failed: %v", err)
+	}
+	req, err := NewRequest(httptest.NewRequest(http.MethodGet, "/boom", nil))
+	if err != nil {
+		t.Fatalf("NewRequest failed: %v", err)
+	}
+	response := newTestResponse()
+
+	handled, err := registry.Handle(context.Background(), req, response, http.StatusTeapot, nil)
+	if err != nil || !handled {
+		t.Fatalf("Handle default handled/err = %v/%v, want true/nil", handled, err)
+	}
+	if response.body.String() != "default-page" {
+		t.Fatalf("body = %q, want default-page", response.body.String())
+	}
+}
+
 func TestErrorPageRegistrySkipsCommittedResponse(t *testing.T) {
 	t.Parallel()
 
@@ -116,4 +175,18 @@ type typedFailure struct {
 
 func (e *typedFailure) Error() string {
 	return e.code
+}
+
+type baseFailure interface {
+	error
+	Base()
+}
+
+type specificFailure struct{}
+
+func (e *specificFailure) Error() string {
+	return "specific"
+}
+
+func (e *specificFailure) Base() {
 }

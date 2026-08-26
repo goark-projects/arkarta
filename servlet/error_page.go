@@ -10,11 +10,17 @@ import (
 // ErrNilErrorPageRegistry 表示错误页注册表为空。
 var ErrNilErrorPageRegistry = errors.New("arkarta/servlet: error page registry is nil")
 
+// ErrErrorPageLoop 表示错误页处理过程中再次进入错误页分发。
+var ErrErrorPageLoop = errors.New("arkarta/servlet: error page dispatch loop")
+
+const attributeErrorPageActive = "arkarta.servlet.error.active"
+
 // ErrorPageRegistry 保存状态码和错误类型到错误页处理器的映射。
 type ErrorPageRegistry struct {
-	mu         sync.RWMutex
-	status     map[int]Handler
-	errorTypes []errorTypeMapping
+	mu             sync.RWMutex
+	status         map[int]Handler
+	errorTypes     []errorTypeMapping
+	defaultHandler Handler
 }
 
 type errorTypeMapping struct {
@@ -43,10 +49,27 @@ func (r *ErrorPageRegistry) RegisterStatus(statusCode int, handler Handler) erro
 	return nil
 }
 
+// RegisterDefault 注册默认错误页。
+func (r *ErrorPageRegistry) RegisterDefault(handler Handler) error {
+	if r == nil {
+		return ErrNilErrorPageRegistry
+	}
+	if handler == nil {
+		return ErrNilHandler
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.defaultHandler = handler
+	return nil
+}
+
 // Handle 尝试用已注册错误页处理错误。
 func (r *ErrorPageRegistry) Handle(ctx context.Context, req *Request, res Response, statusCode int, cause error) (bool, error) {
 	if r == nil {
 		return false, nil
+	}
+	if active, _ := req.Attribute(attributeErrorPageActive); active == true {
+		return false, ErrErrorPageLoop
 	}
 	if res != nil && res.Committed() {
 		return false, ErrResponseCommitted
@@ -61,6 +84,8 @@ func (r *ErrorPageRegistry) Handle(ctx context.Context, req *Request, res Respon
 		res.SetStatus(statusCode)
 	}
 	setErrorAttributes(req, statusCode, cause)
+	req.SetAttribute(attributeErrorPageActive, true)
+	defer req.SetAttribute(attributeErrorPageActive, nil)
 
 	snapshot := req.dispatchSnapshot()
 	req.applyDispatch(req.Path(), snapshot.queryString, DispatchError)
@@ -88,13 +113,17 @@ func (r *ErrorPageRegistry) match(statusCode int, cause error) Handler {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	if cause != nil {
-		for _, mapping := range r.errorTypes {
+		for i := len(r.errorTypes) - 1; i >= 0; i-- {
+			mapping := r.errorTypes[i]
 			if mapping.match(cause) {
 				return mapping.handler
 			}
 		}
 	}
-	return r.status[normalizeStatus(statusCode)]
+	if handler := r.status[normalizeStatus(statusCode)]; handler != nil {
+		return handler
+	}
+	return r.defaultHandler
 }
 
 func normalizeStatus(statusCode int) int {
