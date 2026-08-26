@@ -129,6 +129,7 @@ arkarta/servlet                 应用侧核心 API
 arkarta/servlet/container       容器实现 SPI
 arkarta/servlet/nethttp         标准库 net/http 适配
 arkarta/servlet/registration    Servlet、Filter、Listener 动态注册元模型
+arkarta/servlet/resource        静态资源、default servlet 与 welcome file
 arkarta/servlet/tck             容器兼容性测试工具
 arkarta/servlet/session         可选会话 Profile
 arkarta/servlet/multipart       可选上传 Profile
@@ -437,6 +438,7 @@ type StatusError interface {
 - TLS 请求下默认 Cookie 必须 `Secure`。
 - 默认应当使用 `SameSite=Lax`。
 - 默认 Cookie 名称为 `JSESSIONID`，默认 Path 按请求 ContextPath 计算，空 ContextPath 使用 `/`。
+- URL rewriting 必须使用路径参数 `jsessionid`，并保留 query string 与 fragment；请求已携带有效会话 Cookie 时应优先保持 URL 不变。
 - 登录成功后应当轮换 Session ID。
 - 容器不得把敏感会话数据写入客户端 Cookie，除非使用明确的加密和认证机制。
 
@@ -538,7 +540,10 @@ Core TCK 必须覆盖：
 - 路径映射优先级。
 - Forward、Include、Error 分发。
 - Servlet、Filter、Listener 注册元模型与冻结语义。
+- WebApp/ServletContext 版本、MIME、资源、日志和会话超时。
+- 静态资源、GET/HEAD、条件请求和 welcome file。
 - Session 请求/响应 Cookie 绑定、requested ID 校验和 ID 轮换。
+- Session URL rewriting。
 - `context.Context` 取消传播。
 - `net/http` 适配一致性。
 - panic 恢复与错误响应。
@@ -564,9 +569,10 @@ Profile TCK 按 Profile 独立运行。容器只能声明自己通过的 Profile
 4. `registration` 包：动态注册元模型和冻结快照。
 5. `nethttp` 包：从 `net/http` 到 Arkarta Servlet 的适配。
 6. `session` 包：Session Profile 接口、请求绑定和内存会话管理器。
-7. `multipart` 包：Multipart Profile 解析器。
-8. `tck` 包：Core Profile、注册模型与 Session Profile 兼容性测试。
-9. README：说明标准定位、版本和容器兼容声明方式。
+7. `resource` 包：静态资源 Provider、default servlet 和 welcome file 解析。
+8. `multipart` 包：Multipart Profile 解析器。
+9. `tck` 包：Core Profile、注册模型、WebApp、静态资源与 Session Profile 兼容性测试。
+10. README：说明标准定位、版本和容器兼容声明方式。
 
 ## 25. Servlet 6.1 覆盖矩阵
 
@@ -576,20 +582,19 @@ Profile TCK 按 Profile 独立运行。容器只能声明自己通过的 Profile
 | Response 基础与便利 API | 已实现 | Header/Status/Write/Flush/Reset、Cookie、Redirect、SendError、Content-Type、Charset、Content-Length |
 | Servlet 路径映射 | 已实现 | exact、longest prefix、extension、default |
 | RequestDispatcher | 已实现 | Forward、Include、Error 分发和属性 |
-| Servlet/Filter/Listener 注册 | 已实现元模型 | `servlet/registration` 提供动态注册、映射冲突、初始化参数、冻结快照 |
-| Filter 链与 dispatcher type | 已实现 | Filter 顺序、短路、单次 `Next`、`ManagedFilter` 生命周期、REQUEST/FORWARD/INCLUDE/ERROR/ASYNC 位集合 |
-| WebApp 生命周期和事件 | 已实现 | Context、Request、Session 生命周期监听器基础 |
-| Session Profile | 已实现基础 | Manager、MemoryManager、Accessor、Cookie 绑定、requested ID 校验、ID 轮换 |
+| Servlet/Filter/Listener 注册 | 已实现 | `servlet/registration` 提供动态注册、映射冲突、初始化参数、冻结快照，`container` 可转换为 Deployment |
+| Filter 链与 dispatcher type | 已实现 | Filter 顺序、短路、单次 `Next`、URL-pattern 约束、`ManagedFilter` 生命周期、REQUEST/FORWARD/INCLUDE/ERROR/ASYNC 位集合 |
+| WebApp 生命周期和事件 | 已实现 | Context、Request、Session 生命周期监听器基础，补齐虚拟主机名、默认字符集、MIME 映射、会话超时和有效规范版本 |
+| Session Profile | 已实现基础 | Manager、MemoryManager、Accessor、Cookie 绑定、URL rewriting、requested ID 校验、ID 轮换 |
 | Multipart Profile | 已实现基础 | 表单、文件、大小限制、内存阈值 |
+| 静态资源与 Welcome file | 已实现基础 | `servlet/resource` 提供 Provider、`fs.FS` 实现、default servlet、条件 GET、GET/HEAD 和 welcome file |
 | Async/Stream | 未实现 | 保留 Profile，不在 Core 中伪实现 |
 | Upgrade/WebSocket | 未实现 | 保留 Profile，由后续 `upgrade`/`websocket` 包完成 |
 | Security 声明式模型 | 未实现 | 由后续 `security` 包承载 |
-| 静态资源、Welcome file、Locale、URL rewriting | 未实现 | 下一批 Servlet 兼容性补全项 |
+| Locale | 未实现 | Locale 协商与 i18n 由后续上下文能力补充 |
 
 ## 26. 暂不解决的问题
 
-- 是否保留 `ServletContext` 作为公开类型名，还是只作为文档术语。
-- 是否在 Core Profile 内置静态资源服务。
 - 是否提供 XML 描述符迁移工具。
 - Async/Stream Profile 的精确 API 形态。
 - 与未来 `goark-web` 路由和 MVC 参数绑定的边界。

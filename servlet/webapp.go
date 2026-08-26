@@ -2,8 +2,11 @@ package servlet
 
 import (
 	"errors"
+	"io/fs"
+	"log/slog"
 	"strings"
 	"sync"
+	"time"
 )
 
 // ErrInvalidContextPath 表示 Web 应用上下文路径非法。
@@ -59,10 +62,17 @@ func WithRequestListener(listener RequestListener) WebAppOption {
 
 // WebApp 表示一个部署单元的应用上下文。
 type WebApp struct {
-	name        string
-	contextPath string
-	initParam   map[string]string
-	state       WebAppState
+	name                      string
+	contextPath               string
+	virtualServerName         string
+	requestCharacterEncoding  string
+	responseCharacterEncoding string
+	sessionTimeout            time.Duration
+	initParam                 map[string]string
+	mimeTypes                 map[string]string
+	resourceFS                fs.FS
+	logger                    *slog.Logger
+	state                     WebAppState
 
 	mu               sync.RWMutex
 	attribute        map[string]any
@@ -73,11 +83,17 @@ type WebApp struct {
 // NewWebApp 创建 Web 应用上下文。
 func NewWebApp(name string, options ...WebAppOption) (*WebApp, error) {
 	app := &WebApp{
-		name:        name,
-		contextPath: "/",
-		initParam:   make(map[string]string),
-		attribute:   make(map[string]any),
-		state:       WebAppStateNew,
+		name:                      name,
+		contextPath:               "/",
+		virtualServerName:         DefaultVirtualServerName,
+		requestCharacterEncoding:  DefaultCharacterEncoding,
+		responseCharacterEncoding: DefaultCharacterEncoding,
+		sessionTimeout:            DefaultSessionTimeout,
+		initParam:                 make(map[string]string),
+		mimeTypes:                 defaultMimeMappings(),
+		logger:                    slog.Default(),
+		attribute:                 make(map[string]any),
+		state:                     WebAppStateNew,
 	}
 	for _, option := range options {
 		if option == nil {

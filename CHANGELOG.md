@@ -8,13 +8,14 @@
 
 - 初始化 `goark.dev/arkarta` 模块，确立 Arkarta 作为 Goark 企业开发标准集合。
 - 新增 Servlet Core API：`Handler`、`Servlet`、`Request`、`Response`、`Filter`、`Chain`、`WebApp`、生命周期和错误模型。
-- 新增 Servlet 6 对齐能力：请求路径/参数/映射元素、响应 Cookie/Redirect/Error/Charset 便利 API、Filter 生命周期和 dispatcher type 过滤。
-- 新增 `servlet/container` 容器 SPI：`Container`、`Application`、`Deployment`、路径映射和 Profile 元数据。
+- 新增 Servlet 6 对齐能力：请求路径/参数/映射元素、响应 Cookie/Redirect/Error/Charset 便利 API、Filter 生命周期、dispatcher type 过滤、静态资源、welcome file 和 Session URL rewriting。
+- 新增 `servlet/container` 容器 SPI：`Container`、`Application`、`Deployment`、注册快照转换、路径映射和 Profile 元数据。
 - 新增 `servlet/registration` 动态注册元模型，覆盖 Servlet、Filter、Listener 注册、初始化参数、URL 映射和冻结快照。
 - 新增 `servlet/nethttp` 参考容器和 `net/http` 适配器。
-- 新增 `servlet/session` Session Profile 接口、请求/响应 Cookie 绑定和内存会话管理器。
+- 新增 `servlet/resource` 静态资源 Provider、`fs.FS` 实现、default servlet 和 welcome file 解析。
+- 新增 `servlet/session` Session Profile 接口、请求/响应 Cookie 绑定、URL rewriting 和内存会话管理器。
 - 新增 `servlet/multipart` Multipart Profile 解析器。
-- 新增 `servlet/tck` 兼容性测试工具，覆盖 Core HTTP、生命周期、分发、错误页、注册元模型、Session、Multipart 和 HTTP 容器入口。
+- 新增 `servlet/tck` 兼容性测试工具，覆盖 Core HTTP、生命周期、分发、错误页、注册元模型、WebApp 上下文能力、静态资源、Session、Multipart 和 HTTP 容器入口。
 - 新增 Arkarta Servlet 与 Enterprise Web 标准草案文档。
 
 ### Not Included

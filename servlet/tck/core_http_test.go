@@ -56,6 +56,10 @@ func TestRunRegistration(t *testing.T) {
 	tck.RunRegistration(t)
 }
 
+func TestRunWebAppContext(t *testing.T) {
+	tck.RunWebAppContext(t)
+}
+
 func TestRunStaticResourcesWithNetHTTPAdapter(t *testing.T) {
 	tck.RunStaticResources(t, func(handler servlet.Handler) http.Handler {
 		return nethttp.Handler(handler)
