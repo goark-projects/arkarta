@@ -1,0 +1,92 @@
+package nethttp
+
+import (
+	"context"
+	"errors"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"goark.dev/arkarta/servlet"
+)
+
+func TestHandlerWritesServletResponse(t *testing.T) {
+	t.Parallel()
+
+	handler := Handler(servlet.HandlerFunc(func(_ context.Context, req *servlet.Request, res servlet.Response) error {
+		if req.Path() != "/orders" {
+			t.Fatalf("path = %s, want /orders", req.Path())
+		}
+		res.Header().Set("X-Arkarta", "servlet")
+		res.SetStatus(http.StatusCreated)
+		_, err := res.WriteString("created")
+		return err
+	}))
+
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "/orders", nil))
+
+	if recorder.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusCreated)
+	}
+	if recorder.Header().Get("X-Arkarta") != "servlet" {
+		t.Fatalf("X-Arkarta = %q", recorder.Header().Get("X-Arkarta"))
+	}
+	if recorder.Body.String() != "created" {
+		t.Fatalf("body = %q, want created", recorder.Body.String())
+	}
+}
+
+func TestHandlerMapsStatusError(t *testing.T) {
+	t.Parallel()
+
+	handler := Handler(servlet.HandlerFunc(func(context.Context, *servlet.Request, servlet.Response) error {
+		return servlet.NewHTTPError(http.StatusForbidden, "forbidden", nil)
+	}))
+
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/", nil))
+
+	if recorder.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusForbidden)
+	}
+	if recorder.Body.String() != "forbidden\n" {
+		t.Fatalf("body = %q, want forbidden newline", recorder.Body.String())
+	}
+}
+
+func TestHandlerMapsWrappedStatusError(t *testing.T) {
+	t.Parallel()
+
+	handler := Handler(servlet.HandlerFunc(func(context.Context, *servlet.Request, servlet.Response) error {
+		return errors.Join(servlet.NewHTTPError(http.StatusConflict, "conflict", nil), errors.New("write conflict"))
+	}))
+
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/", nil))
+
+	if recorder.Code != http.StatusConflict {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusConflict)
+	}
+	if recorder.Body.String() != "conflict\n" {
+		t.Fatalf("body = %q, want conflict newline", recorder.Body.String())
+	}
+}
+
+func TestHandlerHidesPlainError(t *testing.T) {
+	t.Parallel()
+
+	handler := Handler(servlet.HandlerFunc(func(context.Context, *servlet.Request, servlet.Response) error {
+		return errors.New("internal database detail")
+	}))
+
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/", nil))
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusInternalServerError)
+	}
+	if recorder.Body.String() != "Internal Server Error\n" {
+		t.Fatalf("body = %q, want safe 500", recorder.Body.String())
+	}
+}
