@@ -9,6 +9,7 @@ import (
 	"goark.dev/arkarta/servlet"
 	"goark.dev/arkarta/servlet/multipart"
 	"goark.dev/arkarta/servlet/registration"
+	"goark.dev/arkarta/servlet/security"
 )
 
 func TestServletRegistrationMappingsAndSnapshot(t *testing.T) {
@@ -66,6 +67,10 @@ func TestServletRegistrationMappingsAndSnapshot(t *testing.T) {
 	if err := orders.SetMultipartConfig(config); err != nil {
 		t.Fatalf("SetMultipartConfig failed: %v", err)
 	}
+	securityConfig := security.NewConstraint(security.WithRoles("admin"))
+	if err := orders.SetSecurityConfig(securityConfig); err != nil {
+		t.Fatalf("SetSecurityConfig failed: %v", err)
+	}
 
 	other, err := registry.AddServlet("other", servlet.HandlerFunc(noopServe))
 	if err != nil {
@@ -100,6 +105,10 @@ func TestServletRegistrationMappingsAndSnapshot(t *testing.T) {
 	gotConfig, ok := first.MultipartConfig()
 	if !ok || gotConfig.MaxFileSize() != 1024 || gotConfig.MaxRequestSize() != 4096 || gotConfig.FileSizeThreshold() != 128 {
 		t.Fatalf("multipart config = %#v/%v", gotConfig, ok)
+	}
+	gotSecurity, ok := first.SecurityConfig()
+	if !ok || !reflect.DeepEqual(gotSecurity.Roles(), []string{"admin"}) {
+		t.Fatalf("security config = %#v/%v", gotSecurity.Roles(), ok)
 	}
 	params := first.InitParams()
 	params["encoding"] = "changed"

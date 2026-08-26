@@ -5,6 +5,7 @@ import (
 
 	"goark.dev/arkarta/servlet"
 	"goark.dev/arkarta/servlet/multipart"
+	"goark.dev/arkarta/servlet/security"
 )
 
 // ServletRegistration 保存单个 Servlet 的动态注册信息。
@@ -17,6 +18,7 @@ type ServletRegistration struct {
 	hasLoadOnStartup bool
 	runAsRole        string
 	multipartConfig  *multipart.Config
+	securityConfig   *security.Constraint
 }
 
 // Handler 返回注册的 Servlet 处理器。
@@ -147,6 +149,33 @@ func (r *ServletRegistration) MultipartConfig() (multipart.Config, bool) {
 		return multipart.Config{}, false
 	}
 	return *r.multipartConfig, true
+}
+
+// SetSecurityConfig 设置 Servlet 声明式安全约束。
+func (r *ServletRegistration) SetSecurityConfig(config security.Constraint) error {
+	if r == nil || r.owner == nil {
+		return ErrNilRegistry
+	}
+	r.owner.mu.Lock()
+	defer r.owner.mu.Unlock()
+	if err := r.owner.ensureMutableLocked(); err != nil {
+		return err
+	}
+	r.securityConfig = &config
+	return nil
+}
+
+// SecurityConfig 返回 Servlet 声明式安全约束。
+func (r *ServletRegistration) SecurityConfig() (security.Constraint, bool) {
+	if r == nil || r.owner == nil {
+		return security.Constraint{}, false
+	}
+	r.owner.mu.RLock()
+	defer r.owner.mu.RUnlock()
+	if r.securityConfig == nil {
+		return security.Constraint{}, false
+	}
+	return *r.securityConfig, true
 }
 
 func validateURLPattern(pattern string) error {

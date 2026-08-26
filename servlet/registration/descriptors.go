@@ -3,6 +3,7 @@ package registration
 import (
 	"goark.dev/arkarta/servlet"
 	"goark.dev/arkarta/servlet/multipart"
+	"goark.dev/arkarta/servlet/security"
 )
 
 // ServletDescriptor 是 Servlet 注册元数据快照。
@@ -17,6 +18,7 @@ type ServletDescriptor struct {
 	hasLoadOnStartup bool
 	runAsRole        string
 	multipartConfig  *multipart.Config
+	securityConfig   *security.Constraint
 }
 
 // FilterDescriptor 是 Filter 注册元数据快照。
@@ -86,6 +88,14 @@ func (d ServletDescriptor) MultipartConfig() (multipart.Config, bool) {
 	return *d.multipartConfig, true
 }
 
+// SecurityConfig 返回 Servlet 声明式安全约束。
+func (d ServletDescriptor) SecurityConfig() (security.Constraint, bool) {
+	if d.securityConfig == nil {
+		return security.Constraint{}, false
+	}
+	return *d.securityConfig, true
+}
+
 // Name 返回 Filter 名称。
 func (d FilterDescriptor) Name() string {
 	return d.name
@@ -153,6 +163,7 @@ func (r *ServletRegistration) descriptorLocked() ServletDescriptor {
 		hasLoadOnStartup: r.hasLoadOnStartup,
 		runAsRole:        r.runAsRole,
 		multipartConfig:  cloneMultipartConfig(r.multipartConfig),
+		securityConfig:   cloneSecurityConfig(r.securityConfig),
 	}
 }
 
@@ -173,6 +184,14 @@ func cloneMultipartConfig(src *multipart.Config) *multipart.Config {
 		return nil
 	}
 	dst := *src
+	return &dst
+}
+
+func cloneSecurityConfig(src *security.Constraint) *security.Constraint {
+	if src == nil {
+		return nil
+	}
+	dst := src.Clone()
 	return &dst
 }
 
