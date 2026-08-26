@@ -93,6 +93,61 @@ func TestAccessorLoadsRequestedSession(t *testing.T) {
 	if id, ok := accessor.RequestedID(req); id != "s1" || !ok {
 		t.Fatalf("requested id = %q/%v, want s1/true", id, ok)
 	}
+	if source, ok := accessor.RequestedIDSource(req); source != TrackingCookie || !ok {
+		t.Fatalf("requested id source = %q/%v, want COOKIE/true", source, ok)
+	}
+}
+
+func TestAccessorLoadsURLTrackedSession(t *testing.T) {
+	t.Parallel()
+
+	manager := NewMemoryManager(WithIDGenerator(sequenceID("s1")))
+	created, err := manager.Create(context.Background())
+	if err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+	accessor, err := NewAccessor(manager, WithTrackingModes(TrackingURL))
+	if err != nil {
+		t.Fatalf("NewAccessor failed: %v", err)
+	}
+	req := newSessionRequest(t, http.MethodGet, "/orders;jsessionid="+created.ID(), "")
+
+	current, ok, err := accessor.Get(context.Background(), req, nil, false)
+	if err != nil {
+		t.Fatalf("Get failed: %v", err)
+	}
+	if !ok || current.ID() != created.ID() {
+		t.Fatalf("loaded session = %v/%v, want existing s1", current, ok)
+	}
+	if source, ok := accessor.RequestedIDSource(req); source != TrackingURL || !ok {
+		t.Fatalf("requested id source = %q/%v, want URL/true", source, ok)
+	}
+}
+
+func TestAccessorURLOnlyCreateDoesNotWriteCookie(t *testing.T) {
+	t.Parallel()
+
+	manager := NewMemoryManager(WithIDGenerator(sequenceID("s1")))
+	accessor, err := NewAccessor(manager, WithTrackingModes(TrackingURL))
+	if err != nil {
+		t.Fatalf("NewAccessor failed: %v", err)
+	}
+	req := newSessionRequest(t, http.MethodGet, "/orders", "")
+
+	current, ok, err := accessor.Get(context.Background(), req, nil, true)
+	if err != nil {
+		t.Fatalf("Get create failed: %v", err)
+	}
+	if !ok || current.ID() != "s1" {
+		t.Fatalf("created session = %v/%v, want s1/true", current, ok)
+	}
+	got, err := accessor.EncodeURL(req, "/orders")
+	if err != nil {
+		t.Fatalf("EncodeURL failed: %v", err)
+	}
+	if got != "/orders;jsessionid=s1" {
+		t.Fatalf("encoded URL = %q, want /orders;jsessionid=s1", got)
+	}
 }
 
 func TestAccessorChangeIDWritesNewCookie(t *testing.T) {

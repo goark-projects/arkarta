@@ -63,3 +63,27 @@ func WithCookieSameSite(sameSite http.SameSite) AccessorOption {
 		return nil
 	}
 }
+
+// WithTrackingModes 设置允许的会话跟踪模式。
+func WithTrackingModes(modes ...TrackingMode) AccessorOption {
+	return func(accessor *Accessor) error {
+		policy, err := NewTrackingPolicy(modes...)
+		if err != nil {
+			return err
+		}
+		accessor.tracking = policy
+		return nil
+	}
+}
+
+// WithTrackingPolicy 设置会话跟踪策略。
+func WithTrackingPolicy(policy TrackingPolicy) AccessorOption {
+	return func(accessor *Accessor) error {
+		if len(policy.Modes()) == 0 {
+			accessor.tracking = DefaultTrackingPolicy()
+			return nil
+		}
+		accessor.tracking = policy
+		return nil
+	}
+}

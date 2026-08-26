@@ -94,7 +94,7 @@ func TestURLRewriterSupportsCustomParameterAndCookiePolicy(t *testing.T) {
 func TestAccessorEncodesCurrentSessionURL(t *testing.T) {
 	t.Parallel()
 
-	accessor, err := NewAccessor(NewMemoryManager())
+	accessor, err := NewAccessor(NewMemoryManager(), WithTrackingModes(TrackingCookie, TrackingURL))
 	if err != nil {
 		t.Fatalf("NewAccessor failed: %v", err)
 	}

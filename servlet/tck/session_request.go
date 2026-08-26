@@ -105,7 +105,10 @@ func runChangeSessionID(t *testing.T, factory SessionManagerFactory) {
 
 func runEncodeSessionURL(t *testing.T, factory SessionManagerFactory) {
 	t.Helper()
-	accessor := newTCKAccessor(t, factory())
+	accessor, err := session.NewAccessor(factory(), session.WithTrackingModes(session.TrackingCookie, session.TrackingURL))
+	if err != nil {
+		t.Fatalf("NewAccessor failed: %v", err)
+	}
 	req := newTCKSessionRequest(t, "")
 	current, ok, err := accessor.Get(context.Background(), req, newMemoryResponse(), true)
 	if err != nil || !ok {

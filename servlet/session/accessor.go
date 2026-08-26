@@ -2,6 +2,7 @@ package session
 
 import (
 	"context"
+	"strings"
 
 	"goark.dev/arkarta/servlet"
 )
@@ -11,12 +12,15 @@ const (
 	AttributeCurrentSession = "arkarta.servlet.session.current"
 	// AttributeRequestedSessionID 保存客户端提交的原始 Session ID。
 	AttributeRequestedSessionID = "arkarta.servlet.session.requested_id"
+	// AttributeRequestedSessionIDSource 保存客户端提交 Session ID 的来源。
+	AttributeRequestedSessionIDSource = "arkarta.servlet.session.requested_id_source"
 )
 
 // Accessor 在 Request/Response 边界实现 Servlet Session 绑定语义。
 type Accessor struct {
-	manager Manager
-	cookie  CookieConfig
+	manager  Manager
+	cookie   CookieConfig
+	tracking TrackingPolicy
 }
 
 // NewAccessor 创建请求会话访问器。
@@ -25,8 +29,9 @@ func NewAccessor(manager Manager, options ...AccessorOption) (*Accessor, error) 
 		return nil, ErrNilManager
 	}
 	accessor := &Accessor{
-		manager: manager,
-		cookie:  defaultCookieConfig(),
+		manager:  manager,
+		cookie:   defaultCookieConfig(),
+		tracking: DefaultTrackingPolicy(),
 	}
 	for _, option := range options {
 		if option == nil {
@@ -53,6 +58,14 @@ func (a *Accessor) CookieConfig() CookieConfig {
 		return CookieConfig{}
 	}
 	return a.cookie
+}
+
+// TrackingPolicy 返回会话跟踪策略。
+func (a *Accessor) TrackingPolicy() TrackingPolicy {
+	if a == nil {
+		return DefaultTrackingPolicy()
+	}
+	return a.tracking
 }
 
 // Get 返回当前请求 Session；create 为 true 时会创建并写回 Cookie。
@@ -82,7 +95,7 @@ func (a *Accessor) Get(ctx context.Context, req *servlet.Request, res servlet.Re
 	if !create {
 		return nil, false, nil
 	}
-	if res == nil {
+	if a.tracking.Allows(TrackingCookie) && res == nil {
 		return nil, false, servlet.ErrNilResponse
 	}
 	created, err := a.manager.Create(ctx)
@@ -90,30 +103,89 @@ func (a *Accessor) Get(ctx context.Context, req *servlet.Request, res servlet.Re
 		return nil, false, err
 	}
 	req.SetAttribute(AttributeCurrentSession, created)
-	if err := a.writeCookie(req, res, created.ID()); err != nil {
-		_ = created.Invalidate()
-		req.SetAttribute(AttributeCurrentSession, nil)
-		return nil, false, err
+	if a.tracking.Allows(TrackingCookie) && res != nil {
+		if err := a.writeCookie(req, res, created.ID()); err != nil {
+			_ = created.Invalidate()
+			req.SetAttribute(AttributeCurrentSession, nil)
+			return nil, false, err
+		}
 	}
 	return created, true, nil
 }
 
 // RequestedID 返回客户端提交的原始 Session ID。
 func (a *Accessor) RequestedID(req *servlet.Request) (string, bool) {
+	id, _, ok := a.requestedID(req)
+	return id, ok
+}
+
+// RequestedIDSource 返回客户端提交 Session ID 的来源。
+func (a *Accessor) RequestedIDSource(req *servlet.Request) (TrackingMode, bool) {
+	_, source, ok := a.requestedID(req)
+	return source, ok
+}
+
+func (a *Accessor) requestedID(req *servlet.Request) (string, TrackingMode, bool) {
 	if a == nil || req == nil {
-		return "", false
+		return "", "", false
 	}
 	if value, ok := req.Attribute(AttributeRequestedSessionID); ok {
 		id, _ := value.(string)
-		return id, id != ""
+		sourceValue, _ := req.Attribute(AttributeRequestedSessionIDSource)
+		source, _ := sourceValue.(TrackingMode)
+		return id, source, id != ""
 	}
-	cookie, err := req.Cookie(a.cookie.name)
-	if err != nil || cookie.Value == "" {
-		req.SetAttribute(AttributeRequestedSessionID, "")
-		return "", false
+	if a.tracking.Allows(TrackingCookie) {
+		if cookie, err := req.Cookie(a.cookie.name); err == nil && cookie.Value != "" {
+			req.SetAttribute(AttributeRequestedSessionID, cookie.Value)
+			req.SetAttribute(AttributeRequestedSessionIDSource, TrackingCookie)
+			return cookie.Value, TrackingCookie, true
+		}
 	}
-	req.SetAttribute(AttributeRequestedSessionID, cookie.Value)
-	return cookie.Value, true
+	if a.tracking.Allows(TrackingURL) {
+		if id, ok := pathSessionID(req.Path(), DefaultURLParameterName); ok {
+			req.SetAttribute(AttributeRequestedSessionID, id)
+			req.SetAttribute(AttributeRequestedSessionIDSource, TrackingURL)
+			return id, TrackingURL, true
+		}
+	}
+	req.SetAttribute(AttributeRequestedSessionID, "")
+	req.SetAttribute(AttributeRequestedSessionIDSource, nil)
+	return "", "", false
+}
+
+func pathSessionID(path, name string) (string, bool) {
+	prefix := name + "="
+	for _, segment := range splitPathSegments(path) {
+		for _, part := range splitPathParameters(segment) {
+			if value, ok := strings.CutPrefix(part, prefix); ok && value != "" {
+				return value, true
+			}
+		}
+	}
+	return "", false
+}
+
+func splitPathSegments(path string) []string {
+	if path == "" {
+		return nil
+	}
+	return strings.Split(path, "/")
+}
+
+func splitPathParameters(segment string) []string {
+	parts := strings.Split(segment, ";")
+	if len(parts) <= 1 {
+		return nil
+	}
+	return parts[1:]
+}
+
+func (a *Accessor) writeCookie(req *servlet.Request, res servlet.Response, id string) error {
+	if !a.tracking.Allows(TrackingCookie) {
+		return nil
+	}
+	return servlet.AddCookie(res, a.cookie.cookie(req, id))
 }
 
 // RequestedIDValid 判断客户端提交的 Session ID 是否仍然有效。
@@ -140,7 +212,7 @@ func (a *Accessor) ChangeID(ctx context.Context, req *servlet.Request, res servl
 	if req == nil {
 		return "", ErrNilRequest
 	}
-	if res == nil {
+	if a.tracking.Allows(TrackingCookie) && res == nil {
 		return "", servlet.ErrNilResponse
 	}
 	current, ok := Current(req)
@@ -163,8 +235,4 @@ func (a *Accessor) ChangeID(ctx context.Context, req *servlet.Request, res servl
 		return "", err
 	}
 	return renewed.ID(), nil
-}
-
-func (a *Accessor) writeCookie(req *servlet.Request, res servlet.Response, id string) error {
-	return servlet.AddCookie(res, a.cookie.cookie(req, id))
 }

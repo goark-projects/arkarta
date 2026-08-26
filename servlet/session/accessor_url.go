@@ -19,11 +19,17 @@ func (a *Accessor) encodeURL(req *servlet.Request, rawURL string) (string, error
 	if req == nil {
 		return "", ErrNilRequest
 	}
+	if !a.tracking.Allows(TrackingURL) {
+		return rawURL, nil
+	}
 	id, ok := rewriteSessionID(a, req)
 	if !ok {
 		return rawURL, nil
 	}
-	rewriter, err := NewURLRewriter(WithRewriteCookieName(a.cookie.name))
+	rewriter, err := NewURLRewriter(
+		WithRewriteCookieName(a.cookie.name),
+		WithCookiePreferred(a.tracking.Allows(TrackingCookie)),
+	)
 	if err != nil {
 		return "", err
 	}
