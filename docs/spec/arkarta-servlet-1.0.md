@@ -55,7 +55,7 @@ Arkarta Servlet 1.0 不包含以下内容：
 
 - JSP、JSTL、Expression Language 或 Java 模板语义。
 - Java 注解、`web.xml` 作为强制部署格式、WAR/EAR 打包格式。
-- Servlet Security 完整声明式安全模型。安全认证与授权由 `goark-security` 或上层 Web 模块承载。
+- 具体认证提供者、用户目录、OAuth2/JWT、ACL/ABAC 策略源。声明式安全约束由 `servlet/security` 定义，企业级认证授权集成由 `goark-security` 或上层 Web 模块承载。
 - Java 式类继承、`GenericServlet`、`HttpServlet` 的继承层级。
 - Java IO/NIO 类型、`ByteBuffer` 类型和线程池模型。
 - 对 HTTP/2 Server Push 的强制要求。容器可以提供资源提示或协议级 Push 能力，但核心标准不强制。
@@ -133,7 +133,9 @@ arkarta/servlet/resource        静态资源、default servlet 与 welcome file
 arkarta/servlet/tck             容器兼容性测试工具
 arkarta/servlet/session         可选会话 Profile
 arkarta/servlet/multipart       可选上传 Profile
+arkarta/servlet/async           可选异步与流式响应 Profile
 arkarta/servlet/upgrade         可选协议升级 Profile
+arkarta/servlet/security        可选声明式安全 Profile
 ```
 
 `servlet` 根包只放稳定、小型、应用高频使用的接口和类型。容器 SPI、TCK、Profile 不得反向污染根包。
@@ -570,31 +572,35 @@ Profile TCK 按 Profile 独立运行。容器只能声明自己通过的 Profile
 5. `nethttp` 包：从 `net/http` 到 Arkarta Servlet 的适配。
 6. `session` 包：Session Profile 接口、请求绑定和内存会话管理器。
 7. `resource` 包：静态资源 Provider、default servlet 和 welcome file 解析。
-8. `multipart` 包：Multipart Profile 解析器。
-9. `tck` 包：Core Profile、注册模型、WebApp、静态资源与 Session Profile 兼容性测试。
-10. README：说明标准定位、版本和容器兼容声明方式。
+8. `multipart` 包：Multipart Profile 解析器、Part API 和请求绑定。
+9. `async` 包：Async/Stream Profile。
+10. `upgrade` 包：协议升级 Profile。
+11. `security` 包：声明式安全 Profile。
+12. `tck` 包：Core Profile、注册模型、WebApp、静态资源与 Session Profile 兼容性测试。
+13. README：说明标准定位、版本和容器兼容声明方式。
 
 ## 25. Servlet 6.1 覆盖矩阵
 
 | Jakarta Servlet 6.1 领域 | Arkarta v0.0.1 状态 | 说明 |
 | --- | --- | --- |
 | Request 路径、参数、映射 | 已实现 | `RequestURI`、`QueryString`、`ContextPath`、`ServletPath`、`PathInfo`、`RequestMapping`、Parameter API |
-| Response 基础与便利 API | 已实现 | Header/Status/Write/Flush/Reset、Cookie、Redirect、SendError、Content-Type、Charset、Content-Length |
+| Response 基础与便利 API | 已实现 | Header/Status/Write/Flush/Reset、Cookie、Redirect、SendError、Content-Type、Charset、Content-Length、typed Header、Locale、Trailer |
 | Servlet 路径映射 | 已实现 | exact、longest prefix、extension、default |
-| RequestDispatcher | 已实现 | Forward、Include、Error 分发和属性 |
-| Servlet/Filter/Listener 注册 | 已实现 | `servlet/registration` 提供动态注册、映射冲突、初始化参数、冻结快照，`container` 可转换为 Deployment |
+| RequestDispatcher | 已实现 | Forward、Include、Error 分发、完整 forward/include/error 属性族、按名称和路径获取 dispatcher |
+| Servlet/Filter/Listener 注册 | 已实现 | `servlet/registration` 提供动态注册、映射冲突、初始化参数、multipart config、security constraint、冻结快照，`container` 可转换为 Deployment |
 | Filter 链与 dispatcher type | 已实现 | Filter 顺序、短路、单次 `Next`、URL-pattern 约束、`ManagedFilter` 生命周期、REQUEST/FORWARD/INCLUDE/ERROR/ASYNC 位集合 |
-| WebApp 生命周期和事件 | 已实现 | Context、Request、Session 生命周期监听器基础，补齐虚拟主机名、默认字符集、MIME 映射、会话超时和有效规范版本 |
-| Session Profile | 已实现基础 | Manager、MemoryManager、Accessor、Cookie 绑定、URL rewriting、requested ID 校验、ID 轮换 |
-| Multipart Profile | 已实现基础 | 表单、文件、大小限制、内存阈值 |
-| 静态资源与 Welcome file | 已实现基础 | `servlet/resource` 提供 Provider、`fs.FS` 实现、default servlet、条件 GET、GET/HEAD 和 welcome file |
-| Async/Stream | 未实现 | 保留 Profile，不在 Core 中伪实现 |
-| Upgrade/WebSocket | 未实现 | 保留 Profile，由后续 `upgrade`/`websocket` 包完成 |
-| Security 声明式模型 | 未实现 | 由后续 `security` 包承载 |
-| Locale | 未实现 | Locale 协商与 i18n 由后续上下文能力补充 |
+| WebApp 生命周期和事件 | 已实现 | Context、Request、Session 生命周期监听器、属性监听器、虚拟主机名、默认字符集、MIME 映射、会话超时、资源路径、临时目录和有效规范版本 |
+| Session Profile | 已实现 | Manager、MemoryManager、Accessor、Cookie 绑定、COOKIE/URL/SSL tracking policy、URL rewriting、requested ID 校验、ID 轮换、属性和绑定监听器 |
+| Multipart Profile | 已实现 | 表单、Part API、请求绑定、大小限制、内存阈值、注册元数据 |
+| 静态资源与 Welcome file | 已实现 | `servlet/resource` 提供 Provider、`fs.FS` 实现、default servlet、条件 GET、GET/HEAD、Range 和 welcome file |
+| Async/Stream | 已实现 | `servlet/async` 提供显式完成、超时、错误事件、ASYNC dispatch 和流式写入 |
+| Upgrade/WebSocket | 已实现 Upgrade | `servlet/upgrade` 提供连接交接契约和 `net/http` hijack 适配；WebSocket 独立标准后续完成 |
+| Security 声明式模型 | 已实现基础 | `servlet/security` 提供 Principal、角色约束、传输保障和安全 Filter；企业认证集成由 `goark-security` 承载 |
+| Locale | 已实现基础 | 请求 Accept-Language 解析与响应 Content-Language 设置；i18n 资源解析由后续上层模块补充 |
 
 ## 26. 暂不解决的问题
 
 - 是否提供 XML 描述符迁移工具。
-- Async/Stream Profile 的精确 API 形态。
 - 与未来 `goark-web` 路由和 MVC 参数绑定的边界。
+- 分布式 Session passivation/activation 的具体容器实现。
+- WebSocket 标准包与 Upgrade Profile 的边界。

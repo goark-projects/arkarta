@@ -36,6 +36,20 @@ func RunStaticResources(t *testing.T, factory HTTPHandlerFactory) {
 			t.Fatalf("status/body length = %d/%d, want 200/0", recorder.Code, recorder.Body.Len())
 		}
 	})
+	t.Run("honors_static_range", func(t *testing.T) {
+		t.Helper()
+		handler := staticResourceHandler(t)
+		recorder := httptest.NewRecorder()
+		request := httptest.NewRequest(http.MethodGet, "/public/app.json", nil)
+		request.Header.Set("Range", "bytes=1-4")
+		factory(handler).ServeHTTP(recorder, request)
+		if recorder.Code != http.StatusPartialContent || recorder.Body.String() != `"ok"` {
+			t.Fatalf("status/body = %d/%q, want 206/range", recorder.Code, recorder.Body.String())
+		}
+		if recorder.Header().Get("Content-Range") != "bytes 1-4/11" {
+			t.Fatalf("content range = %q, want bytes 1-4/11", recorder.Header().Get("Content-Range"))
+		}
+	})
 	t.Run("serves_welcome_file", func(t *testing.T) {
 		t.Helper()
 		handler := staticResourceHandler(t)
