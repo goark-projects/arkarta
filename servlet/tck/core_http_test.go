@@ -46,6 +46,10 @@ func TestRunMultipartParser(t *testing.T) {
 	})
 }
 
+func TestRunRegistration(t *testing.T) {
+	tck.RunRegistration(t)
+}
+
 func TestRunHTTPContainerWithNetHTTPContainer(t *testing.T) {
 	tck.RunHTTPContainer(t, func() tck.HTTPContainer {
 		return nethttp.NewContainer()
