@@ -53,6 +53,10 @@ func (a *adapter) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 
 	if err := a.handler.Serve(request.Context(), req, response); err != nil {
 		a.writeError(request, req, response, err)
+		return
+	}
+	if !response.Committed() {
+		response.commit()
 	}
 }
 

@@ -37,6 +37,46 @@ func TestHandlerWritesServletResponse(t *testing.T) {
 	}
 }
 
+func TestHandlerCommitsStatusWithoutBody(t *testing.T) {
+	t.Parallel()
+
+	handler := Handler(servlet.HandlerFunc(func(_ context.Context, _ *servlet.Request, res servlet.Response) error {
+		res.SetStatus(http.StatusNoContent)
+		return nil
+	}))
+
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodDelete, "/resource", nil))
+
+	if recorder.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want no content", recorder.Code)
+	}
+}
+
+func TestHandlerSupportsResponseConvenienceHelpers(t *testing.T) {
+	t.Parallel()
+
+	handler := Handler(servlet.HandlerFunc(func(_ context.Context, _ *servlet.Request, res servlet.Response) error {
+		if err := servlet.AddCookie(res, &http.Cookie{Name: "sid", Value: "abc", HttpOnly: true}); err != nil {
+			return err
+		}
+		return servlet.Redirect(res, "/login", http.StatusSeeOther)
+	}))
+
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/secure", nil))
+
+	if recorder.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want see other", recorder.Code)
+	}
+	if recorder.Header().Get("Location") != "/login" {
+		t.Fatalf("location = %q, want /login", recorder.Header().Get("Location"))
+	}
+	if recorder.Header().Get("Set-Cookie") != "" {
+		t.Fatalf("cookie must be reset by Redirect, got %q", recorder.Header().Get("Set-Cookie"))
+	}
+}
+
 func TestHandlerMapsStatusError(t *testing.T) {
 	t.Parallel()
 

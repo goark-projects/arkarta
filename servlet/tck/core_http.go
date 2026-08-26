@@ -20,6 +20,12 @@ func RunCoreHTTP(t *testing.T, factory HTTPHandlerFactory) {
 	t.Run("writes_status_header_and_body", func(t *testing.T) {
 		runWriteResponse(t, factory)
 	})
+	t.Run("commits_status_without_body", func(t *testing.T) {
+		runCommitStatusWithoutBody(t, factory)
+	})
+	t.Run("supports_response_helpers", func(t *testing.T) {
+		runResponseHelpers(t, factory)
+	})
 	t.Run("maps_status_error", func(t *testing.T) {
 		runStatusError(t, factory)
 	})
@@ -60,6 +66,73 @@ func runWriteResponse(t *testing.T, factory HTTPHandlerFactory) {
 	}
 	if recorder.Body.String() != "ok" {
 		t.Fatalf("body = %q, want ok", recorder.Body.String())
+	}
+}
+
+func runCommitStatusWithoutBody(t *testing.T, factory HTTPHandlerFactory) {
+	t.Helper()
+	handler := servlet.HandlerFunc(func(_ context.Context, _ *servlet.Request, res servlet.Response) error {
+		res.SetStatus(http.StatusNoContent)
+		return nil
+	})
+
+	recorder := httptest.NewRecorder()
+	factory(handler).ServeHTTP(recorder, httptest.NewRequest(http.MethodDelete, "/resource", nil))
+
+	if recorder.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusNoContent)
+	}
+	if recorder.Body.String() != "" {
+		t.Fatalf("body = %q, want empty", recorder.Body.String())
+	}
+}
+
+func runResponseHelpers(t *testing.T, factory HTTPHandlerFactory) {
+	t.Helper()
+	handler := servlet.HandlerFunc(func(_ context.Context, _ *servlet.Request, res servlet.Response) error {
+		if err := servlet.SetContentType(res, "application/json"); err != nil {
+			return err
+		}
+		if err := servlet.SetCharacterEncoding(res, "utf-8"); err != nil {
+			return err
+		}
+		if err := servlet.SetContentLength(res, 2); err != nil {
+			return err
+		}
+		if err := servlet.AddCookie(res, &http.Cookie{Name: "sid", Value: "abc", HttpOnly: true}); err != nil {
+			return err
+		}
+		_, err := res.WriteString("ok")
+		return err
+	})
+
+	recorder := httptest.NewRecorder()
+	factory(handler).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/helpers", nil))
+
+	if recorder.Code != http.StatusOK || recorder.Body.String() != "ok" {
+		t.Fatalf("status/body = %d/%q, want 200/ok", recorder.Code, recorder.Body.String())
+	}
+	if recorder.Header().Get("Content-Type") != "application/json; charset=utf-8" {
+		t.Fatalf("content type = %q, want application/json charset", recorder.Header().Get("Content-Type"))
+	}
+	if recorder.Header().Get("Content-Length") != "2" {
+		t.Fatalf("content length = %q, want 2", recorder.Header().Get("Content-Length"))
+	}
+	if got := recorder.Header().Get("Set-Cookie"); got != "sid=abc; HttpOnly" {
+		t.Fatalf("set-cookie = %q, want sid cookie", got)
+	}
+
+	redirect := servlet.HandlerFunc(func(_ context.Context, _ *servlet.Request, res servlet.Response) error {
+		return servlet.Redirect(res, "/login", http.StatusSeeOther)
+	})
+	recorder = httptest.NewRecorder()
+	factory(redirect).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/secure", nil))
+
+	if recorder.Code != http.StatusSeeOther {
+		t.Fatalf("redirect status = %d, want %d", recorder.Code, http.StatusSeeOther)
+	}
+	if recorder.Header().Get("Location") != "/login" {
+		t.Fatalf("location = %q, want /login", recorder.Header().Get("Location"))
 	}
 }
 
