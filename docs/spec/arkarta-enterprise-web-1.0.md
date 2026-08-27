@@ -1,146 +1,155 @@
-# Arkarta Enterprise Web 1.0 标准路线
+# Arkarta Enterprise Web 1.0
 
-状态：Release Candidate 1
-目标：把 Java 企业级 Web 标准体系完整复刻为 Goark 的 Go 化企业开发标准  
-基线：Jakarta EE 11 Web Profile、Jakarta Servlet 6.1、Jakarta RESTful Web Services 4.0、Jakarta WebSocket 2.2、Jakarta Security 4.0、Jakarta Validation 3.1、Jakarta JSON Binding 3.0、Jakarta JSON Processing 2.1、Jakarta CDI 4.1，以及 Oracle/JCP Java EE 历史规范语义  
+Language: English | [简体中文](arkarta-enterprise-web-1.0.zh-CN.md)
 
-## 1. 总目标
+Status: Release Candidate 1
 
-Goark Enterprise Web 不是单个 HTTP 框架，而是一套企业级 Web 标准。它要复刻 Java 企业开发中已经被验证的标准边界，同时用 Go 的语言模型重建 API：
+Module: `goark.dev/arkarta`
 
-1. 底层容器契约对标 Servlet。
-2. REST/MVC 对标 Jakarta RESTful Web Services 与 Spring MVC 的工程体验。
-3. 安全对标 Jakarta Security 与 Spring Security 的过滤器链思想。
-4. WebSocket 对标 Jakarta WebSocket。
-5. 参数校验对标 Jakarta Validation。
-6. JSON 编解码对标 JSON-B / JSON-P。
-7. 依赖注入和生命周期对接 Goark core，而不是复制 CDI 运行时扫描。
-8. 兼容性通过 Goark TCK 验证，而不是靠文档宣称。
+Target release: `v0.0.1`
 
-## 2. Go 化原则
+Date: 2026-08-27
 
-- 使用 `context.Context` 表达取消、超时、Trace 和请求作用域。
-- 使用 `error` 返回表达失败，不复制 Java 异常层级。
-- 使用接口组合和函数适配器，不复制 Java 类继承。
-- 使用显式注册和 Goark CLI 生成注册，不复制运行时 classpath 扫描。
-- 保持 `net/http` 互操作，不另造封闭生态。
-- 标准层小而稳定，上层能力通过独立包和 Profile 扩展。
+## 1. Goal
 
-## 3. 分层标准
+Arkarta Enterprise Web is the Goark enterprise Web standard. It is not a single HTTP framework. It defines the contracts that applications, Web containers, routing layers, validation layers, JSON codecs, WebSocket endpoints, and security integrations use to interoperate.
+
+The reference model is the Java enterprise standard family: Jakarta Servlet, Jakarta RESTful Web Services, Jakarta WebSocket, Jakarta Security, Jakarta Validation, JSON-B, JSON-P, and the historical Java EE / Oracle standards. Arkarta does not copy Java APIs. It keeps the proven enterprise boundaries and re-expresses them with Go-native design.
+
+## 2. Go-Native Rules
+
+- Use `context.Context` for cancellation, deadlines, trace propagation, and request scope.
+- Use explicit `error` returns instead of Java exception hierarchies.
+- Use small interfaces and function adapters instead of inheritance.
+- Use explicit or generated registration instead of runtime classpath scanning.
+- Preserve `net/http` interoperability.
+- Keep standards package-scoped and independently testable.
+- Back compatibility claims with TCKs.
+
+## 3. Standard Layers
 
 ```text
-Goark Enterprise Web
-├── goark.dev/arkarta/servlet              底层容器契约、过滤器链、分发、会话 Profile、TCK
-├── goark.dev/arkarta/web                  MVC、REST、路由、参数绑定、响应编解码
-├── goark.dev/arkarta/security             认证、授权、Principal、安全过滤器
-├── goark.dev/arkarta/validation           结构体验证、字段约束、错误聚合
-├── goark.dev/arkarta/websocket            WebSocket 握手、端点、消息编解码、会话管理、TCK
-├── goark.dev/arkarta/websocket/frame      RFC 6455 帧层读写与碎片聚合
-├── goark.dev/arkarta/websocket/servlet    WebSocket 与 Servlet Upgrade 适配
-├── goark.dev/arkarta/json                 JSON-B / JSON-P 风格绑定与流式处理
-├── goark.dev/arkarta/json/sonic           sonic 高性能 JSON 实现
-├── goark.dev/arkarta/web/tck              Web/JSON/Validation 组合 TCK
-├── goark.dev/boot                         自动装配、配置绑定、容器选择
-└── 容器实现                         Goark Tomcat、Goark Jetty、net/http 容器、原生高性能容器
+goark.dev/arkarta/servlet              Servlet Core and container contracts
+goark.dev/arkarta/servlet/*            Servlet profiles and adapters
+goark.dev/arkarta/web                  MVC/REST composition layer
+goark.dev/arkarta/json                 JSON codec standard and encoding/json implementation
+goark.dev/arkarta/json/sonic           Sonic JSON implementation
+goark.dev/arkarta/validation           Validation standard
+goark.dev/arkarta/websocket            WebSocket standard
+goark.dev/arkarta/websocket/frame      RFC 6455 frame layer
+goark.dev/arkarta/websocket/servlet    Servlet Upgrade adapter for WebSocket
+goark.dev/arkarta/security             Root enterprise security contracts
+goark.dev/arkarta/*/tck                Executable compatibility tests
 ```
 
-## 4. Servlet Core 负责什么
+Concrete containers such as Goark Tomcat and Goark Jetty implement these contracts. They are not part of the Arkarta standard module.
 
-`goark.dev/arkarta/servlet` 必须先稳定以下契约：
+## 4. Servlet Responsibility
 
-- `Request` / `Response`
-- `Handler` / `Servlet`
-- `Filter` / `Chain`
-- 路径映射
-- `WebApp`
-- 生命周期
-- 错误分发
-- `net/http` 适配
-- TCK Core
+`goark.dev/arkarta/servlet` defines the low-level application/container boundary:
 
-它不直接做 Controller、参数绑定、JSON、认证授权、模板和业务路由语法。
+- Request and response models.
+- Handler and Servlet contracts.
+- Filter chain and dispatcher types.
+- WebApp context and lifecycle.
+- Path mapping and dispatching.
+- Error model and error pages.
+- `net/http` interoperability.
+- Optional profiles: Session, Multipart, Async/Stream, Upgrade, Native I/O, and Servlet declarative security.
+- Servlet TCK entry points.
 
-## 5. Web/MVC 标准负责什么
+Servlet does not own controller method binding, JSON encoding, enterprise authentication providers, templates, or business routing syntax.
 
-当前 `goark.dev/arkarta/web` 已落地第一版组合层，负责：
+## 5. Web Responsibility
 
-- Handler 模型。
-- 路由变量、查询参数、Header、Cookie、Body 绑定。
-- JSON 请求绑定和响应写出。
-- 统一错误响应。
-- REST 资源语义。
-- 拦截器和错误映射器。
+`goark.dev/arkarta/web` defines the Goark MVC/REST composition layer:
 
-Controller 方法绑定、响应建议器、表单、Multipart 和流式响应属于后续扩展；注册方式必须支持显式代码和 CLI 生成元数据，不依赖运行时反射扫描。
+- Method router with path variables.
+- Route groups and group-scoped interceptors.
+- Automatic `HEAD` for `GET` and automatic `OPTIONS` with stable `Allow`.
+- Query, path, header, cookie, form, and multipart binding helpers.
+- Parameter conversion helpers.
+- JSON binding and Validation integration.
+- Unified `Result` model for JSON, text, and no-content responses.
+- Response advice.
+- Error mapping.
+- Web TCK for container integrations.
 
-## 6. Security 标准负责什么
+Controller method discovery and generated registration belong to Goark tooling, not to runtime reflection in the standard.
 
-未来 `goark.dev/arkarta/security` 负责：
+## 6. JSON Responsibility
 
-- Principal 与认证结果。
-- 认证过滤器链。
-- 授权决策。
-- Session 固定防护。
-- CSRF、CORS、安全 Header。
-- 方法级安全与 Web 路径安全的统一决策模型。
+`goark.dev/arkarta/json` defines a codec contract inspired by JSON-B and JSON-P:
 
-Servlet 层只暴露足够的请求上下文、会话 Profile 和过滤器链。
+- `Codec`, `Encoder`, and `Decoder` interfaces.
+- `encoding/json` default implementation.
+- Streaming encode/decode.
+- Input size limit.
+- Unknown-field rejection.
+- Number precision mode.
+- HTML escaping and indentation controls.
 
-## 7. Validation 标准负责什么
+`goark.dev/arkarta/json/sonic` is the standard high-performance implementation. `goark.dev/arkarta/json/tck` verifies codec compatibility.
 
-当前 `goark.dev/arkarta/validation` 已落地第一版标准包，负责：
+## 7. Validation Responsibility
 
-- Struct 字段约束。
-- 嵌套对象校验。
-- 结构体标签解析。
-- 统一错误聚合。
-- 自定义约束注册。
+`goark.dev/arkarta/validation` defines Go-native validation:
 
-分组校验和国际化消息属于后续扩展；Web 层只消费校验结果并映射为 HTTP 错误。
+- Struct-tag field constraints.
+- Nested struct and slice validation.
+- Validation groups through `arkarta-groups`.
+- Message resolver extension point.
+- Object-level constraints.
+- Built-in constraints: `required`, `notblank`, `min`, `max`, `len`, `email`, `oneof`, `regexp`, `url`, `uuid`, `gt`, `gte`, `lt`, `lte`, `contains`, `startswith`, and `endswith`.
+- Custom constraint registration.
+- Aggregated validation result and stable validation error contract.
 
-## 8. JSON 标准负责什么
+The standard intentionally avoids Java annotation scanning. Constraints are explicit Go values or struct tags parsed by the validator.
 
-当前 `goark.dev/arkarta/json` 已落地第一版标准包，负责：
+## 8. WebSocket Responsibility
 
-- JSON Codec 标准端口。
-- `encoding/json` 默认实现。
-- 流式 JSON 读写。
-- 未知字段拒绝、数字精度策略和安全解码限制。
-- `json/sonic` 可选高性能实现。
+`goark.dev/arkarta/websocket` defines the WebSocket standard:
 
-Servlet Core 只处理请求体与响应写出，不绑定 JSON 实现；Web 层负责组合 JSON Codec 与请求/响应模型。
+- HTTP Upgrade handshake.
+- Subprotocol negotiation.
+- permessage-deflate extension negotiation.
+- Endpoint and session contracts.
+- Message and close status model.
+- Connection SPI and service loop.
+- JSON text codec.
+- WebSocket TCK.
 
-## 9. WebSocket 标准负责什么
+`websocket/frame` owns RFC 6455 frame encoding/decoding. `websocket/servlet` adapts Servlet Upgrade connections to WebSocket sessions.
 
-当前 `goark.dev/arkarta/websocket` 已落地第一版基础标准包，负责：
+## 9. Security Responsibility
 
-- RFC 6455 帧层读写。
-- Endpoint 注册。
-- HTTP Upgrade 握手。
-- 消息编解码。
-- Ping/Pong、关闭码、超时。
-- 会话属性和背压。
-- 连接 SPI 与服务循环。
-- 子协议协商、permessage-deflate 扩展协商和 TCK。
-- Servlet Upgrade 适配包负责握手后 HTTP 101 写出和连接移交。
-- 帧层标准包负责可移植协议编解码；具体网络连接、零拷贝和事件循环由容器实现。
+Security is split intentionally:
 
-Servlet Upgrade Profile 只定义升级入口和连接所有权转移；WebSocket 标准适配层负责协议握手响应，高性能网络连接实现由后续容器补齐。
+- `servlet/security` defines Servlet declarative security: request-bound Principal, Basic authentication, Realm, role constraints, method constraints, run-as, transport guarantee, and security filter.
+- Root `security` defines enterprise contracts independent of Servlet: Principal, Authority, Authentication, Credential, AuthenticationManager, SecurityContext, Authorizer, and authorization decisions.
 
-## 10. 第一阶段实现范围
+Concrete identity providers, OAuth2/OIDC/JWT, CSRF, CORS, password storage, and policy engines belong to security implementations layered above this standard.
 
-当前第一阶段完成 `goark.dev/arkarta/servlet`、`goark.dev/arkarta/websocket`、`goark.dev/arkarta/json`、`goark.dev/arkarta/validation` 与 `goark.dev/arkarta/web` 的标准底座：
+## 10. TCK Policy
 
-1. Servlet 根包 API。
-2. 路径映射、过滤器链、分发和错误页。
-3. `net/http` 适配和参考容器入口。
-4. 容器 SPI 基础类型。
-5. 动态注册、生命周期、静态资源、Session、Multipart、Async、Upgrade 和 Security Profile。
-6. WebSocket HTTP 握手、Servlet Upgrade 适配、子协议协商、permessage-deflate 扩展、RFC 6455 帧层、端点、会话、消息、关闭码、连接 SPI、JSON 文本编解码和 TCK。
-7. JSON 标准端口、`encoding/json` 默认实现和 `json/sonic` 高性能实现。
-8. Validation 结构体标签约束、嵌套校验、自定义约束和统一错误聚合。
-9. Web 方法路由、路径变量、JSON 绑定、Validation 集成、统一 Result、错误映射和拦截器链。
-10. Web/JSON/Validation 组合 TCK。
-11. TCK 风格兼容性测试。
+A module or container may only claim Arkarta compatibility for the profiles it passes. Relevant TCKs include:
 
-Controller 方法绑定、响应建议器、表单/Multipart 绑定、流式响应和企业级安全集成先保留为接口路线，不在第一阶段混入实现。
+- `servlet/tck` for Servlet Core and profiles.
+- `web/tck` for Web, JSON, and Validation integration over a container.
+- `websocket/tck` for WebSocket handshake, endpoint, compression, and frame behavior.
+- `json/tck` for JSON codec implementations.
+
+Release gates for this repository:
+
+```shell
+go test ./...
+go test -race ./...
+go vet ./...
+gofmt -l .
+```
+
+`gofmt -l .` must print no files.
+
+## 11. Version Policy
+
+`v0.0.1` freezes the first public preview of the standard. Before `v0.1.0`, source-incompatible corrections are still allowed when needed to fix standard quality. After `v0.1.0`, public APIs should evolve additively whenever possible.

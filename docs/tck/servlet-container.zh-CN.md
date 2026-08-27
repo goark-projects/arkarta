@@ -1,19 +1,19 @@
-# Servlet Container TCK Guide
+# Servlet 容器 TCK 接入指南
 
-Language: English | [简体中文](servlet-container.zh-CN.md)
+语言：[English](servlet-container.md) | 简体中文
 
-This guide is for Arkarta container implementers. A container should only claim compatibility for the profiles whose TCKs it passes.
+本文档面向 Arkarta 容器实现者。容器只应声明自己已经通过 TCK 的 Profile。
 
-## 1. Rules
+## 1. 规则
 
-- Core Profile is the minimum required profile for every Servlet container.
-- Session, Multipart, Async, Upgrade, Security, Native I/O, Web, WebSocket, and JSON profiles are declared independently.
-- TCK tests should run in the container repository, not inside the Arkarta standard repository.
-- Tests must use the real container adapter or deployment entry point. Do not bypass lifecycle by calling user handlers directly.
+- Core Profile 是每个 Servlet 容器必须支持的最小 Profile。
+- Session、Multipart、Async、Upgrade、Security、Native I/O、Web、WebSocket、JSON 等 Profile 独立声明。
+- TCK 测试应在容器仓库中运行，而不是放在 Arkarta 标准仓库内。
+- 测试必须使用真实容器适配器或部署入口，不得绕过生命周期直接调用用户 handler。
 
 ## 2. Core HTTP
 
-If the container can expose a `servlet.Handler` as `http.Handler`, run:
+如果容器可以把 `servlet.Handler` 暴露为 `http.Handler`，运行：
 
 ```go
 func TestCoreHTTP(t *testing.T) {
@@ -23,11 +23,11 @@ func TestCoreHTTP(t *testing.T) {
 }
 ```
 
-This covers status, headers, cookies, redirects, errors, panic recovery, filters, path mapping, request parameters, parameter names, cookies, and request mapping details.
+该测试覆盖状态码、Header、Cookie、Redirect、Error、panic 恢复、Filter、路径映射、请求参数、参数名、Cookie 和请求映射细节。
 
-## 3. Lifecycle and Deployment
+## 3. 生命周期与部署
 
-For containers that implement `servlet/container.Application`:
+实现 `servlet/container.Application` 的容器应运行：
 
 ```go
 func TestLifecycle(t *testing.T) {
@@ -37,11 +37,11 @@ func TestLifecycle(t *testing.T) {
 }
 ```
 
-The container must initialize Servlet and Filter instances before request handling and destroy them after accepted requests have completed.
+容器必须在请求处理前初始化 Servlet 和 Filter，并在已接受请求完成后销毁它们。
 
-## 4. Error Pages
+## 4. 错误页
 
-If the container supports `servlet.ErrorPageRegistry`:
+如果容器支持 `servlet.ErrorPageRegistry`：
 
 ```go
 func TestErrorPages(t *testing.T) {
@@ -51,11 +51,11 @@ func TestErrorPages(t *testing.T) {
 }
 ```
 
-This covers status-code pages, panic pages, default pages, error type priority, and loop protection.
+该测试覆盖状态码错误页、panic 错误页、默认错误页、错误类型优先级和循环保护。
 
 ## 5. Session Profile
 
-For a custom `session.Manager`:
+自定义 `session.Manager` 应运行：
 
 ```go
 func TestSessionManager(t *testing.T) {
@@ -65,7 +65,7 @@ func TestSessionManager(t *testing.T) {
 }
 ```
 
-If the container uses the Arkarta memory reference implementation:
+如果容器使用 Arkarta 内存参考实现：
 
 ```go
 func TestMemorySessionProfile(t *testing.T) {
@@ -75,7 +75,7 @@ func TestMemorySessionProfile(t *testing.T) {
 }
 ```
 
-Request binding and URL rewriting are verified with `RunSessionRequestBinding`.
+请求绑定和 URL rewriting 通过 `RunSessionRequestBinding` 验证。
 
 ## 6. Multipart Profile
 
@@ -87,9 +87,9 @@ func TestMultipart(t *testing.T) {
 }
 ```
 
-This covers values, files, body limits, temp location, submitted filename cleanup, part deletion, and form cleanup.
+该测试覆盖普通字段、文件、请求体限制、临时目录、提交文件名清理、Part 删除和表单清理。
 
-## 7. Async, Security, and Native I/O
+## 7. Async、Security 与 Native I/O
 
 ```go
 func TestAsyncLifecycle(t *testing.T) {
@@ -107,9 +107,9 @@ func TestNativeIO(t *testing.T) {
 }
 ```
 
-Native I/O may use sendfile, splice, io_uring, kqueue, or platform-specific optimizations, but it must preserve predictable Go error and cancellation semantics.
+Native I/O 可以使用 sendfile、splice、io_uring、kqueue 或平台特定优化，但必须保持可预测的 Go 错误和取消语义。
 
-## 8. Static Resources and HTTP Container Entry
+## 8. 静态资源与 HTTP 容器入口
 
 ```go
 func TestStaticResources(t *testing.T) {
@@ -127,7 +127,7 @@ func TestHTTPContainer(t *testing.T) {
 
 ## 9. Web TCK
 
-Use `goark.dev/arkarta/web/tck` for Web, JSON, and Validation behavior over a Servlet-compatible container:
+使用 `goark.dev/arkarta/web/tck` 验证 Servlet 兼容容器上的 Web、JSON、Validation 行为：
 
 ```go
 func TestWebJSONValidation(t *testing.T) {
@@ -143,11 +143,11 @@ func TestWebRoutingBinding(t *testing.T) {
 }
 ```
 
-These tests cover JSON binding, validation mapping, content negotiation, method-not-allowed behavior, route groups, automatic HEAD/OPTIONS, form binding, and parameter conversion.
+这些测试覆盖 JSON 绑定、Validation 映射、内容协商、405 行为、路由分组、自动 HEAD/OPTIONS、Form 绑定和参数转换。
 
 ## 10. JSON Codec TCK
 
-Alternative JSON implementations should pass `goark.dev/arkarta/json/tck`:
+替代 JSON 实现应通过 `goark.dev/arkarta/json/tck`：
 
 ```go
 func TestJSONCodec(t *testing.T) {
@@ -173,7 +173,7 @@ func TestJSONCodec(t *testing.T) {
 
 ## 11. WebSocket TCK
 
-WebSocket implementations should run:
+WebSocket 实现应运行：
 
 ```go
 func TestWebSocketHandshake(t *testing.T) {
@@ -195,11 +195,11 @@ func TestWebSocketFrameCodec(t *testing.T) {
 }
 ```
 
-Servlet integrations should use `goark.dev/arkarta/websocket/servlet` for HTTP 101 writing, Servlet Upgrade handoff, frame connection adaptation, and endpoint service loops.
+Servlet 集成应使用 `goark.dev/arkarta/websocket/servlet` 完成 HTTP 101 写出、Servlet Upgrade 交接、帧连接适配和 Endpoint 服务循环。
 
-## 12. Release Gate
+## 12. 发布门禁
 
-Before claiming compatibility or publishing a container release, run:
+声明兼容或发布容器版本前运行：
 
 ```shell
 go test ./...
@@ -208,4 +208,4 @@ go vet ./...
 gofmt -l .
 ```
 
-`gofmt -l .` must print no files. Each compatibility claim should list the exact TCK entry points that passed.
+`gofmt -l .` 必须无输出。每项兼容性声明都应列出已经通过的 TCK 入口。
