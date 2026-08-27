@@ -190,6 +190,7 @@ type Servlet interface {
 - HTTP 方法、协议、Scheme、Host、Path、Query。
 - Header、Cookie、Content-Length、RemoteAddr。
 - RequestURI、RequestURL、QueryString、ContextPath、ServletPath、PathInfo、Mapping。
+- Accept 媒体类型解析和响应内容协商辅助。
 - Query 与 `application/x-www-form-urlencoded` 表单参数合并视图。
 - Body 读取与关闭。
 - TLS 与安全传输标记。
@@ -225,6 +226,8 @@ func (r *Request) QueryString() string
 func (r *Request) ContextPath() string
 func (r *Request) Path() string
 func (r *Request) Query() url.Values
+func (r *Request) AcceptedMediaTypes() []MediaType
+func (r *Request) NegotiateContentType(candidates ...string) (string, bool)
 func (r *Request) Parameter(name string) (string, bool, error)
 func (r *Request) ParameterValues(name string) ([]string, bool, error)
 func (r *Request) ServletPath() string
@@ -243,6 +246,7 @@ func (r *Request) HTTPRequest() *http.Request
 
 - Header 名称必须按 Go `net/http` 规范进行规范化访问。
 - Query 必须只反映 URL 查询串；Parameter 视图才合并查询串与表单体参数。
+- Accept 内容协商必须遵循 q 因子、通配符和更具体媒体范围优先级；无法协商时必须返回明确失败。
 - Body 只能被消费一次，容器不得默认缓存整个请求体。
 - 属性键推荐使用反向域名或包路径前缀，避免跨框架冲突。
 - `HTTPRequest()` 必须返回与当前请求等价的标准库请求；容器可以返回只读视图。
@@ -615,6 +619,7 @@ Profile TCK 按 Profile 独立运行。容器只能声明自己通过的 Profile
 | Jakarta Servlet 6.1 领域 | Arkarta v0.0.1 状态 | 说明 |
 | --- | --- | --- |
 | Request 路径、参数、映射 | 已实现 | `RequestURI`、`QueryString`、`ContextPath`、`ServletPath`、`PathInfo`、`RequestMapping`、Parameter API |
+| 请求内容协商 | 已实现 | Accept 媒体类型解析、q 因子排序、通配符匹配和响应候选类型选择 |
 | Response 基础与便利 API | 已实现 | Header/Status/Write/Flush/Reset、Cookie、Redirect、SendError、Content-Type、Charset、Content-Length、typed Header、Locale、Trailer |
 | Servlet 路径映射 | 已实现 | exact、longest prefix、extension、default |
 | RequestDispatcher | 已实现 | Forward、Include、Error 分发、完整 forward/include/error 属性族、按名称和路径获取 dispatcher |
