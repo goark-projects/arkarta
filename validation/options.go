@@ -18,3 +18,24 @@ func WithConstraint(constraint Constraint) Option {
 		validator.register(constraint)
 	}
 }
+
+// WithMessageResolver 设置校验失败消息解析器。
+func WithMessageResolver(resolver MessageResolver) Option {
+	return func(validator *DefaultValidator) {
+		if resolver != nil {
+			validator.messageResolver = resolver
+		}
+	}
+}
+
+// WithObjectConstraint 注册默认分组的对象级约束。
+func WithObjectConstraint(sample any, constraint ObjectConstraint) Option {
+	return WithObjectConstraintForGroups(sample, constraint, DefaultGroup)
+}
+
+// WithObjectConstraintForGroups 注册指定分组的对象级约束。
+func WithObjectConstraintForGroups(sample any, constraint ObjectConstraint, groups ...string) Option {
+	return func(validator *DefaultValidator) {
+		validator.registerObjectConstraint(sample, constraint, groups)
+	}
+}

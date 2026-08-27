@@ -39,3 +39,9 @@ func (v Violation) Message() string {
 func (v Violation) Value() any {
 	return v.value
 }
+
+// WithMessage 返回仅替换消息的新 Violation。
+func (v Violation) WithMessage(message string) Violation {
+	v.message = strings.TrimSpace(message)
+	return v
+}

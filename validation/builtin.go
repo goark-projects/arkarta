@@ -18,6 +18,16 @@ func builtinConstraints() []Constraint {
 		ConstraintFunc{RuleName: "len", Fn: validateLen},
 		ConstraintFunc{RuleName: "email", Fn: validateEmail},
 		ConstraintFunc{RuleName: "oneof", Fn: validateOneOf},
+		ConstraintFunc{RuleName: "regexp", Fn: validateRegexp},
+		ConstraintFunc{RuleName: "url", Fn: validateURL},
+		ConstraintFunc{RuleName: "uuid", Fn: validateUUID},
+		ConstraintFunc{RuleName: "gt", Fn: validateGT},
+		ConstraintFunc{RuleName: "gte", Fn: validateGTE},
+		ConstraintFunc{RuleName: "lt", Fn: validateLT},
+		ConstraintFunc{RuleName: "lte", Fn: validateLTE},
+		ConstraintFunc{RuleName: "contains", Fn: validateContains},
+		ConstraintFunc{RuleName: "startswith", Fn: validateStartsWith},
+		ConstraintFunc{RuleName: "endswith", Fn: validateEndsWith},
 	}
 }
 
