@@ -16,6 +16,8 @@ const (
 	ProfileUpgrade Profile = "upgrade"
 	// ProfileNativeIO 表示容器暴露原生 I/O 能力。
 	ProfileNativeIO Profile = "native-io"
+	// ProfileSecurity 表示容器支持声明式安全能力。
+	ProfileSecurity Profile = "security"
 )
 
 // SupportsProfile 判断 Profile 列表是否包含指定能力。
