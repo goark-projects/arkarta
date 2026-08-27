@@ -7,6 +7,8 @@
 ### Added
 
 - Servlet Core 新增 Accept 媒体类型解析、质量因子排序、通配符匹配和响应 Content-Type 协商辅助。
+- 新增 `json` 标准包，提供 JSON `Codec`、流式 Encoder/Decoder、输入大小限制、未知字段拒绝、数字精度控制和 `encoding/json` 默认实现。
+- 新增 `json/sonic` 高性能 JSON 实现，基于 `github.com/bytedance/sonic` 并复用 Arkarta JSON 安全边界。
 
 ## [0.0.1] - 2026-08-27
 

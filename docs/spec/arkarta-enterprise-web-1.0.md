@@ -37,6 +37,7 @@ Goark Enterprise Web
 ├── goark.dev/arkarta/websocket            WebSocket 握手、端点、消息编解码、会话管理、TCK
 ├── goark.dev/arkarta/websocket/servlet    WebSocket 与 Servlet Upgrade 适配
 ├── goark.dev/arkarta/json                 JSON-B / JSON-P 风格绑定与流式处理
+├── goark.dev/arkarta/json/sonic           sonic 高性能 JSON 实现
 ├── goark.dev/boot                         自动装配、配置绑定、容器选择
 └── 容器实现                         Goark Tomcat、Goark Jetty、net/http 容器、原生高性能容器
 ```
@@ -97,15 +98,15 @@ Web 层只消费校验结果并映射为 HTTP 错误。
 
 ## 8. JSON 标准负责什么
 
-未来 `goark.dev/arkarta/json` 负责：
+当前 `goark.dev/arkarta/json` 已落地第一版标准包，负责：
 
-- 结构体绑定。
+- JSON Codec 标准端口。
+- `encoding/json` 默认实现。
 - 流式 JSON 读写。
-- 字段命名策略。
-- 时间、枚举、数字精度策略。
-- 安全解码限制。
+- 未知字段拒绝、数字精度策略和安全解码限制。
+- `json/sonic` 可选高性能实现。
 
-Servlet Core 只处理请求体与响应写出，不绑定 JSON 实现。
+Servlet Core 只处理请求体与响应写出，不绑定 JSON 实现；Web 层负责组合 JSON Codec 与请求/响应模型。
 
 ## 9. WebSocket 标准负责什么
 
