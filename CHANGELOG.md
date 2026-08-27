@@ -10,6 +10,7 @@
 - 新增 `json` 标准包，提供 JSON `Codec`、流式 Encoder/Decoder、输入大小限制、未知字段拒绝、数字精度控制和 `encoding/json` 默认实现。
 - 新增 `json/sonic` 高性能 JSON 实现，基于 `github.com/bytedance/sonic` 并复用 Arkarta JSON 安全边界。
 - 新增 `validation` 标准包，提供 Go 化结构体标签约束、嵌套对象校验、错误聚合和自定义约束扩展点。
+- 新增 `web` 标准包，提供 HTTP 方法路由、路径变量、JSON 绑定、Validation 集成、统一响应结果、错误映射和拦截器链。
 
 ## [0.0.1] - 2026-08-27
 

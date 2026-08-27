@@ -60,16 +60,16 @@ Goark Enterprise Web
 
 ## 5. Web/MVC 标准负责什么
 
-未来 `goark.dev/arkarta/web` 负责：
+当前 `goark.dev/arkarta/web` 已落地第一版组合层，负责：
 
-- Controller / Handler Method 模型。
+- Handler 模型。
 - 路由变量、查询参数、Header、Cookie、Body 绑定。
-- JSON、表单、Multipart、流式响应。
+- JSON 请求绑定和响应写出。
 - 统一错误响应。
 - REST 资源语义。
-- 拦截器、响应建议器、异常映射器。
+- 拦截器和错误映射器。
 
-注册方式必须支持显式代码和 CLI 生成元数据，不依赖运行时反射扫描。
+Controller 方法绑定、响应建议器、表单、Multipart 和流式响应属于后续扩展；注册方式必须支持显式代码和 CLI 生成元数据，不依赖运行时反射扫描。
 
 ## 6. Security 标准负责什么
 
@@ -125,7 +125,7 @@ Servlet Upgrade Profile 只定义升级入口和连接所有权转移；WebSocke
 
 ## 10. 第一阶段实现范围
 
-当前第一阶段完成 `goark.dev/arkarta/servlet`、`goark.dev/arkarta/websocket`、`goark.dev/arkarta/json` 与 `goark.dev/arkarta/validation` 的标准底座：
+当前第一阶段完成 `goark.dev/arkarta/servlet`、`goark.dev/arkarta/websocket`、`goark.dev/arkarta/json`、`goark.dev/arkarta/validation` 与 `goark.dev/arkarta/web` 的标准底座：
 
 1. Servlet 根包 API。
 2. 路径映射、过滤器链、分发和错误页。
@@ -135,6 +135,7 @@ Servlet Upgrade Profile 只定义升级入口和连接所有权转移；WebSocke
 6. WebSocket HTTP 握手、Servlet Upgrade 适配、子协议协商、permessage-deflate 扩展、端点、会话、消息、关闭码、连接 SPI、JSON 文本编解码和 TCK。
 7. JSON 标准端口、`encoding/json` 默认实现和 `json/sonic` 高性能实现。
 8. Validation 结构体标签约束、嵌套校验、自定义约束和统一错误聚合。
-9. TCK 风格兼容性测试。
+9. Web 方法路由、路径变量、JSON 绑定、Validation 集成、统一 Result、错误映射和拦截器链。
+10. TCK 风格兼容性测试。
 
-上层 MVC、REST 和企业级安全集成先保留为接口路线，不在第一阶段混入实现。
+Controller 方法绑定、响应建议器、表单/Multipart 绑定、流式响应和企业级安全集成先保留为接口路线，不在第一阶段混入实现。
