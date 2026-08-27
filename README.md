@@ -4,13 +4,13 @@ Language: English | [简体中文](README.zh-CN.md)
 
 Arkarta is the Goark enterprise development standard for Web applications and Web containers. It takes the proven boundaries of Jakarta EE and Java EE as reference material, then expresses them with Go-native APIs: explicit registration, small interfaces, `context.Context`, `net/http` interoperability, error returns, and executable TCKs.
 
-The first release candidate focuses on Servlet, WebSocket, JSON, Validation, Web routing/binding, and security contracts. Concrete containers such as Goark Tomcat and Goark Jetty are intentionally out of scope for this repository and will implement this standard separately.
+The `v0.0.1` release publishes the first Arkarta standard baseline for Servlet, WebSocket, JSON, Validation, Web routing/binding, and security contracts. Concrete containers such as Goark Tomcat and Goark Jetty are intentionally out of scope for this repository and will implement this standard separately.
 
 ## Status
 
-Current target: `v0.0.1` release candidate.
+Current version: `v0.0.1`.
 
-The old tag has been removed, so use the versioned install command only after the release tag is recreated and published:
+Install the released module:
 
 ```shell
 go get goark.dev/arkarta@v0.0.1
@@ -65,6 +65,7 @@ go vet ./...
 - [Arkarta Enterprise Web 1.0](docs/spec/arkarta-enterprise-web-1.0.md)
 - [Arkarta Servlet 1.0](docs/spec/arkarta-servlet-1.0.md)
 - [Servlet Container TCK Guide](docs/tck/servlet-container.md)
+- [v0.0.1 Release Notes](docs/releases/v0.0.1.md)
 - [Changelog](CHANGELOG.md)
 
 Chinese mirrors:
@@ -72,6 +73,7 @@ Chinese mirrors:
 - [Arkarta Enterprise Web 1.0 中文版](docs/spec/arkarta-enterprise-web-1.0.zh-CN.md)
 - [Arkarta Servlet 1.0 中文版](docs/spec/arkarta-servlet-1.0.zh-CN.md)
 - [Servlet 容器 TCK 接入指南](docs/tck/servlet-container.zh-CN.md)
+- [v0.0.1 发版说明](docs/releases/v0.0.1.zh-CN.md)
 - [更新日志中文版](CHANGELOG.zh-CN.md)
 
 ## License

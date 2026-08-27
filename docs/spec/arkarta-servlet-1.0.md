@@ -2,11 +2,11 @@
 
 Language: English | [简体中文](arkarta-servlet-1.0.zh-CN.md)
 
-Status: Release Candidate 1
+Status: Published
 
 Module: `goark.dev/arkarta/servlet`
 
-Target release: `v0.0.1`
+Version: `v0.0.1`
 
 Date: 2026-08-27
 

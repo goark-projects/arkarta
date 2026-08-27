@@ -2,11 +2,11 @@
 
 语言：[English](arkarta-servlet-1.0.md) | 简体中文
 
-状态：Release Candidate 1
+状态：已发布
 
 模块：`goark.dev/arkarta/servlet`
 
-目标版本：`v0.0.1`
+版本：`v0.0.1`
 
 日期：2026-08-27
 

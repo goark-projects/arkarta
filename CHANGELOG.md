@@ -4,6 +4,8 @@ Language: English | [简体中文](CHANGELOG.zh-CN.md)
 
 This project follows Go module semantic versioning. `v0.0.x` releases are early previews: public APIs are designed as standard contracts, but necessary source-incompatible corrections may still happen before `v0.1.0`.
 
+Release notes: [v0.0.1](docs/releases/v0.0.1.md)
+
 ## [0.0.1] - 2026-08-27
 
 ### Added
