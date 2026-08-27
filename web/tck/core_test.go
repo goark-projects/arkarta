@@ -14,3 +14,9 @@ func TestRunJSONValidationWithNetHTTPAdapter(t *testing.T) {
 		return nethttp.Handler(handler)
 	})
 }
+
+func TestRunRoutingBindingWithNetHTTPAdapter(t *testing.T) {
+	tck.RunRoutingBinding(t, func(handler servlet.Handler) http.Handler {
+		return nethttp.Handler(handler)
+	})
+}

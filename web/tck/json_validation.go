@@ -150,8 +150,8 @@ func runMethodNotAllowed(t *testing.T, factory HTTPHandlerFactory) {
 	if recorder.Code != http.StatusMethodNotAllowed {
 		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusMethodNotAllowed)
 	}
-	if recorder.Header().Get("Allow") != http.MethodGet {
-		t.Fatalf("allow = %q, want GET", recorder.Header().Get("Allow"))
+	if recorder.Header().Get("Allow") != "GET, HEAD, OPTIONS" {
+		t.Fatalf("allow = %q, want GET, HEAD, OPTIONS", recorder.Header().Get("Allow"))
 	}
 }
 

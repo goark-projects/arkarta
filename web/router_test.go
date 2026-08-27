@@ -137,8 +137,8 @@ func TestRouterReturnsMethodNotAllowed(t *testing.T) {
 	if recorder.Code != http.StatusMethodNotAllowed {
 		t.Fatalf("status = %d, want 405", recorder.Code)
 	}
-	if got := recorder.Header().Get("Allow"); got != http.MethodGet {
-		t.Fatalf("allow = %q, want GET", got)
+	if got := recorder.Header().Get("Allow"); got != "GET, HEAD, OPTIONS" {
+		t.Fatalf("allow = %q, want GET, HEAD, OPTIONS", got)
 	}
 }
 

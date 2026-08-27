@@ -69,6 +69,10 @@ func errorResponse(err error) (int, ErrorResponse) {
 	if errors.Is(err, ErrUnsupportedMediaType) {
 		return http.StatusUnsupportedMediaType, newErrorResponse("UNSUPPORTED_MEDIA_TYPE", http.StatusText(http.StatusUnsupportedMediaType), nil)
 	}
+	var parameterErr *ParameterError
+	if errors.As(err, &parameterErr) {
+		return http.StatusBadRequest, newErrorResponse("BAD_REQUEST", "请求参数格式非法", nil)
+	}
 	var bindErr *BindError
 	if errors.As(err, &bindErr) {
 		return http.StatusBadRequest, newErrorResponse("BAD_REQUEST", "请求体格式非法", nil)

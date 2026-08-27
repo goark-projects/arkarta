@@ -41,3 +41,10 @@ func WithInterceptor(interceptor Interceptor) Option {
 		router.Use(interceptor)
 	}
 }
+
+// WithResponseAdvice 注册初始响应增强器。
+func WithResponseAdvice(advice ResponseAdvice) Option {
+	return func(router *Router) {
+		router.UseResponseAdvice(advice)
+	}
+}
