@@ -188,10 +188,11 @@ type Servlet interface {
 必选能力：
 
 - HTTP 方法、协议、Scheme、Host、Path、Query。
-- Header、Cookie、Content-Length、RemoteAddr。
+- Header、Cookie 查找、Cookie 快照、Content-Length、RemoteAddr。
 - RequestURI、RequestURL、QueryString、ContextPath、ServletPath、PathInfo、Mapping。
 - Accept 媒体类型解析和响应内容协商辅助。
 - Query 与 `application/x-www-form-urlencoded` 表单参数合并视图。
+- 稳定排序的请求参数名视图。
 - Body 读取与关闭。
 - TLS 与安全传输标记。
 - 请求属性。
@@ -230,11 +231,13 @@ func (r *Request) AcceptedMediaTypes() []MediaType
 func (r *Request) NegotiateContentType(candidates ...string) (string, bool)
 func (r *Request) Parameter(name string) (string, bool, error)
 func (r *Request) ParameterValues(name string) ([]string, bool, error)
+func (r *Request) ParameterNames() ([]string, error)
 func (r *Request) ServletPath() string
 func (r *Request) PathInfo() string
 func (r *Request) Mapping() RequestMapping
 func (r *Request) Header() http.Header
 func (r *Request) Cookie(name string) (*http.Cookie, error)
+func (r *Request) Cookies() []*http.Cookie
 func (r *Request) Body() io.ReadCloser
 func (r *Request) Attribute(key string) (any, bool)
 func (r *Request) SetAttribute(key string, value any)
@@ -547,7 +550,7 @@ Arkarta Servlet 与现有 Goark 模块的关系：
 
 - `goark` core：提供 DI、环境、生命周期、事件等通用基础设施。
 - `goark-boot`：负责启动装配、配置加载和容器选择。
-- `goark.dev/arkarta/web`：未来提供 MVC、路由、参数绑定、响应编解码等上层开发体验。
+- `goark.dev/arkarta/web`：提供 MVC/REST 组合层、路由、参数绑定、响应编解码等上层开发体验。
 - `goark-security`：负责认证、授权、Principal、Session 固定防护和安全过滤器。
 - `goark-log` / observability：负责日志、Trace、Metrics。
 
@@ -561,7 +564,7 @@ Core TCK 必须覆盖：
 
 - 生命周期调用次数和顺序。
 - 并发请求下的处理器安全边界。
-- 请求 Header、Query、Cookie、Body 语义。
+- 请求 Header、Query、ParameterNames、Cookie 快照、Body 语义。
 - 响应状态码、Header、提交、Flush、Reset。
 - 过滤器顺序、短路、错误传播。
 - Filter 生命周期和 DispatcherType 过滤。
@@ -618,7 +621,7 @@ Profile TCK 按 Profile 独立运行。容器只能声明自己通过的 Profile
 
 | Jakarta Servlet 6.1 领域 | Arkarta v0.0.1 状态 | 说明 |
 | --- | --- | --- |
-| Request 路径、参数、映射 | 已实现 | `RequestURI`、`QueryString`、`ContextPath`、`ServletPath`、`PathInfo`、`RequestMapping`、Parameter API |
+| Request 路径、参数、映射 | 已实现 | `RequestURI`、`QueryString`、`ContextPath`、`ServletPath`、`PathInfo`、`RequestMapping`、Parameter API、ParameterNames、Cookie 快照 |
 | 请求内容协商 | 已实现 | Accept 媒体类型解析、q 因子排序、通配符匹配和响应候选类型选择 |
 | Response 基础与便利 API | 已实现 | Header/Status/Write/Flush/Reset、Cookie、Redirect、SendError、Content-Type、Charset、Content-Length、typed Header、Locale、Trailer |
 | Servlet 路径映射 | 已实现 | exact、longest prefix、extension、default |
@@ -638,6 +641,6 @@ Profile TCK 按 Profile 独立运行。容器只能声明自己通过的 Profile
 ## 27. 暂不解决的问题
 
 - 是否提供 XML 描述符迁移工具。
-- 与未来 `goark.dev/arkarta/web` 路由和 MVC 参数绑定的边界。
+- 与上层 Controller 方法绑定和 MVC 高级参数绑定的边界。
 - 分布式 Session passivation/activation 的具体容器实现。
-- WebSocket 具体帧读写和高性能网络容器实现。
+- WebSocket 高性能网络容器实现。

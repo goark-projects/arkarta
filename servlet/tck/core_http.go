@@ -41,6 +41,9 @@ func RunCoreHTTP(t *testing.T, factory HTTPHandlerFactory) {
 	t.Run("exposes_request_parameters", func(t *testing.T) {
 		runRequestParameters(t, factory)
 	})
+	t.Run("exposes_request_cookies", func(t *testing.T) {
+		runRequestCookies(t, factory)
+	})
 	t.Run("exposes_mapping_elements", func(t *testing.T) {
 		runMappingElements(t, factory)
 	})
@@ -238,6 +241,13 @@ func runRequestParameters(t *testing.T, factory HTTPHandlerFactory) {
 		if !ok || !reflect.DeepEqual(values, want) {
 			t.Fatalf("q values = %#v/%v, want %#v/true", values, ok, want)
 		}
+		names, err := req.ParameterNames()
+		if err != nil {
+			t.Fatalf("ParameterNames failed: %v", err)
+		}
+		if wantNames := []string{"body", "q"}; !reflect.DeepEqual(names, wantNames) {
+			t.Fatalf("parameter names = %#v, want %#v", names, wantNames)
+		}
 		body, _, err := req.Parameter("body")
 		if err != nil {
 			t.Fatalf("Parameter failed: %v", err)
@@ -253,6 +263,33 @@ func runRequestParameters(t *testing.T, factory HTTPHandlerFactory) {
 
 	if recorder.Code != http.StatusOK || recorder.Body.String() != "ok" {
 		t.Fatalf("status/body = %d/%q, want 200/ok", recorder.Code, recorder.Body.String())
+	}
+}
+
+func runRequestCookies(t *testing.T, factory HTTPHandlerFactory) {
+	t.Helper()
+	handler := servlet.HandlerFunc(func(_ context.Context, req *servlet.Request, res servlet.Response) error {
+		cookies := req.Cookies()
+		if len(cookies) != 2 || cookies[0].Name != "sid" || cookies[1].Name != "mode" {
+			t.Fatalf("cookies = %#v, want sid/mode", cookies)
+		}
+		cookies[0].Value = "mutated"
+		sid, err := req.Cookie("sid")
+		if err != nil {
+			t.Fatalf("Cookie failed: %v", err)
+		}
+		_, err = res.WriteString(sid.Value)
+		return err
+	})
+
+	request := httptest.NewRequest(http.MethodGet, "/cookies", nil)
+	request.AddCookie(&http.Cookie{Name: "sid", Value: "abc"})
+	request.AddCookie(&http.Cookie{Name: "mode", Value: "dark"})
+	recorder := httptest.NewRecorder()
+	factory(handler).ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK || recorder.Body.String() != "abc" {
+		t.Fatalf("status/body = %d/%q, want 200/abc", recorder.Code, recorder.Body.String())
 	}
 }
 

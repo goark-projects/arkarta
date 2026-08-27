@@ -4,6 +4,7 @@ import (
 	"mime"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 )
 
@@ -47,6 +48,20 @@ func (r *Request) ParameterValues(name string) ([]string, bool, error) {
 		return nil, false, nil
 	}
 	return append([]string(nil), list...), true, nil
+}
+
+// ParameterNames 返回请求参数名称的稳定排序副本。
+func (r *Request) ParameterNames() ([]string, error) {
+	values, err := r.Parameters()
+	if err != nil {
+		return nil, err
+	}
+	names := make([]string, 0, len(values))
+	for name := range values {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names, nil
 }
 
 func (r *Request) readParameters() (url.Values, error) {

@@ -11,7 +11,7 @@ Arkarta 是 Goark 的企业开发标准模块。它参考 Jakarta EE / Java EE �
 `v0.0.1` 包含：
 
 - Servlet Core API：请求、响应、处理器、Servlet、过滤器链、WebApp、生命周期、错误模型和请求分发。
-- Servlet 6.1 对齐能力：请求路径/参数/映射元素、Header/Locale/Trailer/Connection 元数据、响应 Cookie/Redirect/Error/Charset/Trailer 便利 API、Filter 生命周期、dispatcher type 过滤、静态资源、Range、welcome file 和 Session tracking。
+- Servlet 6.1 对齐能力：请求路径/参数/参数名/Cookie/映射元素、Header/Locale/Trailer/Connection 元数据、响应 Cookie/Redirect/Error/Charset/Trailer 便利 API、Filter 生命周期、dispatcher type 过滤、静态资源、Range、welcome file 和 Session tracking。
 - Servlet Container SPI：部署描述、注册快照转换、应用生命周期、Profile 声明和容器元数据。
 - `servlet/registration`：Servlet、Filter、Listener 动态注册元模型、multipart config 和 security constraint 元数据。
 - `servlet/nethttp`：基于标准库 `net/http` 的参考适配和最小参考容器。
