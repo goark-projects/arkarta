@@ -86,15 +86,15 @@ Servlet 层只暴露足够的请求上下文、会话 Profile 和过滤器链。
 
 ## 7. Validation 标准负责什么
 
-未来 `goark.dev/arkarta/validation` 负责：
+当前 `goark.dev/arkarta/validation` 已落地第一版标准包，负责：
 
 - Struct 字段约束。
 - 嵌套对象校验。
-- 分组校验。
-- 国际化消息。
+- 结构体标签解析。
 - 统一错误聚合。
+- 自定义约束注册。
 
-Web 层只消费校验结果并映射为 HTTP 错误。
+分组校验和国际化消息属于后续扩展；Web 层只消费校验结果并映射为 HTTP 错误。
 
 ## 8. JSON 标准负责什么
 
@@ -125,7 +125,7 @@ Servlet Upgrade Profile 只定义升级入口和连接所有权转移；WebSocke
 
 ## 10. 第一阶段实现范围
 
-当前第一阶段完成 `goark.dev/arkarta/servlet` 与 `goark.dev/arkarta/websocket` 的标准底座：
+当前第一阶段完成 `goark.dev/arkarta/servlet`、`goark.dev/arkarta/websocket`、`goark.dev/arkarta/json` 与 `goark.dev/arkarta/validation` 的标准底座：
 
 1. Servlet 根包 API。
 2. 路径映射、过滤器链、分发和错误页。
@@ -133,6 +133,8 @@ Servlet Upgrade Profile 只定义升级入口和连接所有权转移；WebSocke
 4. 容器 SPI 基础类型。
 5. 动态注册、生命周期、静态资源、Session、Multipart、Async、Upgrade 和 Security Profile。
 6. WebSocket HTTP 握手、Servlet Upgrade 适配、子协议协商、permessage-deflate 扩展、端点、会话、消息、关闭码、连接 SPI、JSON 文本编解码和 TCK。
-7. TCK 风格兼容性测试。
+7. JSON 标准端口、`encoding/json` 默认实现和 `json/sonic` 高性能实现。
+8. Validation 结构体标签约束、嵌套校验、自定义约束和统一错误聚合。
+9. TCK 风格兼容性测试。
 
-上层 MVC、REST、Validation、JSON 和企业级安全集成先保留为接口路线，不在第一阶段混入实现。
+上层 MVC、REST 和企业级安全集成先保留为接口路线，不在第一阶段混入实现。
