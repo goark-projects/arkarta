@@ -17,8 +17,9 @@
 - 新增 `servlet/multipart` Multipart Profile 解析器、Part API 和请求绑定。
 - 新增 `servlet/async` Async/Stream Profile，覆盖显式完成、超时、错误事件、ASYNC dispatch 和流式写入。
 - 新增 `servlet/upgrade` Upgrade Profile，覆盖 HTTP 升级连接交接契约和 `net/http` hijack 适配。
+- 新增 `servlet/nativeio` Native I/O Profile，覆盖文件区段发送、能力声明、发送策略和跨平台参考实现。
 - 新增 `servlet/security` 声明式安全 Profile，覆盖 Principal、Basic 认证、Realm、角色约束、方法约束、run-as、传输保障和安全 Filter。
-- 新增 `servlet/tck` 兼容性测试工具，覆盖 Core HTTP、生命周期、分发、错误页、注册元模型、WebApp 上下文能力、静态资源、Session、Multipart、Async、Security 和 HTTP 容器入口。
+- 新增 `servlet/tck` 兼容性测试工具，覆盖 Core HTTP、生命周期、分发、错误页、注册元模型、WebApp 上下文能力、静态资源、Session、Multipart、Async、Security、Native I/O 和 HTTP 容器入口。
 - 新增 `websocket` 独立标准包，覆盖端点、会话、消息、关闭原因、连接 SPI、服务循环和 JSON 文本编解码。
 - 新增 Arkarta Servlet 与 Enterprise Web 标准草案文档。
 
@@ -33,5 +34,4 @@
 ### Not Included
 
 - 尚未发布 Goark Tomcat、Goark Jetty 等独立具体容器。
-- 尚未实现 Native I/O Profile。
 - 尚未实现上层 MVC、REST、Validation、JSON 和企业级安全集成标准包。

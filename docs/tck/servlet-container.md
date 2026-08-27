@@ -119,7 +119,21 @@ func TestSecurity(t *testing.T) {
 
 Security 测试覆盖 Basic 认证、Realm、角色映射、方法级约束和 run-as 作用域恢复。
 
-## 8. 静态资源与 HTTP 容器入口
+## 8. Native I/O Profile
+
+实现 Native I/O Profile 后，应接入：
+
+```go
+func TestNativeIO(t *testing.T) {
+	tck.RunNativeIO(t, func() nativeio.Sender {
+		return mycontainer.NativeSender()
+	})
+}
+```
+
+该测试覆盖文件区段发送、非法区段拒绝和上下文取消。容器可以用 sendfile、splice、io_uring、kqueue 或系统特定机制优化，但必须保留可预测的 Go 错误语义。
+
+## 9. 静态资源与 HTTP 容器入口
 
 静态资源 default servlet 应通过：
 
@@ -141,7 +155,7 @@ func TestHTTPContainer(t *testing.T) {
 }
 ```
 
-## 9. 推荐门禁
+## 10. 推荐门禁
 
 容器仓库发布前至少运行：
 

@@ -1,13 +1,16 @@
 package nethttp
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	servletcontainer "goark.dev/arkarta/servlet/container"
+	"goark.dev/arkarta/servlet/nativeio"
 
 	"goark.dev/arkarta/servlet"
 )
@@ -105,6 +108,9 @@ func TestContainerMetadataUsesReleaseVersion(t *testing.T) {
 	if !metadata.Supports(servletcontainer.ProfileCore) {
 		t.Fatal("metadata must support core profile")
 	}
+	if !metadata.Supports(servletcontainer.ProfileNativeIO) {
+		t.Fatal("metadata must support native I/O profile")
+	}
 }
 
 func TestContainerRejectsUnsupportedProfile(t *testing.T) {
@@ -127,6 +133,24 @@ func TestContainerRejectsUnsupportedProfile(t *testing.T) {
 	_, err = NewContainer().Deploy(context.Background(), deployment)
 	if !errors.Is(err, ErrUnsupportedProfile) {
 		t.Fatalf("Deploy err = %v, want ErrUnsupportedProfile", err)
+	}
+}
+
+func TestContainerExposesNativeSender(t *testing.T) {
+	t.Parallel()
+
+	sender := NewContainer().NativeSender()
+	region, err := nativeio.NewFileRegion(strings.NewReader("abcdef"), 1, 3)
+	if err != nil {
+		t.Fatalf("NewFileRegion failed: %v", err)
+	}
+	var dst bytes.Buffer
+	result, err := sender.SendFile(context.Background(), &dst, region)
+	if err != nil {
+		t.Fatalf("SendFile failed: %v", err)
+	}
+	if dst.String() != "bcd" || result.Bytes() != 3 {
+		t.Fatalf("native sender body/result = %q/%d, want bcd/3", dst.String(), result.Bytes())
 	}
 }
 

@@ -136,6 +136,7 @@ arkarta/servlet/multipart       可选上传 Profile
 arkarta/servlet/async           可选异步与流式响应 Profile
 arkarta/servlet/upgrade         可选协议升级 Profile
 arkarta/servlet/security        可选声明式安全 Profile
+arkarta/servlet/nativeio        可选 Native I/O Profile
 arkarta/websocket               WebSocket 独立标准包
 ```
 
@@ -522,7 +523,20 @@ type Application interface {
 - `Shutdown` 必须停止接受新连接并等待请求完成。
 - 容器必须暴露自身名称、版本、支持的 Profile 和限制参数。
 
-## 21. Goark 集成边界
+## 21. Native I/O Profile
+
+Native I/O Profile 用于把大文件传输、零拷贝、平台事件循环和背压能力标准化。Arkarta 只定义契约，不要求所有容器使用同一种内核机制。
+
+要求：
+
+- `servlet/nativeio.Sender` 必须按 `FileRegion` 的 offset/count 发送数据。
+- 发送前必须检查 `context.Context`；发送过程中应当尽力响应取消。
+- 发送结果必须返回字节数和实际策略。
+- 跨平台参考实现必须提供 buffered fallback。
+- 容器只有在暴露可用 Sender 并通过 Native I/O TCK 后，才能声明 `ProfileNativeIO`。
+- Linux 容器可以在该契约下接入 `sendfile`、`splice` 或 `io_uring`；BSD/macOS 容器可以接入 `kqueue` 相关能力；Windows 容器可以接入系统支持的文件传输优化。
+
+## 22. Goark 集成边界
 
 Arkarta Servlet 与现有 Goark 模块的关系：
 
@@ -534,7 +548,7 @@ Arkarta Servlet 与现有 Goark 模块的关系：
 
 `servlet` 不直接依赖具体容器，也不强制依赖 `goark-boot`。如果需要接入 Goark core，应通过小型适配包完成，避免标准层被启动框架反向绑定。
 
-## 22. 兼容性测试 TCK
+## 23. 兼容性测试 TCK
 
 任何容器声明兼容 Arkarta Servlet 1.0 前，必须通过对应 Profile 的 TCK。
 
@@ -557,6 +571,7 @@ Core TCK 必须覆盖：
 - Multipart 临时目录、提交文件名归一化、Part 删除和表单清理。
 - Async Await、完成幂等、dispatch 计数、超时事件顺序和 Stream 关闭后写入拒绝。
 - Security Basic 认证、角色映射、方法约束和 run-as 作用域。
+- Native I/O 文件区段发送、非法区段拒绝和上下文取消。
 - 错误页默认映射、错误类型优先级和循环保护。
 - `context.Context` 取消传播。
 - `net/http` 适配一致性。
@@ -565,7 +580,7 @@ Core TCK 必须覆盖：
 
 Profile TCK 按 Profile 独立运行。容器只能声明自己通过的 Profile。
 
-## 23. 版本策略
+## 24. 版本策略
 
 - Arkarta Servlet 1.x 保持源代码兼容，新增能力必须通过可选接口、可选方法包装类型或新包完成。
 - 不修改已发布方法签名。
@@ -573,7 +588,7 @@ Profile TCK 按 Profile 独立运行。容器只能声明自己通过的 Profile
 - 不把可选 Profile 提升为 Core Profile，除非进入新的主版本。
 - 弃用周期至少跨一个次版本。
 
-## 24. 第一阶段交付物
+## 25. 第一阶段交付物
 
 第一阶段交付标准骨架、标准库适配和可复用 Profile 实现，不实现具体 Tomcat/Jetty 容器：
 
@@ -588,11 +603,12 @@ Profile TCK 按 Profile 独立运行。容器只能声明自己通过的 Profile
 9. `async` 包：Async/Stream Profile。
 10. `upgrade` 包：协议升级 Profile。
 11. `security` 包：声明式安全 Profile。
-12. `websocket` 包：WebSocket 独立标准包。
-13. `tck` 包：Core Profile、注册模型、WebApp、静态资源、Session、Multipart、Async、Security 和 HTTP 容器兼容性测试。
-14. README：说明标准定位、版本和容器兼容声明方式。
+12. `nativeio` 包：Native I/O Profile。
+13. `websocket` 包：WebSocket 独立标准包。
+14. `tck` 包：Core Profile、注册模型、WebApp、静态资源、Session、Multipart、Async、Security、Native I/O 和 HTTP 容器兼容性测试。
+15. README：说明标准定位、版本和容器兼容声明方式。
 
-## 25. Servlet 6.1 覆盖矩阵
+## 26. Servlet 6.1 覆盖矩阵
 
 | Jakarta Servlet 6.1 领域 | Arkarta v0.0.1 状态 | 说明 |
 | --- | --- | --- |
@@ -608,10 +624,11 @@ Profile TCK 按 Profile 独立运行。容器只能声明自己通过的 Profile
 | 静态资源与 Welcome file | 已实现 | `servlet/resource` 提供 Provider、`fs.FS` 实现、default servlet、条件 GET、GET/HEAD、If-Range、弱 ETag 保护、多 Range 和 welcome file |
 | Async/Stream | 已实现 | `servlet/async` 提供显式完成、Await、完成状态、dispatch 计数、超时、错误事件、ASYNC dispatch 和流式写入 |
 | Upgrade/WebSocket | 已实现 | `servlet/upgrade` 提供连接交接契约和 `net/http` hijack 适配；`websocket` 提供独立标准包 |
+| Native I/O | 已实现 | `servlet/nativeio` 提供文件区段发送契约、能力声明、发送策略、跨平台参考实现和 TCK |
 | Security 声明式模型 | 已实现 | `servlet/security` 提供 Principal、Basic 认证、Realm、角色约束、方法约束、run-as、传输保障和安全 Filter；企业认证集成由 `goark-security` 承载 |
 | Locale | 已实现基础 | 请求 Accept-Language 解析与响应 Content-Language 设置；i18n 资源解析由后续上层模块补充 |
 
-## 26. 暂不解决的问题
+## 27. 暂不解决的问题
 
 - 是否提供 XML 描述符迁移工具。
 - 与未来 `goark.dev/arkarta/web` 路由和 MVC 参数绑定的边界。

@@ -9,6 +9,7 @@ import (
 
 	"goark.dev/arkarta/servlet"
 	servletcontainer "goark.dev/arkarta/servlet/container"
+	"goark.dev/arkarta/servlet/nativeio"
 )
 
 const (
@@ -19,6 +20,7 @@ const (
 // Container 是基于标准库 net/http 的 Arkarta Servlet 参考容器。
 type Container struct {
 	metadata servletcontainer.Metadata
+	sender   nativeio.Sender
 
 	mu           sync.RWMutex
 	applications []servletcontainer.Application
@@ -32,15 +34,24 @@ func NewContainer() *Container {
 		metadata: servletcontainer.NewMetadata(
 			containerName,
 			containerVersion,
-			[]servletcontainer.Profile{servletcontainer.ProfileCore},
+			[]servletcontainer.Profile{servletcontainer.ProfileCore, servletcontainer.ProfileNativeIO},
 			map[string]string{"transport": "net/http"},
 		),
+		sender: nativeio.NewStandardSender(),
 	}
 }
 
 // Metadata 返回容器元数据。
 func (c *Container) Metadata() servletcontainer.Metadata {
 	return c.metadata
+}
+
+// NativeSender 返回参考容器的 Native I/O 文件发送器。
+func (c *Container) NativeSender() nativeio.Sender {
+	if c == nil || c.sender == nil {
+		return nativeio.NewStandardSender()
+	}
+	return c.sender
 }
 
 // Deploy 部署 Web 应用。

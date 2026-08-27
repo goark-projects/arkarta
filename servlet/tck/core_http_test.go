@@ -7,6 +7,7 @@ import (
 	"goark.dev/arkarta/servlet"
 	servletcontainer "goark.dev/arkarta/servlet/container"
 	"goark.dev/arkarta/servlet/multipart"
+	"goark.dev/arkarta/servlet/nativeio"
 	"goark.dev/arkarta/servlet/nethttp"
 	"goark.dev/arkarta/servlet/session"
 	"goark.dev/arkarta/servlet/tck"
@@ -83,5 +84,11 @@ func TestRunStaticResourcesWithNetHTTPAdapter(t *testing.T) {
 func TestRunHTTPContainerWithNetHTTPContainer(t *testing.T) {
 	tck.RunHTTPContainer(t, func() tck.HTTPContainer {
 		return nethttp.NewContainer()
+	})
+}
+
+func TestRunNativeIOWithStandardSender(t *testing.T) {
+	tck.RunNativeIO(t, func() nativeio.Sender {
+		return nativeio.NewStandardSender()
 	})
 }
