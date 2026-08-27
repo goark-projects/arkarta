@@ -38,6 +38,7 @@ Goark Enterprise Web
 ├── goark.dev/arkarta/websocket/servlet    WebSocket 与 Servlet Upgrade 适配
 ├── goark.dev/arkarta/json                 JSON-B / JSON-P 风格绑定与流式处理
 ├── goark.dev/arkarta/json/sonic           sonic 高性能 JSON 实现
+├── goark.dev/arkarta/web/tck              Web/JSON/Validation 组合 TCK
 ├── goark.dev/boot                         自动装配、配置绑定、容器选择
 └── 容器实现                         Goark Tomcat、Goark Jetty、net/http 容器、原生高性能容器
 ```
@@ -136,6 +137,7 @@ Servlet Upgrade Profile 只定义升级入口和连接所有权转移；WebSocke
 7. JSON 标准端口、`encoding/json` 默认实现和 `json/sonic` 高性能实现。
 8. Validation 结构体标签约束、嵌套校验、自定义约束和统一错误聚合。
 9. Web 方法路由、路径变量、JSON 绑定、Validation 集成、统一 Result、错误映射和拦截器链。
-10. TCK 风格兼容性测试。
+10. Web/JSON/Validation 组合 TCK。
+11. TCK 风格兼容性测试。
 
 Controller 方法绑定、响应建议器、表单/Multipart 绑定、流式响应和企业级安全集成先保留为接口路线，不在第一阶段混入实现。

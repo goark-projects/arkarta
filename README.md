@@ -27,6 +27,7 @@ Arkarta 是 Goark 的企业开发标准模块。它参考 Jakarta EE / Java EE �
 - `json`：JSON-B / JSON-P 风格标准入口，提供 `encoding/json` 默认实现和 `json/sonic` 高性能实现。
 - `validation`：Jakarta Validation 风格的 Go 化校验入口，提供结构体标签约束、嵌套对象校验、错误聚合和自定义约束扩展点。
 - `web`：MVC/REST 组合层第一版，提供方法路由、路径变量、请求绑定、统一 Result、错误响应映射和拦截器链。
+- `web/tck`：Web、JSON、Validation 组合兼容性测试工具。
 
 `v0.0.1` 不包含：
 
@@ -61,6 +62,7 @@ json               JSON 标准接口与 encoding/json 实现
 json/sonic         sonic 高性能 JSON 实现
 validation         结构体参数校验标准
 web                MVC/REST 组合层标准
+web/tck            Web/JSON/Validation 兼容性测试工具
 ```
 
 ## 验证
