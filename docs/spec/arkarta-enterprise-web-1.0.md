@@ -34,7 +34,8 @@ Goark Enterprise Web
 ├── goark.dev/arkarta/web                  MVC、REST、路由、参数绑定、响应编解码
 ├── goark.dev/arkarta/security             认证、授权、Principal、安全过滤器
 ├── goark.dev/arkarta/validation           结构体验证、字段约束、错误聚合
-├── goark.dev/arkarta/websocket            WebSocket 端点、消息编解码、会话管理
+├── goark.dev/arkarta/websocket            WebSocket 握手、端点、消息编解码、会话管理、TCK
+├── goark.dev/arkarta/websocket/servlet    WebSocket 与 Servlet Upgrade 适配
 ├── goark.dev/arkarta/json                 JSON-B / JSON-P 风格绑定与流式处理
 ├── goark.dev/boot                         自动装配、配置绑定、容器选择
 └── 容器实现                         Goark Tomcat、Goark Jetty、net/http 容器、原生高性能容器
@@ -111,12 +112,15 @@ Servlet Core 只处理请求体与响应写出，不绑定 JSON 实现。
 当前 `goark.dev/arkarta/websocket` 已落地第一版基础标准包，负责：
 
 - Endpoint 注册。
+- HTTP Upgrade 握手。
 - 消息编解码。
 - Ping/Pong、关闭码、超时。
 - 会话属性和背压。
 - 连接 SPI 与服务循环。
+- 子协议协商、permessage-deflate 扩展协商和 TCK。
+- Servlet Upgrade 适配包负责握手后 HTTP 101 写出和连接移交。
 
-Servlet Upgrade Profile 只定义升级入口和连接所有权转移；WebSocket 握手、压缩扩展和完整子协议协商由后续容器实现补齐。
+Servlet Upgrade Profile 只定义升级入口和连接所有权转移；WebSocket 标准适配层负责协议握手响应，具体帧读写和高性能网络连接实现由后续容器补齐。
 
 ## 10. 第一阶段实现范围
 
@@ -127,7 +131,7 @@ Servlet Upgrade Profile 只定义升级入口和连接所有权转移；WebSocke
 3. `net/http` 适配和参考容器入口。
 4. 容器 SPI 基础类型。
 5. 动态注册、生命周期、静态资源、Session、Multipart、Async、Upgrade 和 Security Profile。
-6. WebSocket 端点、会话、消息、关闭码、连接 SPI 和 JSON 文本编解码。
+6. WebSocket HTTP 握手、Servlet Upgrade 适配、子协议协商、permessage-deflate 扩展、端点、会话、消息、关闭码、连接 SPI、JSON 文本编解码和 TCK。
 7. TCK 风格兼容性测试。
 
 上层 MVC、REST、Validation、JSON 和企业级安全集成先保留为接口路线，不在第一阶段混入实现。

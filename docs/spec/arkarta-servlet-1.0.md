@@ -3,7 +3,7 @@
 状态：Release Candidate 1
 目标模块：`goark.dev/arkarta/servlet`  
 规范基线：Jakarta Servlet 6.1 正式规范、Jakarta Servlet 6.2 开发中路线、Java Servlet 4.0 / JSR 369 历史语义
-发布日期：2026-08-26
+发布日期：2026-08-27
 
 ## 1. 目标
 
@@ -138,6 +138,7 @@ arkarta/servlet/upgrade         可选协议升级 Profile
 arkarta/servlet/security        可选声明式安全 Profile
 arkarta/servlet/nativeio        可选 Native I/O Profile
 arkarta/websocket               WebSocket 独立标准包
+arkarta/websocket/servlet       WebSocket 与 Servlet Upgrade 适配
 ```
 
 `servlet` 根包只放稳定、小型、应用高频使用的接口和类型。容器 SPI、TCK、Profile 不得反向污染根包。
@@ -486,7 +487,7 @@ Upgrade Profile 用于 WebSocket、CONNECT、HTTP/2 扩展或未来 HTTP/3 能�
 - 升级必须在响应提交前完成。
 - 升级后连接所有权必须从 Servlet 响应模型转交给升级处理器。
 - 容器必须明确连接关闭责任。
-- WebSocket 标准不放在 Servlet Core 中，第一版由根级 `goark.dev/arkarta/websocket` 包承载。
+- WebSocket 标准不放在 Servlet Core 中，第一版由 `goark.dev/arkarta/websocket` 包承载，Servlet 集成由 `goark.dev/arkarta/websocket/servlet` 适配包承载。
 
 ## 20. 容器 SPI
 
@@ -605,8 +606,9 @@ Profile TCK 按 Profile 独立运行。容器只能声明自己通过的 Profile
 11. `security` 包：声明式安全 Profile。
 12. `nativeio` 包：Native I/O Profile。
 13. `websocket` 包：WebSocket 独立标准包。
-14. `tck` 包：Core Profile、注册模型、WebApp、静态资源、Session、Multipart、Async、Security、Native I/O 和 HTTP 容器兼容性测试。
-15. README：说明标准定位、版本和容器兼容声明方式。
+14. `websocket/servlet` 包：WebSocket 与 Servlet Upgrade 适配。
+15. `tck` 包：Core Profile、注册模型、WebApp、静态资源、Session、Multipart、Async、Security、Native I/O 和 HTTP 容器兼容性测试。
+16. README：说明标准定位、版本和容器兼容声明方式。
 
 ## 26. Servlet 6.1 覆盖矩阵
 
@@ -623,7 +625,7 @@ Profile TCK 按 Profile 独立运行。容器只能声明自己通过的 Profile
 | Multipart Profile | 已实现 | 表单、Part API、请求绑定、大小限制、内存阈值、临时目录、文件名归一化、注册元数据 |
 | 静态资源与 Welcome file | 已实现 | `servlet/resource` 提供 Provider、`fs.FS` 实现、default servlet、条件 GET、GET/HEAD、If-Range、弱 ETag 保护、多 Range 和 welcome file |
 | Async/Stream | 已实现 | `servlet/async` 提供显式完成、Await、完成状态、dispatch 计数、超时、错误事件、ASYNC dispatch 和流式写入 |
-| Upgrade/WebSocket | 已实现 | `servlet/upgrade` 提供连接交接契约和 `net/http` hijack 适配；`websocket` 提供独立标准包 |
+| Upgrade/WebSocket | 已实现 | `servlet/upgrade` 提供连接交接契约和 `net/http` hijack 适配；`websocket` 提供 HTTP 握手、子协议协商、permessage-deflate 扩展、Endpoint、连接 SPI 和 TCK；`websocket/servlet` 提供 Servlet Upgrade 适配 |
 | Native I/O | 已实现 | `servlet/nativeio` 提供文件区段发送契约、能力声明、发送策略、跨平台参考实现和 TCK |
 | Security 声明式模型 | 已实现 | `servlet/security` 提供 Principal、Basic 认证、Realm、角色约束、方法约束、run-as、传输保障和安全 Filter；企业认证集成由 `goark-security` 承载 |
 | Locale | 已实现基础 | 请求 Accept-Language 解析与响应 Content-Language 设置；i18n 资源解析由后续上层模块补充 |
@@ -633,4 +635,4 @@ Profile TCK 按 Profile 独立运行。容器只能声明自己通过的 Profile
 - 是否提供 XML 描述符迁移工具。
 - 与未来 `goark.dev/arkarta/web` 路由和 MVC 参数绑定的边界。
 - 分布式 Session passivation/activation 的具体容器实现。
-- WebSocket 容器握手、压缩扩展和子协议协商的完整实现。
+- WebSocket 具体帧读写和高性能网络容器实现。

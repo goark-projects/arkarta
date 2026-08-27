@@ -2,7 +2,7 @@
 
 本项目遵循 Go 模块语义化版本号。`v0.0.x` 表示早期预览版本，公共 API 已按标准化方向设计，但仍允许在 `v0.1.0` 前做必要的源代码不兼容修正。
 
-## [0.0.1] - 2026-08-26
+## [0.0.1] - 2026-08-27
 
 ### Added
 
@@ -20,7 +20,9 @@
 - 新增 `servlet/nativeio` Native I/O Profile，覆盖文件区段发送、能力声明、发送策略和跨平台参考实现。
 - 新增 `servlet/security` 声明式安全 Profile，覆盖 Principal、Basic 认证、Realm、角色约束、方法约束、run-as、传输保障和安全 Filter。
 - 新增 `servlet/tck` 兼容性测试工具，覆盖 Core HTTP、生命周期、分发、错误页、注册元模型、WebApp 上下文能力、静态资源、Session、Multipart、Async、Security、Native I/O 和 HTTP 容器入口。
-- 新增 `websocket` 独立标准包，覆盖端点、会话、消息、关闭原因、连接 SPI、服务循环和 JSON 文本编解码。
+- 新增 `websocket` 独立标准包，覆盖 HTTP 握手、子协议协商、permessage-deflate 扩展、端点、会话、消息、关闭原因、连接 SPI、服务循环和 JSON 文本编解码。
+- 新增 `websocket/servlet` 适配包，覆盖 WebSocket 握手、Servlet Upgrade 连接移交和 HTTP 101 写出。
+- 新增 `websocket/tck` 兼容性测试工具，覆盖 HTTP 握手、子协议顺序、扩展协商、permessage-deflate 往返与限制、HTTP 101 写出和 Endpoint 生命周期。
 - 新增 Arkarta Servlet 与 Enterprise Web 标准草案文档。
 
 ### Hardened

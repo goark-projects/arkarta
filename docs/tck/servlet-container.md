@@ -133,7 +133,21 @@ func TestNativeIO(t *testing.T) {
 
 该测试覆盖文件区段发送、非法区段拒绝和上下文取消。容器可以用 sendfile、splice、io_uring、kqueue 或系统特定机制优化，但必须保留可预测的 Go 错误语义。
 
-## 9. 静态资源与 HTTP 容器入口
+## 9. WebSocket TCK
+
+WebSocket 标准包提供独立 TCK。容器实现 WebSocket 握手或复用 Arkarta 标准握手时，应接入：
+
+```go
+func TestWebSocketHandshake(t *testing.T) {
+	tck.RunHandshake(t, func(options ...websocket.HandshakeOption) *websocket.Handshaker {
+		return websocket.NewHandshaker(options...)
+	})
+}
+```
+
+Endpoint 生命周期和 permessage-deflate 能力应分别通过 `RunEndpointLifecycle` 与 `RunCompression` 验证。Servlet 容器集成应使用 `goark.dev/arkarta/websocket/servlet` 适配包完成 HTTP 101 写出和连接移交。
+
+## 10. 静态资源与 HTTP 容器入口
 
 静态资源 default servlet 应通过：
 
@@ -155,7 +169,7 @@ func TestHTTPContainer(t *testing.T) {
 }
 ```
 
-## 10. 推荐门禁
+## 11. 推荐门禁
 
 容器仓库发布前至少运行：
 

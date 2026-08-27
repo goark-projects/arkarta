@@ -23,7 +23,7 @@ Arkarta 是 Goark 的企业开发标准模块。它参考 Jakarta EE / Java EE �
 - `servlet/nativeio`：Native I/O Profile，定义文件区段发送、能力声明、发送策略和跨平台参考实现。
 - `servlet/security`：声明式安全 Profile，提供 Principal、Basic 认证、Realm、角色约束、方法约束、run-as 和安全 Filter。
 - `servlet/tck`：Core HTTP、生命周期、分发、错误页、注册元模型、WebApp 上下文能力、静态资源、Session、Multipart、Async、Security、Native I/O 和 HTTP 容器入口的兼容性测试。
-- `websocket`：独立 WebSocket 标准包，覆盖端点、会话、消息、关闭原因、连接 SPI、服务循环和 JSON 文本编解码。
+- `websocket`：独立 WebSocket 标准包，覆盖 HTTP 握手、Servlet Upgrade 适配、子协议协商、permessage-deflate 扩展、端点、会话、消息、关闭原因、连接 SPI、服务循环、JSON 文本编解码和 TCK。
 
 `v0.0.1` 不包含：
 
@@ -52,6 +52,8 @@ servlet/session    Session Profile
 servlet/tck        Servlet 兼容性测试工具
 servlet/upgrade    协议升级 Profile
 websocket          WebSocket 标准包
+websocket/servlet  Servlet Upgrade 适配
+websocket/tck      WebSocket 兼容性测试工具
 ```
 
 ## 验证
