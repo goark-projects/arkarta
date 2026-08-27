@@ -24,6 +24,7 @@ Arkarta 是 Goark 的企业开发标准模块。它参考 Jakarta EE / Java EE �
 - `servlet/security`：声明式安全 Profile，提供 Principal、Basic 认证、Realm、角色约束、方法约束、run-as 和安全 Filter。
 - `servlet/tck`：Core HTTP、生命周期、分发、错误页、注册元模型、WebApp 上下文能力、静态资源、Session、Multipart、Async、Security、Native I/O 和 HTTP 容器入口的兼容性测试。
 - `websocket`：独立 WebSocket 标准包，覆盖 HTTP 握手、Servlet Upgrade 适配、子协议协商、permessage-deflate 扩展、端点、会话、消息、关闭原因、连接 SPI、服务循环、JSON 文本编解码和 TCK。
+- `websocket/frame`：RFC 6455 帧层，覆盖帧头读写、Mask、扩展长度、控制帧校验、关闭帧载荷和碎片聚合。
 - `json`：JSON-B / JSON-P 风格标准入口，提供 `encoding/json` 默认实现和 `json/sonic` 高性能实现。
 - `validation`：Jakarta Validation 风格的 Go 化校验入口，提供结构体标签约束、嵌套对象校验、错误聚合和自定义约束扩展点。
 - `web`：MVC/REST 组合层第一版，提供方法路由、路径变量、请求绑定、统一 Result、错误响应映射和拦截器链。
@@ -58,6 +59,7 @@ servlet/upgrade    协议升级 Profile
 websocket          WebSocket 标准包
 websocket/servlet  Servlet Upgrade 适配
 websocket/tck      WebSocket 兼容性测试工具
+websocket/frame    WebSocket RFC 6455 帧层
 json               JSON 标准接口与 encoding/json 实现
 json/sonic         sonic 高性能 JSON 实现
 validation         结构体参数校验标准

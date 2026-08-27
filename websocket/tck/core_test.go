@@ -20,3 +20,7 @@ func TestRunEndpointLifecycle(t *testing.T) {
 func TestRunCompression(t *testing.T) {
 	tck.RunCompression(t, websocket.NewPerMessageDeflate)
 }
+
+func TestRunFrameCodec(t *testing.T) {
+	tck.RunFrameCodec(t)
+}
