@@ -28,6 +28,11 @@ func BinaryMessage(data []byte) Message {
 	return Message{typ: MessageBinary, data: cloneBytes(data)}
 }
 
+// PingMessage 创建 Ping 消息。
+func PingMessage(data []byte) Message {
+	return Message{typ: MessagePing, data: cloneBytes(data)}
+}
+
 // PongMessage 创建 Pong 消息。
 func PongMessage(data []byte) Message {
 	return Message{typ: MessagePong, data: cloneBytes(data)}

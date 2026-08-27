@@ -145,9 +145,39 @@ func TestWebSocketHandshake(t *testing.T) {
 }
 ```
 
-Endpoint 生命周期和 permessage-deflate 能力应分别通过 `RunEndpointLifecycle` 与 `RunCompression` 验证。Servlet 容器集成应使用 `goark.dev/arkarta/websocket/servlet` 适配包完成 HTTP 101 写出和连接移交。
+Endpoint 生命周期、permessage-deflate 能力和 RFC 6455 帧层应分别通过 `RunEndpointLifecycle`、`RunCompression` 与 `RunFrameCodec` 验证。Servlet 容器集成应使用 `goark.dev/arkarta/websocket/servlet` 适配包完成 HTTP 101 写出、帧连接适配和 Endpoint 服务循环。
 
-## 10. 静态资源与 HTTP 容器入口
+```go
+func TestWebSocketFrameCodec(t *testing.T) {
+	tck.RunFrameCodec(t)
+}
+```
+
+## 10. Web、JSON 与 Validation TCK
+
+上层 Web 标准组合应通过 `goark.dev/arkarta/web/tck` 验证：
+
+```go
+package mycontainer_test
+
+import (
+	"net/http"
+	"testing"
+
+	"goark.dev/arkarta/servlet"
+	webtoken "goark.dev/arkarta/web/tck"
+)
+
+func TestWebJSONValidation(t *testing.T) {
+	webtoken.RunJSONValidation(t, func(handler servlet.Handler) http.Handler {
+		return mycontainer.NewHandler(handler)
+	})
+}
+```
+
+该测试覆盖 Web 路由、JSON 绑定、Validation 错误映射、内容协商和 405 Allow 语义。
+
+## 11. 静态资源与 HTTP 容器入口
 
 静态资源 default servlet 应通过：
 
@@ -169,7 +199,7 @@ func TestHTTPContainer(t *testing.T) {
 }
 ```
 
-## 11. 推荐门禁
+## 12. 推荐门禁
 
 容器仓库发布前至少运行：
 

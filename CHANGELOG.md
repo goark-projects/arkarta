@@ -14,6 +14,7 @@
 - 新增 `web/tck` 兼容性测试工具，覆盖 Web 路由、JSON 绑定、Validation 错误映射、内容协商和 405 Allow 语义。
 - 新增 `websocket/frame` RFC 6455 帧层，覆盖帧头读写、Mask 策略、扩展长度、控制帧约束、关闭帧载荷、碎片聚合和 TCK 入口。
 - Servlet Core 补齐请求 Cookie 快照和稳定排序参数名，并加入 Core TCK。
+- 新增 `websocket/servlet.FrameConnection` 与 Endpoint 适配辅助，支持将 Servlet Upgrade 连接转换为标准 WebSocket 消息连接。
 
 ## [0.0.1] - 2026-08-27
 
