@@ -1,6 +1,6 @@
 package websocket
 
-import "encoding/json"
+import arkjson "goark.dev/arkarta/json"
 
 // TextEncoder 将 Go 值编码为 WebSocket 文本消息。
 type TextEncoder[T any] interface {
@@ -22,12 +22,12 @@ type BinaryDecoder[T any] interface {
 	DecodeBinary(data []byte) (T, error)
 }
 
-// JSONTextCodec 使用 encoding/json 编解码文本消息。
+// JSONTextCodec 使用 Arkarta 默认 JSON 编解码器处理文本消息。
 type JSONTextCodec[T any] struct{}
 
 // EncodeText 编码 JSON 文本。
 func (JSONTextCodec[T]) EncodeText(value T) (string, error) {
-	data, err := json.Marshal(value)
+	data, err := arkjson.Marshal(nil, value)
 	if err != nil {
 		return "", err
 	}
@@ -37,6 +37,6 @@ func (JSONTextCodec[T]) EncodeText(value T) (string, error) {
 // DecodeText 解码 JSON 文本。
 func (JSONTextCodec[T]) DecodeText(text string) (T, error) {
 	var value T
-	err := json.Unmarshal([]byte(text), &value)
+	err := arkjson.Unmarshal(nil, []byte(text), &value)
 	return value, err
 }

@@ -6,6 +6,8 @@ import (
 	"io"
 	"reflect"
 	"testing"
+
+	arkjson "goark.dev/arkarta/json"
 )
 
 func TestServeDispatchesEndpointLifecycle(t *testing.T) {
@@ -107,6 +109,9 @@ func TestJSONTextCodec(t *testing.T) {
 	text, err := codec.EncodeText(payload{Name: "arkarta"})
 	if err != nil {
 		t.Fatalf("EncodeText failed: %v", err)
+	}
+	if name := arkjson.DefaultCodec().Name(); name != "sonic" {
+		t.Fatalf("default json codec = %q, want sonic", name)
 	}
 	got, err := codec.DecodeText(text)
 	if err != nil {
