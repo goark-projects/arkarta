@@ -1,7 +1,6 @@
 package tck
 
 import (
-	stdjson "encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -114,7 +113,7 @@ func runFormBinding(t *testing.T, factory HTTPHandlerFactory) {
 		Name  string `json:"name"`
 		Count int    `json:"count"`
 	}
-	if err := stdjson.Unmarshal(recorder.Body.Bytes(), &payload); err != nil {
+	if err := arkjson.Unmarshal(nil, recorder.Body.Bytes(), &payload); err != nil {
 		t.Fatalf("response json invalid: %v", err)
 	}
 	if payload.ID != 42 || payload.Name != "arkarta" || payload.Count != 3 {

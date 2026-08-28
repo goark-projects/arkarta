@@ -1,7 +1,6 @@
 package tck
 
 import (
-	stdjson "encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -172,7 +171,7 @@ func mustHandle(t *testing.T, router *web.Router, method, pattern string, handle
 func decodeBody[T any](t *testing.T, recorder *httptest.ResponseRecorder) T {
 	t.Helper()
 	var payload T
-	if err := stdjson.Unmarshal(recorder.Body.Bytes(), &payload); err != nil {
+	if err := arkjson.Unmarshal(nil, recorder.Body.Bytes(), &payload); err != nil {
 		t.Fatalf("response json invalid: %v, body=%s", err, recorder.Body.String())
 	}
 	return payload

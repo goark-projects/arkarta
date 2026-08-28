@@ -1,7 +1,6 @@
 package web_test
 
 import (
-	"encoding/json"
 	"io"
 	stdmultipart "mime/multipart"
 	"net/http"
@@ -149,7 +148,7 @@ func TestContextBindsFormAndConvertsParameters(t *testing.T) {
 		Count int      `json:"count"`
 		Tags  []string `json:"tags"`
 	}
-	if err := json.Unmarshal(recorder.Body.Bytes(), &payload); err != nil {
+	if err := arkjson.Unmarshal(nil, recorder.Body.Bytes(), &payload); err != nil {
 		t.Fatalf("response json invalid: %v", err)
 	}
 	if payload.ID != 42 || !payload.Trace || payload.Name != "arkarta" || payload.Count != 3 || !reflect.DeepEqual(payload.Tags, []string{"servlet", "web"}) {
@@ -215,7 +214,7 @@ func TestContextBindsMultipartValuesAndParts(t *testing.T) {
 		t.Fatalf("status = %d, want 201, body=%s", recorder.Code, recorder.Body.String())
 	}
 	var payload map[string]any
-	if err := json.Unmarshal(recorder.Body.Bytes(), &payload); err != nil {
+	if err := arkjson.Unmarshal(nil, recorder.Body.Bytes(), &payload); err != nil {
 		t.Fatalf("response json invalid: %v", err)
 	}
 	if payload["title"] != "avatar" || payload["filename"] != "profile.txt" || payload["body"] != "hello" || payload["size"].(float64) != 5 {

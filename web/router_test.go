@@ -1,7 +1,6 @@
 package web_test
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -56,7 +55,7 @@ func TestRouterBindsJSONValidatesAndWritesJSON(t *testing.T) {
 		t.Fatalf("content type = %q, want application/json", got)
 	}
 	var payload map[string]string
-	if err := json.Unmarshal(recorder.Body.Bytes(), &payload); err != nil {
+	if err := arkjson.Unmarshal(nil, recorder.Body.Bytes(), &payload); err != nil {
 		t.Fatalf("response json invalid: %v", err)
 	}
 	want := map[string]string{"id": "42", "name": "arkarta"}
@@ -101,7 +100,7 @@ func TestRouterMapsValidationErrors(t *testing.T) {
 			} `json:"details"`
 		} `json:"error"`
 	}
-	if err := json.Unmarshal(recorder.Body.Bytes(), &payload); err != nil {
+	if err := arkjson.Unmarshal(nil, recorder.Body.Bytes(), &payload); err != nil {
 		t.Fatalf("error response json invalid: %v", err)
 	}
 	if payload.Error.Code != "VALIDATION_ERROR" || len(payload.Error.Details) == 0 {
