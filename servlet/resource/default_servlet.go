@@ -42,6 +42,11 @@ func NewDefaultServlet(provider Provider, options ...DefaultServletOption) (*Def
 	return servlet, nil
 }
 
+// Init 接收容器初始化回调；静态资源 Servlet 无需额外运行时状态。
+func (s *DefaultServlet) Init(ctx context.Context, _ servlet.ServletConfig) error {
+	return ctx.Err()
+}
+
 // Serve 按请求路径写出静态资源。
 func (s *DefaultServlet) Serve(ctx context.Context, req *servlet.Request, res servlet.Response) error {
 	if req == nil {
@@ -89,6 +94,11 @@ func (s *DefaultServlet) openResource(ctx context.Context, path string) (Resourc
 		return s.openWelcome(ctx, path)
 	}
 	return item, err
+}
+
+// Destroy 接收容器销毁回调；静态资源 Servlet 无需释放额外资源。
+func (s *DefaultServlet) Destroy(ctx context.Context) error {
+	return ctx.Err()
 }
 
 func writeResourceHeaders(res servlet.Response, item Resource) {

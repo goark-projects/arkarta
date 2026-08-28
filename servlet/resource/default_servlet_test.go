@@ -15,6 +15,8 @@ import (
 	"goark.dev/arkarta/servlet/nethttp"
 )
 
+var _ servlet.Servlet = (*DefaultServlet)(nil)
+
 func TestDefaultServletServesGETAndHEAD(t *testing.T) {
 	t.Parallel()
 
