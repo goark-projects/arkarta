@@ -2,19 +2,19 @@ package json
 
 import (
 	"bytes"
-	stdjson "encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 )
 
-func TestStandardCodecMarshalAndUnmarshal(t *testing.T) {
+func TestNewCodecUsesSonicOptions(t *testing.T) {
 	t.Parallel()
 
 	type payload struct {
 		Name string `json:"name"`
 	}
-	codec := NewStandardCodec(WithEscapeHTML(false))
+	codec := NewCodec(WithEscapeHTML(false), WithSortMapKeys(true))
 	data, err := codec.Marshal(payload{Name: "<arkarta>"})
 	if err != nil {
 		t.Fatalf("Marshal failed: %v", err)
@@ -31,31 +31,34 @@ func TestStandardCodecMarshalAndUnmarshal(t *testing.T) {
 	}
 }
 
-func TestStandardCodecOptions(t *testing.T) {
+func TestNewCodecDecodeOptions(t *testing.T) {
 	t.Parallel()
 
 	var value map[string]any
-	codec := NewStandardCodec(WithUseNumber(true), WithMaxBytes(128))
+	codec := NewCodec(WithUseNumber(true), WithMaxBytes(128))
 	if err := codec.Unmarshal([]byte(`{"id":9223372036854775807}`), &value); err != nil {
 		t.Fatalf("Unmarshal failed: %v", err)
 	}
-	if _, ok := value["id"].(stdjson.Number); !ok {
-		t.Fatalf("id type = %T, want json.Number", value["id"])
+	if _, ok := value["id"].(float64); ok {
+		t.Fatalf("id type = %T, want precision-preserving number", value["id"])
+	}
+	if got := fmt.Sprint(value["id"]); got != "9223372036854775807" {
+		t.Fatalf("id = %s, want full precision", got)
 	}
 
 	var target struct {
 		Name string `json:"name"`
 	}
-	err := NewStandardCodec(WithDisallowUnknownFields(true)).Unmarshal([]byte(`{"name":"a","extra":1}`), &target)
-	if err == nil || !strings.Contains(err.Error(), "unknown field") {
+	err := NewCodec(WithDisallowUnknownFields(true)).Unmarshal([]byte(`{"name":"a","extra":1}`), &target)
+	if err == nil || !strings.Contains(strings.ToLower(err.Error()), "unknown") {
 		t.Fatalf("unknown field err = %v", err)
 	}
 }
 
-func TestStandardCodecLimitAndNilGuards(t *testing.T) {
+func TestNewCodecLimitAndNilGuards(t *testing.T) {
 	t.Parallel()
 
-	codec := NewStandardCodec(WithMaxBytes(4))
+	codec := NewCodec(WithMaxBytes(4))
 	var target map[string]any
 	if err := codec.Unmarshal([]byte(`{"name":"arkarta"}`), &target); !errors.Is(err, ErrPayloadTooLarge) {
 		t.Fatalf("large payload err = %v, want ErrPayloadTooLarge", err)

@@ -82,15 +82,14 @@ Controller 方法发现和生成注册属于 Goark 工具，不属于标准运�
 `goark.dev/arkarta/json` 定义参考 JSON-B / JSON-P 的 Codec 契约：
 
 - `Codec`、`Encoder`、`Decoder` 接口。
-- bytedance sonic 默认实现。
-- `encoding/json` 兼容实现。
+- bytedance sonic 唯一内置实现。
 - 流式编码/解码。
 - 输入大小限制。
 - 未知字段拒绝。
 - 数字精度模式。
 - HTML 转义和缩进控制。
 
-`goark.dev/arkarta/json/sonic` 是 sonic 兼容入口。`goark.dev/arkarta/json/tck` 用于验证 Codec 兼容性。
+`goark.dev/arkarta/json/sonic` 是 sonic 兼容入口。`goark.dev/arkarta/json/tck` 用于验证 sonic 兼容 Codec 行为。
 
 ## 7. Validation 职责
 

@@ -2,7 +2,6 @@ package tck
 
 import (
 	"bytes"
-	stdjson "encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -116,8 +115,11 @@ func runDecodeOptions(t *testing.T, factory CodecFactory) {
 	if err := codec.Unmarshal([]byte(`{"id":9223372036854775807}`), &numberPayload); err != nil {
 		t.Fatalf("UseNumber Unmarshal failed: %v", err)
 	}
-	if _, ok := numberPayload["id"].(stdjson.Number); !ok {
-		t.Fatalf("id type = %T, want json.Number", numberPayload["id"])
+	if _, ok := numberPayload["id"].(float64); ok {
+		t.Fatalf("id type = %T, want precision-preserving number", numberPayload["id"])
+	}
+	if got := fmt.Sprint(numberPayload["id"]); got != "9223372036854775807" {
+		t.Fatalf("id = %s, want full precision", got)
 	}
 }
 

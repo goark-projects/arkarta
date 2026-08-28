@@ -82,15 +82,14 @@ Controller method discovery and generated registration belong to Goark tooling, 
 `goark.dev/arkarta/json` defines a codec contract inspired by JSON-B and JSON-P:
 
 - `Codec`, `Encoder`, and `Decoder` interfaces.
-- bytedance sonic default implementation.
-- `encoding/json` compatibility implementation.
+- bytedance sonic as the only built-in implementation.
 - Streaming encode/decode.
 - Input size limit.
 - Unknown-field rejection.
 - Number precision mode.
 - HTML escaping and indentation controls.
 
-`goark.dev/arkarta/json/sonic` is the sonic compatibility entrypoint. `goark.dev/arkarta/json/tck` verifies codec compatibility.
+`goark.dev/arkarta/json/sonic` is the sonic compatibility entrypoint. `goark.dev/arkarta/json/tck` verifies sonic-compatible codec behavior.
 
 ## 7. Validation Responsibility
 

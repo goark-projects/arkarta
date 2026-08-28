@@ -20,7 +20,7 @@ func TestRouterBindsJSONValidatesAndWritesJSON(t *testing.T) {
 		Name string `json:"name" arkarta:"required,min=2"`
 	}
 	router := web.NewRouter(
-		web.WithJSONCodec(arkjson.NewStandardCodec(arkjson.WithDisallowUnknownFields(true))),
+		web.WithJSONCodec(arkjson.NewCodec(arkjson.WithDisallowUnknownFields(true))),
 		web.WithValidator(validation.NewValidator()),
 	)
 	if err := router.Handle(http.MethodPost, "/users/{id}", web.HandlerFunc(func(ctx *web.Context) (web.Result, error) {

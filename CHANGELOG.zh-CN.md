@@ -10,7 +10,7 @@
 
 ### 变更
 
-- 将默认 `json.Codec` 实现切换为 bytedance sonic，同时保留 `encoding/json` Codec 作为显式兼容实现。
+- 移除内置 `encoding/json` Codec，并将 bytedance sonic 作为 Arkarta JSON 唯一实现。
 
 ## [0.0.1] - 2026-08-27
 
@@ -34,9 +34,9 @@
 - 新增 `websocket/frame` RFC 6455 帧层，覆盖 Mask、扩展长度、控制帧校验、关闭帧载荷和碎片聚合。
 - 新增 `websocket/servlet` 集成，覆盖 Servlet Upgrade、HTTP 101 写出、帧连接适配和 Endpoint 服务辅助。
 - 新增 `websocket/tck` 兼容性测试，覆盖握手、端点生命周期、压缩和帧编解码。
-- 新增 `json` 标准包，提供 `encoding/json` 默认 Codec、流式 Encoder/Decoder、输入大小限制、未知字段控制、数字精度模式和包级辅助函数。
+- 新增 `json` 标准包，提供 bytedance sonic Codec、流式 Encoder/Decoder、输入大小限制、未知字段控制、数字精度模式和包级辅助函数。
 - 新增 `json/sonic` 高性能 Codec 实现，基于 `github.com/bytedance/sonic`。
-- 新增 `json/tck` Codec 兼容性测试，供标准实现和 sonic 实现共用。
+- 新增 `json/tck` Codec 兼容性测试，供 sonic 兼容实现使用。
 - 新增 `validation` 标准包，覆盖结构体标签约束、嵌套校验、校验分组、消息解析器、对象级约束、内置约束、自定义约束和聚合错误。
 - 新增 `web` MVC/REST 组合层，覆盖方法路由、路由分组、自动 HEAD/OPTIONS、路径/查询/Form/Multipart 绑定、参数转换、统一 Result、响应增强、错误映射和拦截器。
 - 新增 `web/tck` 兼容性测试，覆盖 Web 路由、JSON 绑定、Validation 映射、内容协商、自动方法语义和表单绑定。

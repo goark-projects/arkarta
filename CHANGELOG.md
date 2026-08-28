@@ -10,7 +10,7 @@ Release notes: [v0.0.1](docs/releases/v0.0.1.md)
 
 ### Changed
 
-- Changed the default `json.Codec` implementation to bytedance sonic while keeping the `encoding/json` codec available as an explicit compatibility implementation.
+- Removed the built-in `encoding/json` codec and made bytedance sonic the single Arkarta JSON implementation.
 
 ## [0.0.1] - 2026-08-27
 
@@ -34,9 +34,9 @@ Release notes: [v0.0.1](docs/releases/v0.0.1.md)
 - Added `websocket/frame` RFC 6455 frame layer with masking, extended lengths, control-frame validation, close payload handling, and fragmentation assembly.
 - Added `websocket/servlet` integration for Servlet Upgrade, HTTP 101 response writing, frame connection adaptation, and endpoint service helper.
 - Added `websocket/tck` compatibility tests for handshake, endpoint lifecycle, compression, and frame codec.
-- Added `json` standard package with `encoding/json` default codec, streaming encoder/decoder, max input size, unknown-field gate, number precision mode, and package helpers.
+- Added `json` standard package with bytedance sonic codec, streaming encoder/decoder, max input size, unknown-field gate, number precision mode, and package helpers.
 - Added `json/sonic` high-performance codec implementation based on `github.com/bytedance/sonic`.
-- Added `json/tck` codec compatibility tests shared by the standard and sonic implementations.
+- Added `json/tck` codec compatibility tests for sonic-compatible implementations.
 - Added `validation` standard package with struct-tag constraints, nested validation, validation groups, message resolver, object constraints, built-in constraints, custom constraints, and aggregated validation errors.
 - Added `web` MVC/REST composition layer with method routing, route groups, automatic HEAD/OPTIONS, path/query/form/multipart binding, parameter conversion helpers, unified results, response advice, error mapping, and interceptors.
 - Added `web/tck` compatibility tests for Web routing, JSON binding, Validation mapping, content negotiation, automatic method semantics, and form binding.

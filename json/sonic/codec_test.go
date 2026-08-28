@@ -2,8 +2,8 @@ package sonic
 
 import (
 	"bytes"
-	stdjson "encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -41,8 +41,11 @@ func TestCodecOptions(t *testing.T) {
 	if err := codec.Unmarshal([]byte(`{"id":9223372036854775807}`), &value); err != nil {
 		t.Fatalf("Unmarshal failed: %v", err)
 	}
-	if _, ok := value["id"].(stdjson.Number); !ok {
-		t.Fatalf("id type = %T, want json.Number", value["id"])
+	if _, ok := value["id"].(float64); ok {
+		t.Fatalf("id type = %T, want precision-preserving number", value["id"])
+	}
+	if got := fmt.Sprint(value["id"]); got != "9223372036854775807" {
+		t.Fatalf("id = %s, want full precision", got)
 	}
 
 	var target struct {

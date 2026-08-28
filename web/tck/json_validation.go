@@ -41,7 +41,7 @@ func runBindValidateAndWriteJSON(t *testing.T, factory HTTPHandlerFactory) {
 		Name string `json:"name" arkarta:"required,min=2"`
 	}
 	router := web.NewRouter(
-		web.WithJSONCodec(arkjson.NewStandardCodec(arkjson.WithDisallowUnknownFields(true))),
+		web.WithJSONCodec(arkjson.NewCodec(arkjson.WithDisallowUnknownFields(true))),
 		web.WithValidator(validation.NewValidator()),
 	)
 	mustHandle(t, router, http.MethodPost, "/accounts/{id}", web.HandlerFunc(func(ctx *web.Context) (web.Result, error) {
