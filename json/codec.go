@@ -29,9 +29,9 @@ type Decoder interface {
 	Decode(target any) error
 }
 
-// DefaultCodec 返回基于标准库 encoding/json 的默认实现。
+// DefaultCodec 返回基于 bytedance sonic 的默认实现。
 func DefaultCodec() Codec {
-	return NewStandardCodec()
+	return NewSonicCodec()
 }
 
 // Marshal 使用指定 Codec 编码 JSON。

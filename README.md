@@ -44,8 +44,8 @@ go vet ./...
 | `websocket/frame` | RFC 6455 frame reader/writer, masking, extended lengths, control-frame validation, close payloads, and fragmentation assembler. |
 | `websocket/servlet` | Servlet Upgrade adapter, HTTP 101 response writer, frame connection adapter, and endpoint service helper. |
 | `websocket/tck` | WebSocket compatibility tests for handshake, endpoint lifecycle, compression, and frame codec. |
-| `json` | JSON codec standard with `encoding/json` default implementation, streaming APIs, payload size limits, unknown-field gate, and number precision mode. |
-| `json/sonic` | Sonic-based high-performance JSON implementation that follows the Arkarta JSON contract. |
+| `json` | JSON codec standard with bytedance sonic as the default implementation, `encoding/json` compatibility, streaming APIs, payload size limits, unknown-field gate, and number precision mode. |
+| `json/sonic` | Sonic compatibility package that follows the Arkarta JSON contract. |
 | `json/tck` | JSON codec compatibility tests for standard and alternative implementations. |
 | `validation` | Go-native validation standard with struct tags, groups, message resolver, object constraints, nested validation, built-in constraints, and custom constraints. |
 | `web` | MVC/REST composition layer with method routing, route groups, automatic HEAD/OPTIONS, path/query/form/multipart binding, response results, response advice, error mapping, and interceptors. |

@@ -44,8 +44,8 @@ go vet ./...
 | `websocket/frame` | RFC 6455 帧读写、Mask、扩展长度、控制帧校验、关闭帧载荷和碎片聚合。 |
 | `websocket/servlet` | Servlet Upgrade 适配、HTTP 101 写出、帧连接适配和 Endpoint 服务辅助。 |
 | `websocket/tck` | WebSocket 握手、端点生命周期、压缩和帧层兼容性测试。 |
-| `json` | JSON Codec 标准，提供 `encoding/json` 默认实现、流式 API、大小限制、未知字段控制和数字精度模式。 |
-| `json/sonic` | 基于 sonic 的高性能 JSON 实现，并遵守 Arkarta JSON 契约。 |
+| `json` | JSON Codec 标准，默认实现采用 bytedance sonic，同时保留 `encoding/json` 兼容实现、流式 API、大小限制、未知字段控制和数字精度模式。 |
+| `json/sonic` | sonic 兼容入口，并遵守 Arkarta JSON 契约。 |
 | `json/tck` | JSON Codec 兼容性测试。 |
 | `validation` | Go 化 Validation 标准，覆盖结构体标签、分组、消息解析、对象级约束、嵌套校验、内置约束和自定义约束。 |
 | `web` | MVC/REST 组合层，覆盖方法路由、路由分组、自动 HEAD/OPTIONS、路径/查询/Form/Multipart 绑定、响应结果、响应增强、错误映射和拦截器。 |

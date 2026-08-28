@@ -6,6 +6,12 @@ This project follows Go module semantic versioning. `v0.0.x` releases are early 
 
 Release notes: [v0.0.1](docs/releases/v0.0.1.md)
 
+## [Unreleased]
+
+### Changed
+
+- Changed the default `json.Codec` implementation to bytedance sonic while keeping the `encoding/json` codec available as an explicit compatibility implementation.
+
 ## [0.0.1] - 2026-08-27
 
 ### Added

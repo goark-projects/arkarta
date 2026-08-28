@@ -6,6 +6,12 @@
 
 发版说明：[v0.0.1](docs/releases/v0.0.1.zh-CN.md)
 
+## [未发布]
+
+### 变更
+
+- 将默认 `json.Codec` 实现切换为 bytedance sonic，同时保留 `encoding/json` Codec 作为显式兼容实现。
+
 ## [0.0.1] - 2026-08-27
 
 ### 新增

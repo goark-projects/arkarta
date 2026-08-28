@@ -32,8 +32,8 @@ The reference model is the Java enterprise standard family: Jakarta Servlet, Jak
 goark.dev/arkarta/servlet              Servlet Core and container contracts
 goark.dev/arkarta/servlet/*            Servlet profiles and adapters
 goark.dev/arkarta/web                  MVC/REST composition layer
-goark.dev/arkarta/json                 JSON codec standard and encoding/json implementation
-goark.dev/arkarta/json/sonic           Sonic JSON implementation
+goark.dev/arkarta/json                 JSON codec standard and default sonic implementation
+goark.dev/arkarta/json/sonic           Sonic compatibility package
 goark.dev/arkarta/validation           Validation standard
 goark.dev/arkarta/websocket            WebSocket standard
 goark.dev/arkarta/websocket/frame      RFC 6455 frame layer
@@ -82,14 +82,15 @@ Controller method discovery and generated registration belong to Goark tooling, 
 `goark.dev/arkarta/json` defines a codec contract inspired by JSON-B and JSON-P:
 
 - `Codec`, `Encoder`, and `Decoder` interfaces.
-- `encoding/json` default implementation.
+- bytedance sonic default implementation.
+- `encoding/json` compatibility implementation.
 - Streaming encode/decode.
 - Input size limit.
 - Unknown-field rejection.
 - Number precision mode.
 - HTML escaping and indentation controls.
 
-`goark.dev/arkarta/json/sonic` is the standard high-performance implementation. `goark.dev/arkarta/json/tck` verifies codec compatibility.
+`goark.dev/arkarta/json/sonic` is the sonic compatibility entrypoint. `goark.dev/arkarta/json/tck` verifies codec compatibility.
 
 ## 7. Validation Responsibility
 
