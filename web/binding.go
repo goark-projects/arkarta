@@ -40,12 +40,39 @@ func (c *Context) Validate(target any) (validation.Result, error) {
 	return c.Validator().Validate(c.Context(), target)
 }
 
+// ValidateGroups 使用当前校验器按显式分组校验目标对象。
+func (c *Context) ValidateGroups(target any, groups ...string) (validation.Result, error) {
+	if c == nil {
+		return validation.Result{}, ErrNilContext
+	}
+	if len(groups) == 0 {
+		return c.Validate(target)
+	}
+	groupValidator, ok := c.Validator().(validation.GroupValidator)
+	if !ok {
+		return validation.Result{}, validation.ErrUnsupportedGroups
+	}
+	return groupValidator.ValidateGroups(c.Context(), target, groups...)
+}
+
 // BindAndValidateJSON 先绑定 JSON 请求体，再执行结构体验证。
 func (c *Context) BindAndValidateJSON(target any) error {
 	if err := c.BindJSON(target); err != nil {
 		return err
 	}
 	result, err := c.Validate(target)
+	if err != nil {
+		return err
+	}
+	return result.Error()
+}
+
+// BindAndValidateJSONGroups 先绑定 JSON 请求体，再按显式分组执行结构体验证。
+func (c *Context) BindAndValidateJSONGroups(target any, groups ...string) error {
+	if err := c.BindJSON(target); err != nil {
+		return err
+	}
+	result, err := c.ValidateGroups(target, groups...)
 	if err != nil {
 		return err
 	}

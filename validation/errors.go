@@ -13,3 +13,6 @@ var ErrInvalidRule = errors.New("arkarta/validation: invalid rule")
 
 // ErrUnsupportedValue 表示校验目标类型不受支持。
 var ErrUnsupportedValue = errors.New("arkarta/validation: unsupported value")
+
+// ErrUnsupportedGroups 表示当前校验器不支持显式校验分组。
+var ErrUnsupportedGroups = errors.New("arkarta/validation: groups are not supported")
