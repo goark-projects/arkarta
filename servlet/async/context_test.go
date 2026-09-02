@@ -96,6 +96,40 @@ func TestContextTimeoutCompletes(t *testing.T) {
 	}
 }
 
+func TestContextAwaitQuiescenceWaitsForTimedOutWorker(t *testing.T) {
+	req, err := servlet.NewRequest(httptest.NewRequest(http.MethodGet, "/slow", nil))
+	if err != nil {
+		t.Fatalf("NewRequest failed: %v", err)
+	}
+	async, err := NewContext(context.Background(), req, newAsyncResponse(), WithTimeout(time.Millisecond))
+	if err != nil {
+		t.Fatalf("NewContext failed: %v", err)
+	}
+
+	started := make(chan struct{})
+	release := make(chan struct{})
+	async.Go(func(context.Context) error {
+		close(started)
+		<-release
+		return nil
+	})
+	<-started
+
+	if err := async.Await(context.Background()); !errors.Is(err, ErrTimeout) {
+		t.Fatalf("Await err = %v, want ErrTimeout", err)
+	}
+	waitCtx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel()
+	if err := async.AwaitQuiescence(waitCtx); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("AwaitQuiescence err = %v, want context deadline exceeded", err)
+	}
+
+	close(release)
+	if err := async.AwaitQuiescence(context.Background()); err != nil {
+		t.Fatalf("AwaitQuiescence failed: %v", err)
+	}
+}
+
 func TestContextCompleteIsIdempotentAndAwaitReturnsError(t *testing.T) {
 	t.Parallel()
 

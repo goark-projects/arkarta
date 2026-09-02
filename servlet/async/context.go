@@ -39,12 +39,14 @@ type Context struct {
 	timeout   time.Duration
 	timer     *time.Timer
 	done      chan struct{}
+	quiescent chan struct{}
 	listeners []Listener
 
 	mu         sync.RWMutex
 	completed  bool
 	err        error
 	dispatches int
+	workers    int
 }
 
 // NewContext 创建异步上下文。
@@ -59,12 +61,15 @@ func NewContext(parent context.Context, req *servlet.Request, res servlet.Respon
 		return nil, ErrNilResponse
 	}
 	ctx, cancel := context.WithCancel(parent)
+	quiescent := make(chan struct{})
+	close(quiescent)
 	async := &Context{
-		ctx:    ctx,
-		cancel: cancel,
-		req:    req,
-		res:    res,
-		done:   make(chan struct{}),
+		ctx:       ctx,
+		cancel:    cancel,
+		req:       req,
+		res:       res,
+		done:      make(chan struct{}),
+		quiescent: quiescent,
 	}
 	for _, option := range options {
 		if option != nil {
@@ -88,14 +93,30 @@ func NewContext(parent context.Context, req *servlet.Request, res servlet.Respon
 }
 
 // Go 在独立 goroutine 中执行任务并在结束时完成异步上下文。
-func (a *Context) Go(fn func(context.Context) error) {
+func (a *Context) Go(fn func(context.Context) error) error {
+	if a == nil {
+		return ErrCompleted
+	}
+	a.mu.Lock()
+	if a.completed {
+		a.mu.Unlock()
+		return ErrCompleted
+	}
+	if a.workers == 0 {
+		a.quiescent = make(chan struct{})
+	}
+	a.workers++
+	a.mu.Unlock()
+
 	go func() {
+		defer a.workerDone()
 		var err error
 		if fn != nil {
 			err = fn(a.Context())
 		}
 		_ = a.Complete(err)
 	}()
+	return nil
 }
 
 // Dispatch 以 ASYNC 分发类型执行处理器。
@@ -131,6 +152,25 @@ func (a *Context) Await(ctx context.Context) error {
 	select {
 	case <-a.done:
 		return a.Err()
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+// AwaitQuiescence 等待已登记的异步任务全部退出。
+func (a *Context) AwaitQuiescence(ctx context.Context) error {
+	if a == nil {
+		return nil
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	a.mu.RLock()
+	quiescent := a.quiescent
+	a.mu.RUnlock()
+	select {
+	case <-quiescent:
+		return nil
 	case <-ctx.Done():
 		return ctx.Err()
 	}
@@ -228,6 +268,15 @@ func (a *Context) markDispatch() error {
 	}
 	a.dispatches++
 	return nil
+}
+
+func (a *Context) workerDone() {
+	a.mu.Lock()
+	a.workers--
+	if a.workers == 0 {
+		close(a.quiescent)
+	}
+	a.mu.Unlock()
 }
 
 func (a *Context) fireStart() {
