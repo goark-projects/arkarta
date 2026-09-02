@@ -46,6 +46,7 @@ type RequestInput struct {
 	RequestURI    string
 	Path          string
 	QueryString   string
+	ContextPath   string
 	Header        Header
 	Body          io.ReadCloser
 	ContentLength int64
@@ -156,7 +157,8 @@ func NewRequestFromInput(input *RequestInput, options ...RequestOption) (*Reques
 		dispatchType:  DispatchRequest,
 		requestURI:    input.RequestURI,
 		queryString:   input.QueryString,
-		path:          input.Path,
+		contextPath:   normalizeRequestContextPath(input.ContextPath),
+		path:          stripRequestContextPath(input.Path, normalizeRequestContextPath(input.ContextPath)),
 		attribute:     make(map[string]any),
 	}
 	for _, option := range options {

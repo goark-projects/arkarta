@@ -16,9 +16,10 @@ func TestRequestUsesTransportNeutralInput(t *testing.T) {
 		Protocol:      "HTTP/1.1",
 		Scheme:        "https",
 		Host:          "example.test:8443",
-		RequestURI:    "/orders?state=open",
-		Path:          "/orders",
+		RequestURI:    "/app/orders?state=open",
+		Path:          "/app/orders",
 		QueryString:   "state=open",
+		ContextPath:   "/app",
 		Header:        header,
 		Body:          io.NopCloser(strings.NewReader("payload")),
 		ContentLength: 7,
@@ -28,7 +29,7 @@ func TestRequestUsesTransportNeutralInput(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewRequest failed: %v", err)
 	}
-	if req.Method() != "POST" || req.Protocol() != "HTTP/1.1" || req.Path() != "/orders" {
+	if req.Method() != "POST" || req.Protocol() != "HTTP/1.1" || req.Path() != "/orders" || req.ContextPath() != "/app" {
 		t.Fatalf("request metadata = %s/%s/%s", req.Method(), req.Protocol(), req.Path())
 	}
 	if req.Header().Get("Content-Type") != "text/plain" || req.LocalAddr() != "192.0.2.20:8443" {
