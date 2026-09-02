@@ -2,7 +2,6 @@ package servlet
 
 import (
 	"net"
-	"net/http"
 	"strconv"
 	"strings"
 )
@@ -42,11 +41,7 @@ func (r *Request) RemotePort() int {
 
 // LocalAddr 返回当前连接的本地网络地址。
 func (r *Request) LocalAddr() string {
-	addr, ok := r.httpRequest.Context().Value(http.LocalAddrContextKey).(net.Addr)
-	if !ok || addr == nil {
-		return ""
-	}
-	return addr.String()
+	return r.localAddr
 }
 
 // LocalName 返回当前连接的本地主机名或 IP。

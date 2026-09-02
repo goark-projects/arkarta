@@ -13,6 +13,9 @@ import (
 // ErrNilHTTPRequest 表示构造请求时传入了空的标准库请求。
 var ErrNilHTTPRequest = errors.New("arkarta/servlet: http request is nil")
 
+// ErrNilRequestInput 表示容器未提供请求输入。
+var ErrNilRequestInput = errors.New("arkarta/servlet: request input is nil")
+
 // DispatchType 表示请求进入处理链的原因。
 type DispatchType uint8
 
@@ -32,6 +35,26 @@ const (
 // RequestOption 定制 Request 构造行为。
 type RequestOption func(*Request)
 
+// RequestInput 是容器构造 Servlet 请求时提供的传输层中立数据。
+// Header、Body 和 Trailer 的所有权至少持续到请求处理完成。
+type RequestInput struct {
+	Context       context.Context
+	Method        string
+	Protocol      string
+	Scheme        string
+	Host          string
+	RequestURI    string
+	Path          string
+	QueryString   string
+	Header        Header
+	Body          io.ReadCloser
+	ContentLength int64
+	RemoteAddr    string
+	LocalAddr     string
+	Trailer       Header
+	TrailerReady  func() bool
+}
+
 // WithDispatchType 设置请求分发类型。
 func WithDispatchType(dispatchType DispatchType) RequestOption {
 	return func(req *Request) {
@@ -48,16 +71,28 @@ func WithRequestConnectionID(connectionID string) RequestOption {
 
 // Request 表示容器传给应用的请求视图。
 type Request struct {
-	httpRequest  *http.Request
-	dispatchType DispatchType
-	connectionID string
-	requestURI   string
-	queryString  string
-	contextPath  string
-	path         string
-	servletPath  string
-	pathInfo     string
-	mapping      RequestMapping
+	httpRequest   *http.Request
+	ctx           context.Context
+	method        string
+	protocol      string
+	scheme        string
+	host          string
+	header        Header
+	body          io.ReadCloser
+	contentLength int64
+	remoteAddr    string
+	localAddr     string
+	trailer       Header
+	trailerReady  func() bool
+	dispatchType  DispatchType
+	connectionID  string
+	requestURI    string
+	queryString   string
+	contextPath   string
+	path          string
+	servletPath   string
+	pathInfo      string
+	mapping       RequestMapping
 
 	parametersOnce sync.Once
 	parameters     url.Values
@@ -73,13 +108,54 @@ func NewRequest(httpRequest *http.Request, options ...RequestOption) (*Request, 
 	if httpRequest == nil {
 		return nil, ErrNilHTTPRequest
 	}
+	input := requestInputFromHTTP(httpRequest)
+	req, err := NewRequestFromInput(&input, options...)
+	if err != nil {
+		return nil, err
+	}
+	req.httpRequest = httpRequest
+	return req, nil
+}
+
+// NewRequestFromInput 从传输层中立输入创建 Arkarta Servlet 请求。
+func NewRequestFromInput(input *RequestInput, options ...RequestOption) (*Request, error) {
+	if input == nil {
+		return nil, ErrNilRequestInput
+	}
+	ctx := input.Context
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	header := input.Header
+	if header == nil {
+		header = NewHeader()
+	}
+	body := input.Body
+	if body == nil {
+		body = io.NopCloser(strings.NewReader(""))
+	}
+	trailer := input.Trailer
+	if trailer == nil {
+		trailer = NewHeader()
+	}
 	req := &Request{
-		httpRequest:  httpRequest,
-		dispatchType: DispatchRequest,
-		requestURI:   requestURI(httpRequest),
-		queryString:  requestQueryString(httpRequest),
-		path:         requestPath(httpRequest),
-		attribute:    make(map[string]any),
+		ctx:           ctx,
+		method:        input.Method,
+		protocol:      input.Protocol,
+		scheme:        input.Scheme,
+		host:          input.Host,
+		header:        header,
+		body:          body,
+		contentLength: input.ContentLength,
+		remoteAddr:    input.RemoteAddr,
+		localAddr:     input.LocalAddr,
+		trailer:       trailer,
+		trailerReady:  input.TrailerReady,
+		dispatchType:  DispatchRequest,
+		requestURI:    input.RequestURI,
+		queryString:   input.QueryString,
+		path:          input.Path,
+		attribute:     make(map[string]any),
 	}
 	for _, option := range options {
 		if option != nil {
@@ -91,33 +167,27 @@ func NewRequest(httpRequest *http.Request, options ...RequestOption) (*Request, 
 
 // Context 返回请求上下文。
 func (r *Request) Context() context.Context {
-	return r.httpRequest.Context()
+	return r.ctx
 }
 
 // Method 返回 HTTP 方法。
 func (r *Request) Method() string {
-	return r.httpRequest.Method
+	return r.method
 }
 
 // Protocol 返回 HTTP 协议版本。
 func (r *Request) Protocol() string {
-	return r.httpRequest.Proto
+	return r.protocol
 }
 
 // Scheme 返回请求协议。
 func (r *Request) Scheme() string {
-	if r.httpRequest.URL != nil && r.httpRequest.URL.Scheme != "" {
-		return r.httpRequest.URL.Scheme
-	}
-	if r.httpRequest.TLS != nil {
-		return "https"
-	}
-	return "http"
+	return r.scheme
 }
 
 // Host 返回请求主机。
 func (r *Request) Host() string {
-	return r.httpRequest.Host
+	return r.host
 }
 
 // RequestURI 返回不含查询串的原始请求 URI 路径。
@@ -184,8 +254,8 @@ func (r *Request) Mapping() RequestMapping {
 }
 
 // Header 返回请求头。
-func (r *Request) Header() http.Header {
-	return r.httpRequest.Header
+func (r *Request) Header() Header {
+	return r.header
 }
 
 // Cookie 返回指定名称的 Cookie。
@@ -195,17 +265,17 @@ func (r *Request) Cookie(name string) (*http.Cookie, error) {
 
 // Body 返回请求体读取器。
 func (r *Request) Body() io.ReadCloser {
-	return r.httpRequest.Body
+	return r.body
 }
 
 // ContentLength 返回请求体长度。
 func (r *Request) ContentLength() int64 {
-	return r.httpRequest.ContentLength
+	return r.contentLength
 }
 
 // RemoteAddr 返回远端网络地址。
 func (r *Request) RemoteAddr() string {
-	return r.httpRequest.RemoteAddr
+	return r.remoteAddr
 }
 
 // IsSecure 表示请求是否通过安全传输进入容器。
@@ -314,11 +384,48 @@ func requestQueryString(httpRequest *http.Request) string {
 	return httpRequest.URL.RawQuery
 }
 
+func requestInputFromHTTP(httpRequest *http.Request) RequestInput {
+	scheme := "http"
+	if httpRequest.URL != nil && httpRequest.URL.Scheme != "" {
+		scheme = httpRequest.URL.Scheme
+	} else if httpRequest.TLS != nil {
+		scheme = "https"
+	}
+	localAddr := ""
+	if addr, ok := httpRequest.Context().Value(http.LocalAddrContextKey).(interface{ String() string }); ok && addr != nil {
+		localAddr = addr.String()
+	}
+	return RequestInput{
+		Context:       httpRequest.Context(),
+		Method:        httpRequest.Method,
+		Protocol:      httpRequest.Proto,
+		Scheme:        scheme,
+		Host:          httpRequest.Host,
+		RequestURI:    requestURI(httpRequest),
+		Path:          requestPath(httpRequest),
+		QueryString:   requestQueryString(httpRequest),
+		Header:        mapHeader(httpRequest.Header),
+		Body:          httpRequest.Body,
+		ContentLength: httpRequest.ContentLength,
+		RemoteAddr:    httpRequest.RemoteAddr,
+		LocalAddr:     localAddr,
+		Trailer:       mapHeader(httpRequest.Trailer),
+		TrailerReady: func() bool {
+			for _, values := range httpRequest.Trailer {
+				if values == nil {
+					return false
+				}
+			}
+			return true
+		},
+	}
+}
+
 // WithRequestContextPath 设置请求所属 Web 应用的上下文路径。
 func WithRequestContextPath(contextPath string) RequestOption {
 	return func(req *Request) {
 		req.contextPath = normalizeRequestContextPath(contextPath)
-		req.path = stripRequestContextPath(requestPath(req.httpRequest), req.contextPath)
+		req.path = stripRequestContextPath(req.path, req.contextPath)
 		req.servletPath = ""
 		req.pathInfo = ""
 		req.mapping = RequestMapping{}

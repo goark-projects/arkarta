@@ -3,7 +3,6 @@ package servlet
 import (
 	"mime"
 	"net/http"
-	"sort"
 	"strconv"
 	"time"
 )
@@ -28,17 +27,12 @@ func (r *Request) CharacterEncoding() string {
 
 // HeaderNames 返回请求头名称的稳定排序副本。
 func (r *Request) HeaderNames() []string {
-	names := make([]string, 0, len(r.httpRequest.Header))
-	for name := range r.httpRequest.Header {
-		names = append(names, http.CanonicalHeaderKey(name))
-	}
-	sort.Strings(names)
-	return names
+	return HeaderNames(r.header)
 }
 
 // HeaderValue 返回指定请求头的第一个值。
 func (r *Request) HeaderValue(name string) (string, bool) {
-	values := r.httpRequest.Header.Values(name)
+	values := r.header.Values(name)
 	if len(values) == 0 {
 		return "", false
 	}
@@ -47,7 +41,7 @@ func (r *Request) HeaderValue(name string) (string, bool) {
 
 // Headers 返回指定请求头的全部值副本。
 func (r *Request) Headers(name string) []string {
-	return append([]string(nil), r.httpRequest.Header.Values(name)...)
+	return append([]string(nil), r.header.Values(name)...)
 }
 
 // DateHeader 按 HTTP 日期格式解析请求头。
@@ -77,22 +71,11 @@ func (r *Request) IntHeader(name string) (int, bool, error) {
 }
 
 // Trailer 返回请求 Trailer 字段副本。
-func (r *Request) Trailer() http.Header {
-	if r.httpRequest.Trailer == nil {
-		return http.Header{}
-	}
-	return r.httpRequest.Trailer.Clone()
+func (r *Request) Trailer() Header {
+	return CloneHeader(r.trailer)
 }
 
 // TrailerFieldsReady 表示请求 Trailer 是否已由容器读取完成。
 func (r *Request) TrailerFieldsReady() bool {
-	if r.httpRequest.Trailer == nil {
-		return true
-	}
-	for _, values := range r.httpRequest.Trailer {
-		if values == nil {
-			return false
-		}
-	}
-	return true
+	return r.trailerReady == nil || r.trailerReady()
 }
