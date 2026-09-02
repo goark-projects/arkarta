@@ -40,30 +40,32 @@ func NewParser(options ...Option) *Parser {
 
 // Parse 解析请求体。
 func (p *Parser) Parse(req *servlet.Request) (*Form, error) {
-	if req == nil || req.HTTPRequest() == nil {
-		return nil, servlet.ErrNilHTTPRequest
+	if req == nil {
+		return nil, servlet.ErrNilRequestInput
 	}
-	if !isMultipart(req) {
+	boundary, ok := multipartBoundary(req)
+	if !ok {
 		return nil, ErrNotMultipart
 	}
-
-	httpRequest := req.HTTPRequest()
+	body := io.Reader(req.Body())
 	if p.maxBodySize >= 0 {
-		httpRequest.Body = &limitReadCloser{
-			reader:    httpRequest.Body,
+		body = &limitReadCloser{
+			reader:    req.Body(),
 			remaining: p.maxBodySize,
 		}
 	}
+	reader := stdmultipart.NewReader(body, boundary)
 	if p.location != "" {
-		return p.parseWithLocation(req)
+		return p.parseWithLocation(req, reader)
 	}
-	if err := httpRequest.ParseMultipartForm(p.maxMemory); err != nil {
+	multipartForm, err := reader.ReadForm(p.maxMemory)
+	if err != nil {
 		if errors.Is(err, ErrBodyTooLarge) {
 			return nil, err
 		}
 		return nil, err
 	}
-	form := &Form{form: httpRequest.MultipartForm}
+	form := &Form{form: multipartForm}
 	if err := p.validateFiles(form); err != nil {
 		_ = form.RemoveAll()
 		return nil, err
@@ -86,12 +88,8 @@ func (p *Parser) validateFiles(form *Form) error {
 	return nil
 }
 
-func (p *Parser) parseWithLocation(req *servlet.Request) (*Form, error) {
+func (p *Parser) parseWithLocation(req *servlet.Request, reader *stdmultipart.Reader) (*Form, error) {
 	if err := os.MkdirAll(p.location, 0o700); err != nil {
-		return nil, err
-	}
-	reader, err := req.HTTPRequest().MultipartReader()
-	if err != nil {
 		return nil, err
 	}
 	form := &Form{values: make(map[string][]string)}
@@ -226,11 +224,14 @@ func cleanSubmittedFileName(filename string) string {
 	return filepath.Base(filename)
 }
 
-func isMultipart(req *servlet.Request) bool {
+func multipartBoundary(req *servlet.Request) (string, bool) {
 	contentType := req.Header().Get("Content-Type")
-	mediaType, _, err := mime.ParseMediaType(contentType)
+	mediaType, params, err := mime.ParseMediaType(contentType)
 	if err != nil {
-		return false
+		return "", false
 	}
-	return strings.HasPrefix(strings.ToLower(mediaType), "multipart/")
+	if !strings.HasPrefix(strings.ToLower(mediaType), "multipart/") || params["boundary"] == "" {
+		return "", false
+	}
+	return params["boundary"], true
 }

@@ -3,8 +3,10 @@ package security
 import (
 	"context"
 	"crypto/subtle"
+	"encoding/base64"
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 
 	"goark.dev/arkarta/servlet"
@@ -47,10 +49,10 @@ func (a *BasicAuthenticator) Authenticate(ctx context.Context, req *servlet.Requ
 	if a == nil || a.realm == nil {
 		return Identity{}, false, ErrNilAuthenticator
 	}
-	if req == nil || req.HTTPRequest() == nil {
-		return Identity{}, false, servlet.ErrNilHTTPRequest
+	if req == nil {
+		return Identity{}, false, servlet.ErrNilRequestInput
 	}
-	username, password, ok := req.HTTPRequest().BasicAuth()
+	username, password, ok := basicCredentials(req.Header().Get("Authorization"))
 	if !ok {
 		setUnauthorized(res, a.challenge())
 		return Identity{}, false, nil
@@ -64,6 +66,19 @@ func (a *BasicAuthenticator) Authenticate(ctx context.Context, req *servlet.Requ
 		return Identity{}, false, ErrAuthenticationFailed
 	}
 	return identity, true, nil
+}
+
+func basicCredentials(authorization string) (string, string, bool) {
+	scheme, encoded, ok := strings.Cut(strings.TrimSpace(authorization), " ")
+	if !ok || !strings.EqualFold(scheme, "Basic") {
+		return "", "", false
+	}
+	decoded, err := base64.StdEncoding.DecodeString(strings.TrimSpace(encoded))
+	if err != nil {
+		return "", "", false
+	}
+	username, password, ok := strings.Cut(string(decoded), ":")
+	return username, password, ok
 }
 
 // Login 使用显式凭证执行 Basic 认证。
