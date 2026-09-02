@@ -3,7 +3,6 @@ package servlet
 import (
 	"errors"
 	"io"
-	"net/http"
 )
 
 // ErrResponseCommitted 表示响应已经提交，不能再执行重置类操作。
@@ -11,7 +10,7 @@ var ErrResponseCommitted = errors.New("arkarta/servlet: response is committed")
 
 // Response 表示容器提供的响应写出能力。
 type Response interface {
-	Header() http.Header
+	Header() Header
 	SetStatus(code int)
 	Status() int
 	Write([]byte) (int, error)

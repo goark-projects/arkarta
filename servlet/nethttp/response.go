@@ -17,24 +17,26 @@ var ErrInvalidBufferSize = errors.New("arkarta/servlet/nethttp: invalid buffer s
 // Response 将标准库 http.ResponseWriter 包装为 servlet.Response。
 type Response struct {
 	writer          http.ResponseWriter
+	header          headerAdapter
 	status          int
 	committed       bool
 	bufferSize      int
 	trailerSupplier servlet.TrailerFieldsFunc
-	trailerFields   http.Header
+	trailerFields   servlet.Header
 }
 
 // NewResponse 创建标准库响应适配器。
 func NewResponse(writer http.ResponseWriter) *Response {
 	return &Response{
 		writer: writer,
+		header: headerAdapter{values: writer.Header()},
 		status: http.StatusOK,
 	}
 }
 
 // Header 返回响应头。
-func (r *Response) Header() http.Header {
-	return r.writer.Header()
+func (r *Response) Header() servlet.Header {
+	return &r.header
 }
 
 // SetStatus 设置 HTTP 状态码；响应提交后调用不会改变已发送状态。
@@ -125,28 +127,25 @@ func (r *Response) SetTrailerFields(fields servlet.TrailerFieldsFunc) error {
 	}
 	r.trailerSupplier = fields
 	r.trailerFields = nil
-	r.Header().Del("Trailer")
+	r.Header().Delete("Trailer")
 	if fields == nil {
 		return nil
 	}
-	for name := range fields() {
-		canonical := http.CanonicalHeaderKey(name)
-		if canonical != "" {
-			r.Header().Add("Trailer", canonical)
-		}
+	for _, name := range servlet.HeaderNames(fields()) {
+		r.Header().Add("Trailer", name)
 	}
 	return nil
 }
 
 // TrailerFields 返回响应 Trailer 字段副本。
-func (r *Response) TrailerFields() http.Header {
+func (r *Response) TrailerFields() servlet.Header {
 	if r.trailerFields != nil {
-		return r.trailerFields.Clone()
+		return servlet.CloneHeader(r.trailerFields)
 	}
 	if r.trailerSupplier == nil {
-		return http.Header{}
+		return servlet.NewHeader()
 	}
-	return r.trailerSupplier().Clone()
+	return servlet.CloneHeader(r.trailerSupplier())
 }
 
 // BodyWriter 返回响应体写出器。
@@ -173,16 +172,13 @@ func (r *Response) writeTrailers() {
 	if r.trailerSupplier == nil {
 		return
 	}
-	fields := r.trailerSupplier().Clone()
+	fields := servlet.CloneHeader(r.trailerSupplier())
 	r.trailerFields = fields
-	for name, values := range fields {
-		canonical := http.CanonicalHeaderKey(name)
-		if canonical == "" {
-			continue
-		}
-		r.Header().Del(canonical)
-		for _, value := range values {
-			r.Header().Add(canonical, value)
-		}
+	for _, name := range servlet.HeaderNames(fields) {
+		r.Header().Delete(name)
 	}
+	fields.Visit(func(name, value string) bool {
+		r.Header().Add(name, value)
+		return true
+	})
 }

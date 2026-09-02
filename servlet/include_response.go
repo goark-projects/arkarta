@@ -2,12 +2,11 @@ package servlet
 
 import (
 	"io"
-	"net/http"
 )
 
 type includeResponse struct {
 	target Response
-	header http.Header
+	header Header
 }
 
 func newIncludeResponse(target Response) Response {
@@ -16,11 +15,11 @@ func newIncludeResponse(target Response) Response {
 	}
 	return &includeResponse{
 		target: target,
-		header: make(http.Header),
+		header: NewHeader(),
 	}
 }
 
-func (r *includeResponse) Header() http.Header {
+func (r *includeResponse) Header() Header {
 	return r.header
 }
 

@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+
+	"goark.dev/arkarta/servlet"
 )
 
 // responseStub 是 TCK 内部使用的最小 Servlet Response 实现。
 type responseStub struct {
-	header    http.Header
+	header    servlet.Header
 	status    int
 	body      bytes.Buffer
 	committed bool
@@ -17,12 +19,12 @@ type responseStub struct {
 
 func newResponseStub() *responseStub {
 	return &responseStub{
-		header: make(http.Header),
+		header: servlet.NewHeader(),
 		status: http.StatusOK,
 	}
 }
 
-func (r *responseStub) Header() http.Header {
+func (r *responseStub) Header() servlet.Header {
 	return r.header
 }
 

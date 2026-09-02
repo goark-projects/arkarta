@@ -228,7 +228,7 @@ func TestStreamCloseWaitsForInFlightWrite(t *testing.T) {
 }
 
 type asyncResponse struct {
-	header    http.Header
+	header    servlet.Header
 	status    int
 	committed bool
 	body      bytes.Buffer
@@ -236,10 +236,10 @@ type asyncResponse struct {
 }
 
 func newAsyncResponse() *asyncResponse {
-	return &asyncResponse{header: make(http.Header), status: http.StatusOK}
+	return &asyncResponse{header: servlet.NewHeader(), status: http.StatusOK}
 }
 
-func (r *asyncResponse) Header() http.Header {
+func (r *asyncResponse) Header() servlet.Header {
 	return r.header
 }
 
@@ -290,7 +290,7 @@ type blockingAsyncResponse struct {
 
 func newBlockingAsyncResponse() *blockingAsyncResponse {
 	return &blockingAsyncResponse{
-		asyncResponse: asyncResponse{header: make(http.Header), status: http.StatusOK},
+		asyncResponse: asyncResponse{header: servlet.NewHeader(), status: http.StatusOK},
 		writeStarted:  make(chan struct{}),
 		releaseWrite:  make(chan struct{}),
 		flushCalled:   make(chan struct{}),

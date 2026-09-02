@@ -34,7 +34,7 @@ func SetContentType(res Response, contentType string) error {
 		return err
 	}
 	if contentType == "" {
-		res.Header().Del("Content-Type")
+		res.Header().Delete("Content-Type")
 		return nil
 	}
 	res.Header().Set("Content-Type", contentType)
@@ -90,7 +90,7 @@ func SetContentLength(res Response, length int64) error {
 		return err
 	}
 	if length < 0 {
-		res.Header().Del("Content-Length")
+		res.Header().Delete("Content-Length")
 		return nil
 	}
 	res.Header().Set("Content-Length", strconv.FormatInt(length, 10))

@@ -148,8 +148,8 @@ func serveRange(req *servlet.Request, res servlet.Response, item Resource) (bool
 func serveMultipleRanges(req *servlet.Request, res servlet.Response, item Resource, targets []byteRange) (bool, error) {
 	const boundary = "arkarta-resource-boundary"
 	res.Header().Set("Content-Type", "multipart/byteranges; boundary="+boundary)
-	res.Header().Del("Content-Length")
-	res.Header().Del("Content-Range")
+	res.Header().Delete("Content-Length")
+	res.Header().Delete("Content-Range")
 	res.SetStatus(http.StatusPartialContent)
 	if req.Method() == http.MethodHead {
 		return true, nil

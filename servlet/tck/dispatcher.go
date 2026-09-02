@@ -67,7 +67,7 @@ func RunDispatcher(t *testing.T) {
 }
 
 type memoryResponse struct {
-	header    http.Header
+	header    servlet.Header
 	status    int
 	committed bool
 	body      bytes.Buffer
@@ -75,12 +75,12 @@ type memoryResponse struct {
 
 func newMemoryResponse() *memoryResponse {
 	return &memoryResponse{
-		header: make(http.Header),
+		header: servlet.NewHeader(),
 		status: http.StatusOK,
 	}
 }
 
-func (r *memoryResponse) Header() http.Header {
+func (r *memoryResponse) Header() servlet.Header {
 	return r.header
 }
 
@@ -116,7 +116,7 @@ func (r *memoryResponse) Reset() error {
 	if r.committed {
 		return servlet.ErrResponseCommitted
 	}
-	r.header = make(http.Header)
+	r.header = servlet.NewHeader()
 	r.status = http.StatusOK
 	r.body.Reset()
 	return nil

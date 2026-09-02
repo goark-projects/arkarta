@@ -86,7 +86,7 @@ func newUpgradeRequest(t *testing.T) *arkservlet.Request {
 }
 
 type upgradeResponse struct {
-	header    http.Header
+	header    arkservlet.Header
 	status    int
 	committed bool
 	body      bytes.Buffer
@@ -96,13 +96,13 @@ type upgradeResponse struct {
 
 func newUpgradeResponse() *upgradeResponse {
 	return &upgradeResponse{
-		header: make(http.Header),
+		header: arkservlet.NewHeader(),
 		status: http.StatusOK,
 		conn:   &recordingConn{},
 	}
 }
 
-func (r *upgradeResponse) Header() http.Header {
+func (r *upgradeResponse) Header() arkservlet.Header {
 	return r.header
 }
 
@@ -138,7 +138,7 @@ func (r *upgradeResponse) Reset() error {
 	if r.committed {
 		return arkservlet.ErrResponseCommitted
 	}
-	r.header = make(http.Header)
+	r.header = arkservlet.NewHeader()
 	r.status = http.StatusOK
 	r.body.Reset()
 	return nil

@@ -10,6 +10,7 @@ import (
 type Header interface {
 	Get(name string) string
 	Values(name string) []string
+	Has(name string) bool
 	Set(name, value string)
 	Add(name, value string)
 	Delete(name string)
@@ -66,6 +67,11 @@ func (h mapHeader) Get(name string) string {
 
 func (h mapHeader) Values(name string) []string {
 	return h[canonicalHeaderName(name)]
+}
+
+func (h mapHeader) Has(name string) bool {
+	_, ok := h[canonicalHeaderName(name)]
+	return ok
 }
 
 func (h mapHeader) Set(name, value string) {

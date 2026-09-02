@@ -49,8 +49,7 @@ func ContainsHeader(res Response, name string) bool {
 	if res == nil {
 		return false
 	}
-	_, ok := res.Header()[http.CanonicalHeaderKey(name)]
-	return ok
+	return res.Header().Has(name)
 }
 
 // SetDateHeader 按 HTTP 日期格式设置响应头。

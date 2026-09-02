@@ -132,14 +132,14 @@ func newRewriteRequest(t *testing.T, target string) *servlet.Request {
 }
 
 type noopResponse struct {
-	header http.Header
+	header servlet.Header
 }
 
 func newNoopResponse() *noopResponse {
-	return &noopResponse{header: make(http.Header)}
+	return &noopResponse{header: servlet.NewHeader()}
 }
 
-func (r *noopResponse) Header() http.Header {
+func (r *noopResponse) Header() servlet.Header {
 	return r.header
 }
 

@@ -210,7 +210,7 @@ func TestDispatcherErrorSetsErrorAttributes(t *testing.T) {
 }
 
 type testResponse struct {
-	header    http.Header
+	header    Header
 	status    int
 	committed bool
 	body      bytes.Buffer
@@ -218,12 +218,12 @@ type testResponse struct {
 
 func newTestResponse() *testResponse {
 	return &testResponse{
-		header: make(http.Header),
+		header: NewHeader(),
 		status: http.StatusOK,
 	}
 }
 
-func (r *testResponse) Header() http.Header {
+func (r *testResponse) Header() Header {
 	return r.header
 }
 
@@ -259,7 +259,7 @@ func (r *testResponse) Reset() error {
 	if r.committed {
 		return ErrResponseCommitted
 	}
-	r.header = make(http.Header)
+	r.header = NewHeader()
 	r.status = http.StatusOK
 	r.body.Reset()
 	return nil

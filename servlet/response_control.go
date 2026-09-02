@@ -2,19 +2,18 @@ package servlet
 
 import (
 	"errors"
-	"net/http"
 )
 
 // ErrUnsupportedResponseControl 表示容器未实现可选响应控制接口。
 var ErrUnsupportedResponseControl = errors.New("arkarta/servlet: unsupported response control")
 
 // TrailerFieldsFunc 延迟提供响应 Trailer 字段。
-type TrailerFieldsFunc func() http.Header
+type TrailerFieldsFunc func() Header
 
 // TrailerFieldsControl 表示响应支持 Trailer 字段控制。
 type TrailerFieldsControl interface {
 	SetTrailerFields(fields TrailerFieldsFunc) error
-	TrailerFields() http.Header
+	TrailerFields() Header
 }
 
 // BufferControl 表示响应支持缓冲区控制。
@@ -37,10 +36,10 @@ func SetTrailerFields(res Response, fields TrailerFieldsFunc) error {
 }
 
 // TrailerFields 返回响应 Trailer 字段副本。
-func TrailerFields(res Response) http.Header {
+func TrailerFields(res Response) Header {
 	control, ok := res.(TrailerFieldsControl)
 	if !ok {
-		return http.Header{}
+		return NewHeader()
 	}
 	return control.TrailerFields()
 }

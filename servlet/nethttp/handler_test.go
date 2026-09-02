@@ -192,8 +192,10 @@ func TestHandlerWritesTrailerFields(t *testing.T) {
 	t.Parallel()
 
 	handler := Handler(servlet.HandlerFunc(func(_ context.Context, _ *servlet.Request, res servlet.Response) error {
-		if err := servlet.SetTrailerFields(res, func() http.Header {
-			return http.Header{"X-Arkarta-Trailer": {"done"}}
+		if err := servlet.SetTrailerFields(res, func() servlet.Header {
+			header := servlet.NewHeader()
+			header.Set("X-Arkarta-Trailer", "done")
+			return header
 		}); err != nil {
 			return err
 		}

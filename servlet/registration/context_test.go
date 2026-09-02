@@ -104,16 +104,16 @@ func TestRegistrationContextRejectsMutationAfterStart(t *testing.T) {
 }
 
 type registryResponse struct {
-	header http.Header
+	header servlet.Header
 	status int
 	body   string
 }
 
 func newRegistryResponse() *registryResponse {
-	return &registryResponse{header: make(http.Header), status: http.StatusOK}
+	return &registryResponse{header: servlet.NewHeader(), status: http.StatusOK}
 }
 
-func (r *registryResponse) Header() http.Header {
+func (r *registryResponse) Header() servlet.Header {
 	return r.header
 }
 

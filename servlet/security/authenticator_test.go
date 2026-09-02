@@ -81,15 +81,15 @@ func TestBasicAuthenticatorRejectsInvalidPassword(t *testing.T) {
 }
 
 type authResponse struct {
-	header http.Header
+	header servlet.Header
 	status int
 }
 
 func newAuthResponse() *authResponse {
-	return &authResponse{header: make(http.Header), status: http.StatusOK}
+	return &authResponse{header: servlet.NewHeader(), status: http.StatusOK}
 }
 
-func (r *authResponse) Header() http.Header {
+func (r *authResponse) Header() servlet.Header {
 	return r.header
 }
 

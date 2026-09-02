@@ -79,16 +79,16 @@ func (r *fakeUpgradeResponse) UpgradeHTTP(ctx context.Context, _ *servlet.Reques
 }
 
 type plainResponse struct {
-	header    http.Header
+	header    servlet.Header
 	status    int
 	committed bool
 }
 
 func newPlainResponse() *plainResponse {
-	return &plainResponse{header: make(http.Header), status: http.StatusOK}
+	return &plainResponse{header: servlet.NewHeader(), status: http.StatusOK}
 }
 
-func (r *plainResponse) Header() http.Header {
+func (r *plainResponse) Header() servlet.Header {
 	return r.header
 }
 
