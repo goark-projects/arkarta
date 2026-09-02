@@ -35,6 +35,18 @@ const (
 // RequestOption 定制 Request 构造行为。
 type RequestOption func(*Request)
 
+// DefaultMaxFormBodySize 是 URL 编码表单体的默认解析上限。
+const DefaultMaxFormBodySize int64 = 10 << 20
+
+// WithMaxFormBodySize 设置 URL 编码表单体解析上限；非正数保留安全默认值。
+func WithMaxFormBodySize(size int64) RequestOption {
+	return func(req *Request) {
+		if size > 0 {
+			req.maxFormBodySize = size
+		}
+	}
+}
+
 // RequestInput 是容器构造 Servlet 请求时提供的传输层中立数据。
 // Header、Body 和 Trailer 的所有权至少持续到请求处理完成。
 type RequestInput struct {
@@ -72,28 +84,29 @@ func WithRequestConnectionID(connectionID string) RequestOption {
 
 // Request 表示容器传给应用的请求视图。
 type Request struct {
-	httpRequest   *http.Request
-	ctx           context.Context
-	method        string
-	protocol      string
-	scheme        string
-	host          string
-	header        Header
-	body          io.ReadCloser
-	contentLength int64
-	remoteAddr    string
-	localAddr     string
-	trailer       Header
-	trailerReady  func() bool
-	dispatchType  DispatchType
-	connectionID  string
-	requestURI    string
-	queryString   string
-	contextPath   string
-	path          string
-	servletPath   string
-	pathInfo      string
-	mapping       RequestMapping
+	httpRequest     *http.Request
+	ctx             context.Context
+	method          string
+	protocol        string
+	scheme          string
+	host            string
+	header          Header
+	body            io.ReadCloser
+	contentLength   int64
+	maxFormBodySize int64
+	remoteAddr      string
+	localAddr       string
+	trailer         Header
+	trailerReady    func() bool
+	dispatchType    DispatchType
+	connectionID    string
+	requestURI      string
+	queryString     string
+	contextPath     string
+	path            string
+	servletPath     string
+	pathInfo        string
+	mapping         RequestMapping
 
 	parametersOnce sync.Once
 	parameters     url.Values
@@ -142,24 +155,25 @@ func NewRequestFromInput(input *RequestInput, options ...RequestOption) (*Reques
 		trailer = NewHeader()
 	}
 	req := &Request{
-		ctx:           ctx,
-		method:        input.Method,
-		protocol:      input.Protocol,
-		scheme:        input.Scheme,
-		host:          input.Host,
-		header:        header,
-		body:          body,
-		contentLength: input.ContentLength,
-		remoteAddr:    input.RemoteAddr,
-		localAddr:     input.LocalAddr,
-		trailer:       trailer,
-		trailerReady:  input.TrailerReady,
-		dispatchType:  DispatchRequest,
-		requestURI:    input.RequestURI,
-		queryString:   input.QueryString,
-		contextPath:   normalizeRequestContextPath(input.ContextPath),
-		path:          stripRequestContextPath(input.Path, normalizeRequestContextPath(input.ContextPath)),
-		attribute:     make(map[string]any),
+		ctx:             ctx,
+		method:          input.Method,
+		protocol:        input.Protocol,
+		scheme:          input.Scheme,
+		host:            input.Host,
+		header:          header,
+		body:            body,
+		contentLength:   input.ContentLength,
+		maxFormBodySize: DefaultMaxFormBodySize,
+		remoteAddr:      input.RemoteAddr,
+		localAddr:       input.LocalAddr,
+		trailer:         trailer,
+		trailerReady:    input.TrailerReady,
+		dispatchType:    DispatchRequest,
+		requestURI:      input.RequestURI,
+		queryString:     input.QueryString,
+		contextPath:     normalizeRequestContextPath(input.ContextPath),
+		path:            stripRequestContextPath(input.Path, normalizeRequestContextPath(input.ContextPath)),
+		attribute:       make(map[string]any),
 	}
 	for _, option := range options {
 		if option != nil {

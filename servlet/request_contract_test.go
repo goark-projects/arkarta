@@ -2,6 +2,7 @@ package servlet
 
 import (
 	"context"
+	"errors"
 	"io"
 	"reflect"
 	"strings"
@@ -60,6 +61,22 @@ func TestRequestInputParsesQueryAndFormParameters(t *testing.T) {
 	}
 	if body, ok, err := req.Parameter("body"); err != nil || !ok || body != "ok" {
 		t.Fatalf("body = %q/%v/%v, want ok/true/nil", body, ok, err)
+	}
+}
+
+func TestRequestInputHonorsConfiguredFormBodyLimit(t *testing.T) {
+	header := NewHeader()
+	header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req, err := NewRequestFromInput(&RequestInput{
+		Method: "POST",
+		Header: header,
+		Body:   io.NopCloser(strings.NewReader("field=value")),
+	}, WithMaxFormBodySize(4))
+	if err != nil {
+		t.Fatalf("NewRequestFromInput failed: %v", err)
+	}
+	if err := req.ParseParameters(); !errors.Is(err, ErrFormBodyTooLarge) {
+		t.Fatalf("ParseParameters err = %v, want ErrFormBodyTooLarge", err)
 	}
 }
 

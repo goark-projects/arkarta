@@ -10,8 +10,6 @@ import (
 	"strings"
 )
 
-const maxFormBodySize = 10 << 20
-
 // ErrFormBodyTooLarge 表示 URL 编码表单体超过标准解析上限。
 var ErrFormBodyTooLarge = errors.New("arkarta/servlet: form body too large")
 
@@ -77,11 +75,11 @@ func (r *Request) readParameters() (url.Values, error) {
 		return nil, err
 	}
 	if shouldParseFormParameters(r) {
-		body, err := io.ReadAll(io.LimitReader(r.Body(), maxFormBodySize+1))
+		body, err := io.ReadAll(io.LimitReader(r.Body(), r.maxFormBodySize+1))
 		if err != nil {
 			return nil, err
 		}
-		if len(body) > maxFormBodySize {
+		if int64(len(body)) > r.maxFormBodySize {
 			return nil, ErrFormBodyTooLarge
 		}
 		form, err := url.ParseQuery(string(body))
