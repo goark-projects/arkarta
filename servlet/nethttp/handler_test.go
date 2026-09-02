@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"goark.dev/arkarta/servlet"
@@ -34,6 +35,28 @@ func TestHandlerWritesServletResponse(t *testing.T) {
 	}
 	if recorder.Body.String() != "created" {
 		t.Fatalf("body = %q, want created", recorder.Body.String())
+	}
+}
+
+func TestHandlerAppliesRequestOptions(t *testing.T) {
+	handler := HandlerWithOptions(servlet.HandlerFunc(func(_ context.Context, req *servlet.Request, res servlet.Response) error {
+		if err := req.ParseParameters(); errors.Is(err, servlet.ErrFormBodyTooLarge) {
+			_, writeErr := res.WriteString("limited")
+			return writeErr
+		} else if err != nil {
+			return err
+		}
+		_, err := res.WriteString("accepted")
+		return err
+	}), WithRequestOptions(servlet.WithMaxFormBodySize(4)))
+
+	request := httptest.NewRequest(http.MethodPost, "/form", strings.NewReader("field=value"))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK || recorder.Body.String() != "limited" {
+		t.Fatalf("response = %d/%q, want 200/limited", recorder.Code, recorder.Body.String())
 	}
 }
 

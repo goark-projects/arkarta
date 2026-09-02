@@ -18,3 +18,15 @@ func WithRequestContextPath(contextPath string) Option {
 		adapter.requestOptions = append(adapter.requestOptions, servlet.WithRequestContextPath(contextPath))
 	}
 }
+
+// WithRequestOptions 追加传输层中立的 Servlet 请求构造选项。
+func WithRequestOptions(options ...servlet.RequestOption) Option {
+	copied := append([]servlet.RequestOption(nil), options...)
+	return func(adapter *adapter) {
+		for _, option := range copied {
+			if option != nil {
+				adapter.requestOptions = append(adapter.requestOptions, option)
+			}
+		}
+	}
+}
