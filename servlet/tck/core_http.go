@@ -102,7 +102,7 @@ func runResponseHelpers(t *testing.T, factory HTTPHandlerFactory) {
 		if err := servlet.SetContentLength(res, 2); err != nil {
 			return err
 		}
-		if err := servlet.AddCookie(res, &http.Cookie{Name: "sid", Value: "abc", HttpOnly: true}); err != nil {
+		if err := servlet.AddCookie(res, &servlet.Cookie{Name: "sid", Value: "abc", HTTPOnly: true}); err != nil {
 			return err
 		}
 		_, err := res.WriteString("ok")

@@ -1,6 +1,6 @@
 package session
 
-import "net/http"
+import "goark.dev/arkarta/servlet"
 
 // AccessorOption 定制会话请求访问器。
 type AccessorOption func(*Accessor) error
@@ -68,7 +68,7 @@ func WithCookieHTTPOnly(httpOnly bool) AccessorOption {
 }
 
 // WithCookieSameSite 设置 SameSite 策略。
-func WithCookieSameSite(sameSite http.SameSite) AccessorOption {
+func WithCookieSameSite(sameSite servlet.SameSite) AccessorOption {
 	return func(accessor *Accessor) error {
 		accessor.cookie.sameSite = sameSite
 		return nil

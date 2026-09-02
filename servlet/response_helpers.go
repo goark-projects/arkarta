@@ -17,7 +17,7 @@ var ErrNilCookie = errors.New("arkarta/servlet: cookie is nil")
 var ErrInvalidRedirectStatus = errors.New("arkarta/servlet: invalid redirect status")
 
 // AddCookie 向响应写入 Set-Cookie 头。
-func AddCookie(res Response, cookie *http.Cookie) error {
+func AddCookie(res Response, cookie *Cookie) error {
 	if err := ensureMutableResponse(res); err != nil {
 		return err
 	}

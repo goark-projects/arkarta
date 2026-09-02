@@ -2,7 +2,6 @@ package web
 
 import (
 	"context"
-	"net/http"
 
 	arkjson "goark.dev/arkarta/json"
 	"goark.dev/arkarta/servlet"
@@ -103,9 +102,9 @@ func (c *Context) HeaderValue(name string) string {
 }
 
 // Cookie 返回请求 Cookie。
-func (c *Context) Cookie(name string) (*http.Cookie, error) {
+func (c *Context) Cookie(name string) (*servlet.Cookie, error) {
 	if c == nil || c.request == nil {
-		return nil, http.ErrNoCookie
+		return nil, servlet.ErrNoCookie
 	}
 	return c.request.Cookie(name)
 }

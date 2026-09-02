@@ -97,6 +97,8 @@ type Request struct {
 	parametersOnce sync.Once
 	parameters     url.Values
 	parametersErr  error
+	cookiesOnce    sync.Once
+	cookies        []*Cookie
 
 	mu                 sync.RWMutex
 	attribute          map[string]any
@@ -256,11 +258,6 @@ func (r *Request) Mapping() RequestMapping {
 // Header 返回请求头。
 func (r *Request) Header() Header {
 	return r.header
-}
-
-// Cookie 返回指定名称的 Cookie。
-func (r *Request) Cookie(name string) (*http.Cookie, error) {
-	return r.httpRequest.Cookie(name)
 }
 
 // Body 返回请求体读取器。

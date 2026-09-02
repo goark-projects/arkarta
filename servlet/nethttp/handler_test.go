@@ -57,7 +57,7 @@ func TestHandlerSupportsResponseConvenienceHelpers(t *testing.T) {
 	t.Parallel()
 
 	handler := Handler(servlet.HandlerFunc(func(_ context.Context, _ *servlet.Request, res servlet.Response) error {
-		if err := servlet.AddCookie(res, &http.Cookie{Name: "sid", Value: "abc", HttpOnly: true}); err != nil {
+		if err := servlet.AddCookie(res, &servlet.Cookie{Name: "sid", Value: "abc", HTTPOnly: true}); err != nil {
 			return err
 		}
 		return servlet.Redirect(res, "/login", http.StatusSeeOther)

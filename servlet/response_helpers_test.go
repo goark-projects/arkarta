@@ -20,7 +20,7 @@ func TestResponseHelpersSetHeaders(t *testing.T) {
 	if err := SetContentLength(res, 12); err != nil {
 		t.Fatalf("SetContentLength failed: %v", err)
 	}
-	if err := AddCookie(res, &http.Cookie{Name: "sid", Value: "abc", HttpOnly: true}); err != nil {
+	if err := AddCookie(res, &Cookie{Name: "sid", Value: "abc", HTTPOnly: true}); err != nil {
 		t.Fatalf("AddCookie failed: %v", err)
 	}
 
@@ -87,7 +87,7 @@ func TestResponseHelpersRejectCommittedResponse(t *testing.T) {
 	if err := Redirect(res, "/login", http.StatusFound); !errors.Is(err, ErrResponseCommitted) {
 		t.Fatalf("Redirect err = %v, want ErrResponseCommitted", err)
 	}
-	if err := AddCookie(res, &http.Cookie{Name: "sid", Value: "abc"}); !errors.Is(err, ErrResponseCommitted) {
+	if err := AddCookie(res, &Cookie{Name: "sid", Value: "abc"}); !errors.Is(err, ErrResponseCommitted) {
 		t.Fatalf("AddCookie err = %v, want ErrResponseCommitted", err)
 	}
 }

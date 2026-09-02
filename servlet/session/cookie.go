@@ -1,7 +1,6 @@
 package session
 
 import (
-	"net/http"
 	"strings"
 
 	"goark.dev/arkarta/servlet"
@@ -22,7 +21,7 @@ type CookieConfig struct {
 	maxAge   int
 	secure   bool
 	httpOnly bool
-	sameSite http.SameSite
+	sameSite servlet.SameSite
 }
 
 // CookieConfigOption 定制 Session Cookie 配置。
@@ -94,7 +93,7 @@ func WithCookieConfigHTTPOnly(httpOnly bool) CookieConfigOption {
 }
 
 // WithCookieConfigSameSite 设置 SameSite 策略。
-func WithCookieConfigSameSite(sameSite http.SameSite) CookieConfigOption {
+func WithCookieConfigSameSite(sameSite servlet.SameSite) CookieConfigOption {
 	return func(config *CookieConfig) error {
 		config.sameSite = sameSite
 		return nil
@@ -105,7 +104,7 @@ func defaultCookieConfig() CookieConfig {
 	return CookieConfig{
 		name:     DefaultCookieName,
 		httpOnly: true,
-		sameSite: http.SameSiteLaxMode,
+		sameSite: servlet.SameSiteLaxMode,
 	}
 }
 
@@ -140,11 +139,11 @@ func (c CookieConfig) HTTPOnly() bool {
 }
 
 // SameSite 返回 Cookie SameSite 策略。
-func (c CookieConfig) SameSite() http.SameSite {
+func (c CookieConfig) SameSite() servlet.SameSite {
 	return c.sameSite
 }
 
-func (c CookieConfig) cookie(req *servlet.Request, id string) *http.Cookie {
+func (c CookieConfig) cookie(req *servlet.Request, id string) *servlet.Cookie {
 	path := c.path
 	if path == "" && req != nil {
 		path = req.ContextPath()
@@ -152,14 +151,14 @@ func (c CookieConfig) cookie(req *servlet.Request, id string) *http.Cookie {
 	if path == "" {
 		path = "/"
 	}
-	return &http.Cookie{
+	return &servlet.Cookie{
 		Name:     c.name,
 		Value:    id,
 		Path:     path,
 		Domain:   c.domain,
 		MaxAge:   c.maxAge,
 		Secure:   c.secure || (req != nil && req.IsSecure()),
-		HttpOnly: c.httpOnly,
+		HTTPOnly: c.httpOnly,
 		SameSite: c.sameSite,
 	}
 }
