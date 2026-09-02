@@ -1,12 +1,19 @@
 package servlet
 
 import (
+	"errors"
+	"io"
 	"mime"
 	"net/http"
 	"net/url"
 	"sort"
 	"strings"
 )
+
+const maxFormBodySize = 10 << 20
+
+// ErrFormBodyTooLarge 表示 URL 编码表单体超过标准解析上限。
+var ErrFormBodyTooLarge = errors.New("arkarta/servlet: form body too large")
 
 // ParseParameters 解析并缓存请求参数。
 func (r *Request) ParseParameters() error {
@@ -69,27 +76,35 @@ func (r *Request) readParameters() (url.Values, error) {
 	if err != nil {
 		return nil, err
 	}
-	if shouldParseFormParameters(r.httpRequest) {
-		if err := r.httpRequest.ParseForm(); err != nil {
+	if shouldParseFormParameters(r) {
+		body, err := io.ReadAll(io.LimitReader(r.Body(), maxFormBodySize+1))
+		if err != nil {
 			return nil, err
 		}
-		for name, list := range r.httpRequest.PostForm {
+		if len(body) > maxFormBodySize {
+			return nil, ErrFormBodyTooLarge
+		}
+		form, err := url.ParseQuery(string(body))
+		if err != nil {
+			return nil, err
+		}
+		for name, list := range form {
 			values[name] = append(values[name], list...)
 		}
 	}
 	return values, nil
 }
 
-func shouldParseFormParameters(request *http.Request) bool {
-	if request == nil || request.Body == nil {
+func shouldParseFormParameters(request *Request) bool {
+	if request == nil || request.Body() == nil {
 		return false
 	}
-	switch request.Method {
+	switch request.Method() {
 	case http.MethodPost, http.MethodPut, http.MethodPatch:
 	default:
 		return false
 	}
-	mediaType, _, err := mime.ParseMediaType(request.Header.Get("Content-Type"))
+	mediaType, _, err := mime.ParseMediaType(request.Header().Get("Content-Type"))
 	if err != nil {
 		return false
 	}

@@ -3,6 +3,7 @@ package servlet
 import (
 	"context"
 	"io"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -34,6 +35,31 @@ func TestRequestUsesTransportNeutralInput(t *testing.T) {
 	}
 	if req.Header().Get("Content-Type") != "text/plain" || req.LocalAddr() != "192.0.2.20:8443" {
 		t.Fatalf("request transport data was not preserved")
+	}
+}
+
+func TestRequestInputParsesQueryAndFormParameters(t *testing.T) {
+	header := NewHeader()
+	header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req, err := NewRequestFromInput(&RequestInput{
+		Method:      "POST",
+		QueryString: "q=query",
+		Header:      header,
+		Body:        io.NopCloser(strings.NewReader("q=form&body=ok")),
+	})
+	if err != nil {
+		t.Fatalf("NewRequestFromInput failed: %v", err)
+	}
+
+	values, ok, err := req.ParameterValues("q")
+	if err != nil {
+		t.Fatalf("ParameterValues failed: %v", err)
+	}
+	if want := []string{"query", "form"}; !ok || !reflect.DeepEqual(values, want) {
+		t.Fatalf("q values = %#v/%v, want %#v/true", values, ok, want)
+	}
+	if body, ok, err := req.Parameter("body"); err != nil || !ok || body != "ok" {
+		t.Fatalf("body = %q/%v/%v, want ok/true/nil", body, ok, err)
 	}
 }
 
