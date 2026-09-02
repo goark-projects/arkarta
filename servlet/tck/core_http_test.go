@@ -11,12 +11,11 @@ import (
 	"goark.dev/arkarta/servlet/nethttp"
 	"goark.dev/arkarta/servlet/session"
 	"goark.dev/arkarta/servlet/tck"
+	tcknethttp "goark.dev/arkarta/servlet/tck/nethttp"
 )
 
-func TestRunCoreHTTPWithNetHTTPAdapter(t *testing.T) {
-	tck.RunCoreHTTP(t, func(handler servlet.Handler) http.Handler {
-		return nethttp.Handler(handler)
-	})
+func TestRunCoreWithNetHTTPAdapter(t *testing.T) {
+	tck.RunCore(t, tcknethttp.NewDriver(nil))
 }
 
 func TestRunSessionManagerWithMemoryManager(t *testing.T) {

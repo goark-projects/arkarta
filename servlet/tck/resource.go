@@ -13,6 +13,9 @@ import (
 	"goark.dev/arkarta/servlet/resource"
 )
 
+// HTTPHandlerFactory 将 Servlet Handler 暴露为标准库 http.Handler。
+type HTTPHandlerFactory func(servlet.Handler) http.Handler
+
 // RunStaticResources 执行静态资源 default servlet 兼容性测试。
 func RunStaticResources(t *testing.T, factory HTTPHandlerFactory) {
 	t.Helper()

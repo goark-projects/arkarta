@@ -3,53 +3,48 @@ package tck
 import (
 	"context"
 	"net/http"
-	"net/http/httptest"
 	"reflect"
-	"strings"
 	"testing"
 
 	"goark.dev/arkarta/servlet"
 )
 
-// HTTPHandlerFactory 将 Servlet Handler 暴露为标准库 http.Handler。
-type HTTPHandlerFactory func(servlet.Handler) http.Handler
-
-// RunCoreHTTP 执行面向 net/http 互操作容器的 Core Profile 兼容性测试。
-func RunCoreHTTP(t *testing.T, factory HTTPHandlerFactory) {
+// RunCore 执行传输无关的 Servlet Core Profile 兼容性测试。
+func RunCore(t *testing.T, driver Driver) {
 	t.Helper()
 	t.Run("writes_status_header_and_body", func(t *testing.T) {
-		runWriteResponse(t, factory)
+		runWriteResponse(t, driver)
 	})
 	t.Run("commits_status_without_body", func(t *testing.T) {
-		runCommitStatusWithoutBody(t, factory)
+		runCommitStatusWithoutBody(t, driver)
 	})
 	t.Run("supports_response_helpers", func(t *testing.T) {
-		runResponseHelpers(t, factory)
+		runResponseHelpers(t, driver)
 	})
 	t.Run("maps_status_error", func(t *testing.T) {
-		runStatusError(t, factory)
+		runStatusError(t, driver)
 	})
 	t.Run("recovers_panic", func(t *testing.T) {
-		runPanicRecovery(t, factory)
+		runPanicRecovery(t, driver)
 	})
 	t.Run("preserves_filter_order", func(t *testing.T) {
-		runFilterOrder(t, factory)
+		runFilterOrder(t, driver)
 	})
 	t.Run("uses_servlet_mapping_priority", func(t *testing.T) {
-		runMappingPriority(t, factory)
+		runMappingPriority(t, driver)
 	})
 	t.Run("exposes_request_parameters", func(t *testing.T) {
-		runRequestParameters(t, factory)
+		runRequestParameters(t, driver)
 	})
 	t.Run("exposes_request_cookies", func(t *testing.T) {
-		runRequestCookies(t, factory)
+		runRequestCookies(t, driver)
 	})
 	t.Run("exposes_mapping_elements", func(t *testing.T) {
-		runMappingElements(t, factory)
+		runMappingElements(t, driver)
 	})
 }
 
-func runWriteResponse(t *testing.T, factory HTTPHandlerFactory) {
+func runWriteResponse(t *testing.T, driver Driver) {
 	t.Helper()
 	handler := servlet.HandlerFunc(func(_ context.Context, _ *servlet.Request, res servlet.Response) error {
 		res.Header().Set("X-TCK", "core")
@@ -58,39 +53,37 @@ func runWriteResponse(t *testing.T, factory HTTPHandlerFactory) {
 		return err
 	})
 
-	recorder := httptest.NewRecorder()
-	factory(handler).ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "/tck", nil))
+	response := exchange(t, driver, handler, NewRequest(http.MethodPost, "/tck"))
 
-	if recorder.Code != http.StatusCreated {
-		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusCreated)
+	if response.Status != http.StatusCreated {
+		t.Fatalf("status = %d, want %d", response.Status, http.StatusCreated)
 	}
-	if recorder.Header().Get("X-TCK") != "core" {
-		t.Fatalf("X-TCK = %q, want core", recorder.Header().Get("X-TCK"))
+	if response.Header.Get("X-TCK") != "core" {
+		t.Fatalf("X-TCK = %q, want core", response.Header.Get("X-TCK"))
 	}
-	if recorder.Body.String() != "ok" {
-		t.Fatalf("body = %q, want ok", recorder.Body.String())
+	if string(response.Body) != "ok" {
+		t.Fatalf("body = %q, want ok", response.Body)
 	}
 }
 
-func runCommitStatusWithoutBody(t *testing.T, factory HTTPHandlerFactory) {
+func runCommitStatusWithoutBody(t *testing.T, driver Driver) {
 	t.Helper()
 	handler := servlet.HandlerFunc(func(_ context.Context, _ *servlet.Request, res servlet.Response) error {
 		res.SetStatus(http.StatusNoContent)
 		return nil
 	})
 
-	recorder := httptest.NewRecorder()
-	factory(handler).ServeHTTP(recorder, httptest.NewRequest(http.MethodDelete, "/resource", nil))
+	response := exchange(t, driver, handler, NewRequest(http.MethodDelete, "/resource"))
 
-	if recorder.Code != http.StatusNoContent {
-		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusNoContent)
+	if response.Status != http.StatusNoContent {
+		t.Fatalf("status = %d, want %d", response.Status, http.StatusNoContent)
 	}
-	if recorder.Body.String() != "" {
-		t.Fatalf("body = %q, want empty", recorder.Body.String())
+	if len(response.Body) != 0 {
+		t.Fatalf("body = %q, want empty", response.Body)
 	}
 }
 
-func runResponseHelpers(t *testing.T, factory HTTPHandlerFactory) {
+func runResponseHelpers(t *testing.T, driver Driver) {
 	t.Helper()
 	handler := servlet.HandlerFunc(func(_ context.Context, _ *servlet.Request, res servlet.Response) error {
 		if err := servlet.SetContentType(res, "application/json"); err != nil {
@@ -109,71 +102,67 @@ func runResponseHelpers(t *testing.T, factory HTTPHandlerFactory) {
 		return err
 	})
 
-	recorder := httptest.NewRecorder()
-	factory(handler).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/helpers", nil))
+	response := exchange(t, driver, handler, NewRequest(http.MethodGet, "/helpers"))
 
-	if recorder.Code != http.StatusOK || recorder.Body.String() != "ok" {
-		t.Fatalf("status/body = %d/%q, want 200/ok", recorder.Code, recorder.Body.String())
+	if response.Status != http.StatusOK || string(response.Body) != "ok" {
+		t.Fatalf("status/body = %d/%q, want 200/ok", response.Status, response.Body)
 	}
-	if recorder.Header().Get("Content-Type") != "application/json; charset=utf-8" {
-		t.Fatalf("content type = %q, want application/json charset", recorder.Header().Get("Content-Type"))
+	if response.Header.Get("Content-Type") != "application/json; charset=utf-8" {
+		t.Fatalf("content type = %q, want application/json charset", response.Header.Get("Content-Type"))
 	}
-	if recorder.Header().Get("Content-Length") != "2" {
-		t.Fatalf("content length = %q, want 2", recorder.Header().Get("Content-Length"))
+	if response.Header.Get("Content-Length") != "2" {
+		t.Fatalf("content length = %q, want 2", response.Header.Get("Content-Length"))
 	}
-	if got := recorder.Header().Get("Set-Cookie"); got != "sid=abc; HttpOnly" {
+	if got := response.Header.Get("Set-Cookie"); got != "sid=abc; HttpOnly" {
 		t.Fatalf("set-cookie = %q, want sid cookie", got)
 	}
 
 	redirect := servlet.HandlerFunc(func(_ context.Context, _ *servlet.Request, res servlet.Response) error {
 		return servlet.Redirect(res, "/login", http.StatusSeeOther)
 	})
-	recorder = httptest.NewRecorder()
-	factory(redirect).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/secure", nil))
+	response = exchange(t, driver, redirect, NewRequest(http.MethodGet, "/secure"))
 
-	if recorder.Code != http.StatusSeeOther {
-		t.Fatalf("redirect status = %d, want %d", recorder.Code, http.StatusSeeOther)
+	if response.Status != http.StatusSeeOther {
+		t.Fatalf("redirect status = %d, want %d", response.Status, http.StatusSeeOther)
 	}
-	if recorder.Header().Get("Location") != "/login" {
-		t.Fatalf("location = %q, want /login", recorder.Header().Get("Location"))
+	if response.Header.Get("Location") != "/login" {
+		t.Fatalf("location = %q, want /login", response.Header.Get("Location"))
 	}
 }
 
-func runStatusError(t *testing.T, factory HTTPHandlerFactory) {
+func runStatusError(t *testing.T, driver Driver) {
 	t.Helper()
 	handler := servlet.HandlerFunc(func(context.Context, *servlet.Request, servlet.Response) error {
 		return servlet.NewHTTPError(http.StatusNotFound, "not found", nil)
 	})
 
-	recorder := httptest.NewRecorder()
-	factory(handler).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/missing", nil))
+	response := exchange(t, driver, handler, NewRequest(http.MethodGet, "/missing"))
 
-	if recorder.Code != http.StatusNotFound {
-		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusNotFound)
+	if response.Status != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d", response.Status, http.StatusNotFound)
 	}
-	if recorder.Body.String() != "not found\n" {
-		t.Fatalf("body = %q, want not found newline", recorder.Body.String())
+	if string(response.Body) != "not found\n" {
+		t.Fatalf("body = %q, want not found newline", response.Body)
 	}
 }
 
-func runPanicRecovery(t *testing.T, factory HTTPHandlerFactory) {
+func runPanicRecovery(t *testing.T, driver Driver) {
 	t.Helper()
 	handler := servlet.HandlerFunc(func(context.Context, *servlet.Request, servlet.Response) error {
 		panic("boom")
 	})
 
-	recorder := httptest.NewRecorder()
-	factory(handler).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/panic", nil))
+	response := exchange(t, driver, handler, NewRequest(http.MethodGet, "/panic"))
 
-	if recorder.Code != http.StatusInternalServerError {
-		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusInternalServerError)
+	if response.Status != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want %d", response.Status, http.StatusInternalServerError)
 	}
-	if recorder.Body.String() != "Internal Server Error\n" {
-		t.Fatalf("body = %q, want safe 500", recorder.Body.String())
+	if string(response.Body) != "Internal Server Error\n" {
+		t.Fatalf("body = %q, want safe 500", response.Body)
 	}
 }
 
-func runFilterOrder(t *testing.T, factory HTTPHandlerFactory) {
+func runFilterOrder(t *testing.T, driver Driver) {
 	t.Helper()
 	var calls []string
 	handler := servlet.ChainFilters(
@@ -199,7 +188,7 @@ func runFilterOrder(t *testing.T, factory HTTPHandlerFactory) {
 		}),
 	)
 
-	factory(handler).ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/filters", nil))
+	exchange(t, driver, handler, NewRequest(http.MethodGet, "/filters"))
 
 	want := []string{"a-before", "b-before", "handler", "b-after", "a-after"}
 	if !reflect.DeepEqual(calls, want) {
@@ -207,7 +196,7 @@ func runFilterOrder(t *testing.T, factory HTTPHandlerFactory) {
 	}
 }
 
-func runMappingPriority(t *testing.T, factory HTTPHandlerFactory) {
+func runMappingPriority(t *testing.T, driver Driver) {
 	t.Helper()
 	router := servlet.NewRouter()
 	mustHandle(t, router, "/", markHandler("default"))
@@ -222,15 +211,14 @@ func runMappingPriority(t *testing.T, factory HTTPHandlerFactory) {
 		"/health":       "default",
 	}
 	for path, want := range tests {
-		recorder := httptest.NewRecorder()
-		factory(router).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, path, nil))
-		if recorder.Body.String() != want {
-			t.Fatalf("%s body = %q, want %q", path, recorder.Body.String(), want)
+		response := exchange(t, driver, router, NewRequest(http.MethodGet, path))
+		if string(response.Body) != want {
+			t.Fatalf("%s body = %q, want %q", path, response.Body, want)
 		}
 	}
 }
 
-func runRequestParameters(t *testing.T, factory HTTPHandlerFactory) {
+func runRequestParameters(t *testing.T, driver Driver) {
 	t.Helper()
 	handler := servlet.HandlerFunc(func(_ context.Context, req *servlet.Request, res servlet.Response) error {
 		values, ok, err := req.ParameterValues("q")
@@ -256,17 +244,17 @@ func runRequestParameters(t *testing.T, factory HTTPHandlerFactory) {
 		return err
 	})
 
-	request := httptest.NewRequest(http.MethodPost, "/params?q=query", strings.NewReader("q=form&body=ok"))
+	request := NewRequest(http.MethodPost, "/params?q=query")
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	recorder := httptest.NewRecorder()
-	factory(handler).ServeHTTP(recorder, request)
+	request.Body = []byte("q=form&body=ok")
+	response := exchange(t, driver, handler, request)
 
-	if recorder.Code != http.StatusOK || recorder.Body.String() != "ok" {
-		t.Fatalf("status/body = %d/%q, want 200/ok", recorder.Code, recorder.Body.String())
+	if response.Status != http.StatusOK || string(response.Body) != "ok" {
+		t.Fatalf("status/body = %d/%q, want 200/ok", response.Status, response.Body)
 	}
 }
 
-func runRequestCookies(t *testing.T, factory HTTPHandlerFactory) {
+func runRequestCookies(t *testing.T, driver Driver) {
 	t.Helper()
 	handler := servlet.HandlerFunc(func(_ context.Context, req *servlet.Request, res servlet.Response) error {
 		cookies := req.Cookies()
@@ -282,18 +270,16 @@ func runRequestCookies(t *testing.T, factory HTTPHandlerFactory) {
 		return err
 	})
 
-	request := httptest.NewRequest(http.MethodGet, "/cookies", nil)
-	request.AddCookie(&http.Cookie{Name: "sid", Value: "abc"})
-	request.AddCookie(&http.Cookie{Name: "mode", Value: "dark"})
-	recorder := httptest.NewRecorder()
-	factory(handler).ServeHTTP(recorder, request)
+	request := NewRequest(http.MethodGet, "/cookies")
+	request.Header.Set("Cookie", "sid=abc; mode=dark")
+	response := exchange(t, driver, handler, request)
 
-	if recorder.Code != http.StatusOK || recorder.Body.String() != "abc" {
-		t.Fatalf("status/body = %d/%q, want 200/abc", recorder.Code, recorder.Body.String())
+	if response.Status != http.StatusOK || string(response.Body) != "abc" {
+		t.Fatalf("status/body = %d/%q, want 200/abc", response.Status, response.Body)
 	}
 }
 
-func runMappingElements(t *testing.T, factory HTTPHandlerFactory) {
+func runMappingElements(t *testing.T, driver Driver) {
 	t.Helper()
 	router := servlet.NewRouter()
 	mustHandle(t, router, "/api/*", servlet.HandlerFunc(func(_ context.Context, req *servlet.Request, res servlet.Response) error {
@@ -307,11 +293,10 @@ func runMappingElements(t *testing.T, factory HTTPHandlerFactory) {
 		return err
 	}))
 
-	recorder := httptest.NewRecorder()
-	factory(router).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/api/orders", nil))
+	response := exchange(t, driver, router, NewRequest(http.MethodGet, "/api/orders"))
 
-	if recorder.Code != http.StatusOK || recorder.Body.String() != "/api/*" {
-		t.Fatalf("status/body = %d/%q, want 200//api/*", recorder.Code, recorder.Body.String())
+	if response.Status != http.StatusOK || string(response.Body) != "/api/*" {
+		t.Fatalf("status/body = %d/%q, want 200//api/*", response.Status, response.Body)
 	}
 }
 
