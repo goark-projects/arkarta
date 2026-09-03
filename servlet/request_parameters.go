@@ -75,12 +75,9 @@ func (r *Request) readParameters() (url.Values, error) {
 		return nil, err
 	}
 	if shouldParseFormParameters(r) {
-		body, err := io.ReadAll(io.LimitReader(r.Body(), r.maxFormBodySize+1))
+		body, err := readFormBody(r.Body(), r.maxFormBodySize)
 		if err != nil {
 			return nil, err
-		}
-		if int64(len(body)) > r.maxFormBodySize {
-			return nil, ErrFormBodyTooLarge
 		}
 		form, err := url.ParseQuery(string(body))
 		if err != nil {
@@ -91,6 +88,20 @@ func (r *Request) readParameters() (url.Values, error) {
 		}
 	}
 	return values, nil
+}
+
+func readFormBody(body io.Reader, limit int64) ([]byte, error) {
+	if limit < 0 {
+		return io.ReadAll(body)
+	}
+	content, err := io.ReadAll(io.LimitReader(body, limit+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(content)) > limit {
+		return nil, ErrFormBodyTooLarge
+	}
+	return content, nil
 }
 
 func shouldParseFormParameters(request *Request) bool {

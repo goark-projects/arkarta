@@ -38,10 +38,10 @@ type RequestOption func(*Request)
 // DefaultMaxFormBodySize 是 URL 编码表单体的默认解析上限。
 const DefaultMaxFormBodySize int64 = 10 << 20
 
-// WithMaxFormBodySize 设置 URL 编码表单体解析上限；非正数保留安全默认值。
+// WithMaxFormBodySize 设置 URL 编码表单体解析上限；0 保留默认值，负数表示不限。
 func WithMaxFormBodySize(size int64) RequestOption {
 	return func(req *Request) {
-		if size > 0 {
+		if size != 0 {
 			req.maxFormBodySize = size
 		}
 	}

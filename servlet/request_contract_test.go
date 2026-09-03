@@ -80,6 +80,26 @@ func TestRequestInputHonorsConfiguredFormBodyLimit(t *testing.T) {
 	}
 }
 
+func TestRequestInputAllowsUnlimitedFormBody(t *testing.T) {
+	header := NewHeader()
+	header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req, err := NewRequestFromInput(&RequestInput{
+		Method: "POST",
+		Header: header,
+		Body:   io.NopCloser(strings.NewReader("name=goark")),
+	}, WithMaxFormBodySize(-1))
+	if err != nil {
+		t.Fatalf("NewRequestFromInput failed: %v", err)
+	}
+	if req.maxFormBodySize != -1 {
+		t.Fatalf("form body limit = %d, want -1", req.maxFormBodySize)
+	}
+	value, ok, err := req.Parameter("name")
+	if err != nil || !ok || value != "goark" {
+		t.Fatalf("name = %q/%v/%v, want goark/true/nil", value, ok, err)
+	}
+}
+
 func TestRequestSupportsTransportNeutralFilterOverrides(t *testing.T) {
 	req, err := NewRequestFromInput(&RequestInput{
 		Method:        "POST",
