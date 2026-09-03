@@ -48,6 +48,34 @@ func TestUpgradeWritesHandshakeResponseAndDelegates(t *testing.T) {
 	}
 }
 
+func TestUpgradeSupportsTransportNeutralRequest(t *testing.T) {
+	t.Parallel()
+
+	header := arkservlet.NewHeader()
+	header.Set("Connection", "Upgrade")
+	header.Set("Upgrade", "websocket")
+	header.Set("Sec-WebSocket-Key", "dGhlIHNhbXBsZSBub25jZQ==")
+	header.Set("Sec-WebSocket-Version", websocket.ProtocolVersion)
+	req, err := arkservlet.NewRequestFromInput(&arkservlet.RequestInput{
+		Method: http.MethodGet,
+		Header: header,
+	})
+	if err != nil {
+		t.Fatalf("NewRequestFromInput failed: %v", err)
+	}
+	res := newUpgradeResponse()
+
+	_, err = servletws.Upgrade(t.Context(), req, res, servletws.HandlerFunc(func(context.Context, websocket.Handshake, upgrade.Connection) error {
+		return nil
+	}))
+	if err != nil {
+		t.Fatalf("Upgrade failed: %v", err)
+	}
+	if !res.upgraded || !res.Committed() {
+		t.Fatal("transport-neutral request should be upgraded")
+	}
+}
+
 func TestUpgradeRejectsInvalidHandshakeBeforeConnectionHandoff(t *testing.T) {
 	t.Parallel()
 

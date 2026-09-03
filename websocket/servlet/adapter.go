@@ -30,8 +30,8 @@ func (a *Adapter) Upgrade(ctx context.Context, req *arkservlet.Request, res arks
 	if handler == nil {
 		return websocket.Handshake{}, ErrNilHandler
 	}
-	if req == nil || req.HTTPRequest() == nil {
-		return websocket.Handshake{}, arkservlet.ErrNilHTTPRequest
+	if req == nil {
+		return websocket.Handshake{}, arkservlet.ErrNilRequestInput
 	}
 	if res == nil {
 		return websocket.Handshake{}, arkservlet.ErrNilResponse
@@ -40,7 +40,7 @@ func (a *Adapter) Upgrade(ctx context.Context, req *arkservlet.Request, res arks
 	if a != nil && a.handshaker != nil {
 		handshaker = a.handshaker
 	}
-	handshake, err := handshaker.Accept(req.HTTPRequest())
+	handshake, err := handshaker.AcceptRequest(req.Method(), req.Header())
 	if err != nil {
 		writeHandshakeError(res, err)
 		return websocket.Handshake{}, err

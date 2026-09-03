@@ -190,6 +190,8 @@ func (r *Request) Context() context.Context {
 
 // Method 返回 HTTP 方法。
 func (r *Request) Method() string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	return r.method
 }
 
@@ -200,11 +202,15 @@ func (r *Request) Protocol() string {
 
 // Scheme 返回请求协议。
 func (r *Request) Scheme() string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	return r.scheme
 }
 
 // Host 返回请求主机。
 func (r *Request) Host() string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	return r.host
 }
 
@@ -278,16 +284,22 @@ func (r *Request) Header() Header {
 
 // Body 返回请求体读取器。
 func (r *Request) Body() io.ReadCloser {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	return r.body
 }
 
 // ContentLength 返回请求体长度。
 func (r *Request) ContentLength() int64 {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	return r.contentLength
 }
 
 // RemoteAddr 返回远端网络地址。
 func (r *Request) RemoteAddr() string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	return r.remoteAddr
 }
 

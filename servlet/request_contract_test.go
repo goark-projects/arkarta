@@ -80,6 +80,36 @@ func TestRequestInputHonorsConfiguredFormBodyLimit(t *testing.T) {
 	}
 }
 
+func TestRequestSupportsTransportNeutralFilterOverrides(t *testing.T) {
+	req, err := NewRequestFromInput(&RequestInput{
+		Method:        "POST",
+		Scheme:        "http",
+		Host:          "internal:8080",
+		Body:          io.NopCloser(strings.NewReader("before")),
+		ContentLength: 6,
+		RemoteAddr:    "10.0.0.1:5000",
+	})
+	if err != nil {
+		t.Fatalf("NewRequestFromInput failed: %v", err)
+	}
+	req.SetMethod("DELETE")
+	req.SetScheme("https")
+	req.SetHost("api.example.com")
+	req.SetRemoteAddr("192.0.2.10")
+	req.SetBody(io.NopCloser(strings.NewReader("after")), 5)
+
+	if req.Method() != "DELETE" || req.Scheme() != "https" || req.Host() != "api.example.com" {
+		t.Fatalf("request override = %s/%s/%s", req.Method(), req.Scheme(), req.Host())
+	}
+	if req.RemoteAddr() != "192.0.2.10" || req.ContentLength() != 5 {
+		t.Fatalf("network/body metadata = %s/%d", req.RemoteAddr(), req.ContentLength())
+	}
+	body, err := io.ReadAll(req.Body())
+	if err != nil || string(body) != "after" {
+		t.Fatalf("body = %q/%v, want after/nil", body, err)
+	}
+}
+
 func TestNewRequestRejectsNilInput(t *testing.T) {
 	if _, err := NewRequestFromInput(nil); err != ErrNilRequestInput {
 		t.Fatalf("NewRequestFromInput error = %v, want ErrNilRequestInput", err)
