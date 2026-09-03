@@ -4,13 +4,39 @@ Language: English | [简体中文](CHANGELOG.zh-CN.md)
 
 This project follows Go module semantic versioning. `v0.0.x` releases are early previews: public APIs are designed as standard contracts, but necessary source-incompatible corrections may still happen before `v0.1.0`.
 
-Release notes: [v0.0.1](docs/releases/v0.0.1.md)
+Release notes: [v0.0.2](docs/releases/v0.0.2.md) | [v0.0.1](docs/releases/v0.0.1.md)
 
 ## [Unreleased]
 
+## [0.0.2] - 2026-09-03
+
+### Added
+
+- Added transport-neutral Servlet `Header`, `Cookie`, and `RequestInput` contracts for container implementations.
+- Added request mutation methods required by forwarding and dispatching without exposing a native HTTP request.
+- Added transport-neutral TCK drivers and a `net/http` reference driver.
+- Added the Upgrade container profile and transport-neutral WebSocket handshake entry point.
+- Added Web validation groups.
+- Added a configurable URL-encoded form body limit with a safe 10 MiB default.
+
 ### Changed
 
+- Decoupled Servlet request, response, multipart, Basic authentication, cookies, headers, and WebSocket integration from `net/http` concrete types.
 - Removed the built-in `encoding/json` codec and made bytedance sonic the single Arkarta JSON implementation.
+- Made the default servlet lifecycle-aware and required async worker quiescence during completion.
+- Passed request options through the `net/http` reference adapter and avoided repeated context-path derivation on the request hot path.
+
+### Fixed
+
+- Fixed URL-encoded form parsing for transport-neutral request bodies.
+- Preserved request and response behavior across both the `net/http` reference path and native container bridges.
+
+### Compatibility
+
+- `Request.Header()` and `Response.Header()` now return `servlet.Header` instead of `http.Header`.
+- Request cookies now use `servlet.Cookie` and missing cookies return `servlet.ErrNoCookie`.
+- `json.StandardCodec` and `json.NewStandardCodec` were removed; use `json.NewCodec` or `json.NewSonicCodec`.
+- These source-incompatible corrections are permitted while Arkarta remains in the `v0.0.x` preview series.
 
 ## [0.0.1] - 2026-08-27
 
@@ -34,9 +60,9 @@ Release notes: [v0.0.1](docs/releases/v0.0.1.md)
 - Added `websocket/frame` RFC 6455 frame layer with masking, extended lengths, control-frame validation, close payload handling, and fragmentation assembly.
 - Added `websocket/servlet` integration for Servlet Upgrade, HTTP 101 response writing, frame connection adaptation, and endpoint service helper.
 - Added `websocket/tck` compatibility tests for handshake, endpoint lifecycle, compression, and frame codec.
-- Added `json` standard package with bytedance sonic codec, streaming encoder/decoder, max input size, unknown-field gate, number precision mode, and package helpers.
+- Added `json` standard package with `encoding/json` default codec, streaming encoder/decoder, max input size, unknown-field gate, number precision mode, and package helpers.
 - Added `json/sonic` high-performance codec implementation based on `github.com/bytedance/sonic`.
-- Added `json/tck` codec compatibility tests for sonic-compatible implementations.
+- Added `json/tck` codec compatibility tests shared by the standard and sonic implementations.
 - Added `validation` standard package with struct-tag constraints, nested validation, validation groups, message resolver, object constraints, built-in constraints, custom constraints, and aggregated validation errors.
 - Added `web` MVC/REST composition layer with method routing, route groups, automatic HEAD/OPTIONS, path/query/form/multipart binding, parameter conversion helpers, unified results, response advice, error mapping, and interceptors.
 - Added `web/tck` compatibility tests for Web routing, JSON binding, Validation mapping, content negotiation, automatic method semantics, and form binding.

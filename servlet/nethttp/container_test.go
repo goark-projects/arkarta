@@ -102,8 +102,8 @@ func TestContainerMetadataUsesReleaseVersion(t *testing.T) {
 	if metadata.Name() != "arkarta-nethttp" {
 		t.Fatalf("name = %q, want arkarta-nethttp", metadata.Name())
 	}
-	if metadata.Version() != "0.0.1" {
-		t.Fatalf("version = %q, want 0.0.1", metadata.Version())
+	if metadata.Version() != "0.0.2" {
+		t.Fatalf("version = %q, want 0.0.2", metadata.Version())
 	}
 	if !metadata.Supports(servletcontainer.ProfileCore) {
 		t.Fatal("metadata must support core profile")

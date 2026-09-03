@@ -4,16 +4,16 @@
 
 Arkarta 是 Goark 的企业级 Web 应用与 Web 容器标准。它参考 Jakarta EE / Java EE 已经被长期验证的标准边界，但 API 采用 Go 化表达：显式注册、小接口、`context.Context`、`net/http` 互操作、错误返回和可执行 TCK。
 
-`v0.0.1` 发布了 Arkarta 第一版标准基线，聚焦 Servlet、WebSocket、JSON、Validation、Web 路由/绑定和安全标准契约。Goark Tomcat、Goark Jetty 等具体容器不在本仓库实现，它们后续作为独立容器实现 Arkarta 标准。
+`v0.0.2` 将 Servlet 边界改为传输层中立契约，使 Hertz、`net/http` 以及未来的容器实现可以遵守同一套 Arkarta 标准并运行相同 TCK。具体生产容器继续由独立模块实现。
 
 ## 状态
 
-当前版本：`v0.0.1`。
+当前版本：`v0.0.2`。
 
 安装已发布模块：
 
 ```shell
-go get goark.dev/arkarta@v0.0.1
+go get goark.dev/arkarta@v0.0.2
 ```
 
 本地开发验证：
@@ -65,6 +65,7 @@ go vet ./...
 - [Arkarta Enterprise Web 1.0](docs/spec/arkarta-enterprise-web-1.0.zh-CN.md)
 - [Arkarta Servlet 1.0](docs/spec/arkarta-servlet-1.0.zh-CN.md)
 - [Servlet 容器 TCK 接入指南](docs/tck/servlet-container.zh-CN.md)
+- [v0.0.2 发版说明](docs/releases/v0.0.2.zh-CN.md)
 - [v0.0.1 发版说明](docs/releases/v0.0.1.zh-CN.md)
 - [更新日志](CHANGELOG.zh-CN.md)
 
