@@ -4,9 +4,22 @@
 
 本项目遵循 Go 模块语义化版本号。`v0.0.x` 是早期预览版本：公共 API 已按标准契约设计，但在 `v0.1.0` 前仍允许必要的源码不兼容修正。
 
-发版说明：[v0.0.2](docs/releases/v0.0.2.zh-CN.md) | [v0.0.1](docs/releases/v0.0.1.zh-CN.md)
+发版说明：[v0.0.3](docs/releases/v0.0.3.zh-CN.md) | [v0.0.2](docs/releases/v0.0.2.zh-CN.md) | [v0.0.1](docs/releases/v0.0.1.zh-CN.md)
 
 ## [未发布]
+
+## [0.0.3] - 2026-09-06
+
+### 变更
+
+- 将支持的工具链基线提升至 Go 1.26。
+- 按职责重新组织 Servlet、Session 和 Web 契约文件，同时保持公共 API 不变。
+- 新增 Linux、Windows 和 macOS 跨平台 CI，并包含 race 测试。
+
+### 修复
+
+- 当配置的大小限制为零时，保持文档约定的 URL 编码表单体无限制行为。
+- 修复静态分析问题，不改变标准契约。
 
 ## [0.0.2] - 2026-09-03
 

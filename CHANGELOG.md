@@ -4,9 +4,24 @@ Language: English | [简体中文](CHANGELOG.zh-CN.md)
 
 This project follows Go module semantic versioning. `v0.0.x` releases are early previews: public APIs are designed as standard contracts, but necessary source-incompatible corrections may still happen before `v0.1.0`.
 
-Release notes: [v0.0.2](docs/releases/v0.0.2.md) | [v0.0.1](docs/releases/v0.0.1.md)
+Release notes: [v0.0.3](docs/releases/v0.0.3.md) | [v0.0.2](docs/releases/v0.0.2.md) | [v0.0.1](docs/releases/v0.0.1.md)
 
 ## [Unreleased]
+
+## [0.0.3] - 2026-09-06
+
+### Changed
+
+- Raised the supported toolchain baseline to Go 1.26.
+- Reorganized Servlet, Session, and Web contracts into focused files while
+  preserving the public API.
+- Added cross-platform CI for Linux, Windows, and macOS, including race tests.
+
+### Fixed
+
+- Preserved the documented unlimited URL-encoded form body behavior when the
+  configured size limit is zero.
+- Resolved static-analysis findings without changing the standard contracts.
 
 ## [0.0.2] - 2026-09-03
 
