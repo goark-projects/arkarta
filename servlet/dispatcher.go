@@ -181,3 +181,143 @@ func errorMessage(statusCode int, cause error) string {
 	}
 	return ""
 }
+
+// DispatchTypes 是 DispatchType 的紧凑位集合。
+type DispatchTypes uint8
+
+const (
+	// DispatchOnRequest 匹配客户端原始请求。
+	DispatchOnRequest DispatchTypes = 1 << iota
+	// DispatchOnForward 匹配服务端 forward。
+	DispatchOnForward
+	// DispatchOnInclude 匹配服务端 include。
+	DispatchOnInclude
+	// DispatchOnError 匹配错误分发。
+	DispatchOnError
+	// DispatchOnAsync 匹配异步分发。
+	DispatchOnAsync
+)
+
+const allDispatchTypes = DispatchOnRequest |
+	DispatchOnForward |
+	DispatchOnInclude |
+	DispatchOnError |
+	DispatchOnAsync
+
+// NewDispatchTypes 从枚举值构造位集合；未传入时默认匹配 REQUEST。
+func NewDispatchTypes(types ...DispatchType) (DispatchTypes, error) {
+	if len(types) == 0 {
+		return DispatchOnRequest, nil
+	}
+	var result DispatchTypes
+	for _, item := range types {
+		mask, ok := dispatchMask(item)
+		if !ok {
+			return 0, ErrInvalidDispatchTypes
+		}
+		result |= mask
+	}
+	return result, nil
+}
+
+// Contains 判断位集合是否包含指定 DispatchType。
+func (d DispatchTypes) Contains(dispatchType DispatchType) bool {
+	mask, ok := dispatchMask(dispatchType)
+	return ok && d&mask != 0
+}
+
+// List 按 Arkarta Servlet 运行时顺序返回 DispatchType 切片。
+func (d DispatchTypes) List() []DispatchType {
+	d = NormalizeDispatchTypes(d)
+	result := make([]DispatchType, 0, 5)
+	for _, item := range []DispatchType{
+		DispatchRequest,
+		DispatchForward,
+		DispatchInclude,
+		DispatchError,
+		DispatchAsync,
+	} {
+		if d.Contains(item) {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+// NormalizeDispatchTypes 将空位集合归一化为 REQUEST。
+func NormalizeDispatchTypes(dispatchers DispatchTypes) DispatchTypes {
+	if dispatchers == 0 {
+		return DispatchOnRequest
+	}
+	return dispatchers
+}
+
+// ValidateDispatchTypes 校验位集合是否只包含合法 DispatchType。
+func ValidateDispatchTypes(dispatchers DispatchTypes) error {
+	if NormalizeDispatchTypes(dispatchers)&^allDispatchTypes != 0 {
+		return ErrInvalidDispatchTypes
+	}
+	return nil
+}
+
+func dispatchMask(dispatchType DispatchType) (DispatchTypes, bool) {
+	switch dispatchType {
+	case DispatchRequest:
+		return DispatchOnRequest, true
+	case DispatchForward:
+		return DispatchOnForward, true
+	case DispatchInclude:
+		return DispatchOnInclude, true
+	case DispatchError:
+		return DispatchOnError, true
+	case DispatchAsync:
+		return DispatchOnAsync, true
+	default:
+		return 0, false
+	}
+}
+
+const (
+	// AttributeServletName 保存当前请求命中的 Servlet 名称。
+	AttributeServletName = "arkarta.servlet.servlet_name"
+	// AttributeForwardRequestURI 保存 forward 前的原始请求路径。
+	AttributeForwardRequestURI = "arkarta.servlet.forward.request_uri"
+	// AttributeForwardContextPath 保存 forward 前的上下文路径。
+	AttributeForwardContextPath = "arkarta.servlet.forward.context_path"
+	// AttributeForwardServletPath 保存 forward 前的 Servlet 路径。
+	AttributeForwardServletPath = "arkarta.servlet.forward.servlet_path"
+	// AttributeForwardPathInfo 保存 forward 前的 PathInfo。
+	AttributeForwardPathInfo = "arkarta.servlet.forward.path_info"
+	// AttributeForwardQueryString 保存 forward 前的查询串。
+	AttributeForwardQueryString = "arkarta.servlet.forward.query_string"
+	// AttributeForwardMapping 保存 forward 前的映射信息。
+	AttributeForwardMapping = "arkarta.servlet.forward.mapping"
+	// AttributeIncludeRequestURI 保存 include 前的原始请求路径。
+	AttributeIncludeRequestURI = "arkarta.servlet.include.request_uri"
+	// AttributeIncludeContextPath 保存 include 前的上下文路径。
+	AttributeIncludeContextPath = "arkarta.servlet.include.context_path"
+	// AttributeIncludeServletPath 保存 include 前的 Servlet 路径。
+	AttributeIncludeServletPath = "arkarta.servlet.include.servlet_path"
+	// AttributeIncludePathInfo 保存 include 前的 PathInfo。
+	AttributeIncludePathInfo = "arkarta.servlet.include.path_info"
+	// AttributeIncludeQueryString 保存 include 前的查询串。
+	AttributeIncludeQueryString = "arkarta.servlet.include.query_string"
+	// AttributeIncludeMapping 保存 include 前的映射信息。
+	AttributeIncludeMapping = "arkarta.servlet.include.mapping"
+	// AttributeErrorStatusCode 保存错误分发的 HTTP 状态码。
+	AttributeErrorStatusCode = "arkarta.servlet.error.status_code"
+	// AttributeErrorException 保存错误分发的错误对象。
+	AttributeErrorException = "arkarta.servlet.error.exception"
+	// AttributeErrorExceptionType 保存错误分发的错误类型名称。
+	AttributeErrorExceptionType = "arkarta.servlet.error.exception_type"
+	// AttributeErrorMessage 保存错误分发的公开错误消息。
+	AttributeErrorMessage = "arkarta.servlet.error.message"
+	// AttributeErrorRequestURI 保存错误发生时的请求路径。
+	AttributeErrorRequestURI = "arkarta.servlet.error.request_uri"
+	// AttributeErrorQueryString 保存错误发生时的查询串。
+	AttributeErrorQueryString = "arkarta.servlet.error.query_string"
+	// AttributeErrorServletName 保存错误发生时的 Servlet 名称。
+	AttributeErrorServletName = "arkarta.servlet.error.servlet_name"
+)
+
+// DispatcherRegistry 基于 Router 提供路径和名称分发器。

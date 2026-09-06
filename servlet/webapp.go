@@ -3,6 +3,8 @@ package servlet
 import (
 	"context"
 	"errors"
+	"fmt"
+	"io"
 	"io/fs"
 	"log/slog"
 	"strings"
@@ -158,3 +160,156 @@ func cloneStringMap(src map[string]string) map[string]string {
 	}
 	return dst
 }
+
+const (
+	// DefaultVirtualServerName 是标准上下文默认虚拟主机名。
+	DefaultVirtualServerName = "default"
+	// DefaultCharacterEncoding 是请求与响应的默认字符编码。
+	DefaultCharacterEncoding = "utf-8"
+)
+
+// DefaultSessionTimeout 是标准会话默认空闲超时。
+const DefaultSessionTimeout = 30 * time.Minute
+
+// ErrInvalidWebAppConfig 表示 WebApp 配置非法。
+var ErrInvalidWebAppConfig = errors.New("arkarta/servlet: invalid web app config")
+
+// WithVirtualServerName 设置虚拟主机名。
+func WithVirtualServerName(name string) WebAppOption {
+	return func(app *WebApp) error {
+		name = strings.TrimSpace(name)
+		if name == "" {
+			return ErrInvalidWebAppConfig
+		}
+		app.virtualServerName = name
+		return nil
+	}
+}
+
+// WithRequestCharacterEncoding 设置默认请求字符编码。
+func WithRequestCharacterEncoding(charset string) WebAppOption {
+	return func(app *WebApp) error {
+		charset = strings.TrimSpace(charset)
+		if charset == "" {
+			return ErrInvalidWebAppConfig
+		}
+		app.requestCharacterEncoding = charset
+		return nil
+	}
+}
+
+// WithResponseCharacterEncoding 设置默认响应字符编码。
+func WithResponseCharacterEncoding(charset string) WebAppOption {
+	return func(app *WebApp) error {
+		charset = strings.TrimSpace(charset)
+		if charset == "" {
+			return ErrInvalidWebAppConfig
+		}
+		app.responseCharacterEncoding = charset
+		return nil
+	}
+}
+
+// WithSessionTimeout 设置默认会话空闲超时。
+func WithSessionTimeout(timeout time.Duration) WebAppOption {
+	return func(app *WebApp) error {
+		if timeout < 0 {
+			return fmt.Errorf("%w: negative session timeout", ErrInvalidWebAppConfig)
+		}
+		app.sessionTimeout = timeout
+		return nil
+	}
+}
+
+// VirtualServerName 返回虚拟主机名。
+func (a *WebApp) VirtualServerName() string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.virtualServerName
+}
+
+// RequestCharacterEncoding 返回默认请求字符编码。
+func (a *WebApp) RequestCharacterEncoding() string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.requestCharacterEncoding
+}
+
+// ResponseCharacterEncoding 返回默认响应字符编码。
+func (a *WebApp) ResponseCharacterEncoding() string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.responseCharacterEncoding
+}
+
+// SessionTimeout 返回默认会话空闲超时。
+func (a *WebApp) SessionTimeout() time.Duration {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.sessionTimeout
+}
+
+// DispatcherProvider 按路径或名称提供请求分发器。
+type DispatcherProvider interface {
+	RequestDispatcher(path string) (RequestDispatcher, error)
+	NamedDispatcher(name string) (RequestDispatcher, error)
+}
+
+// WithDispatcherProvider 设置请求分发器提供者。
+func WithDispatcherProvider(provider DispatcherProvider) WebAppOption {
+	return func(app *WebApp) error {
+		app.dispatcherProvider = provider
+		return nil
+	}
+}
+
+// SetDispatcherProvider 设置请求分发器提供者。
+func (a *WebApp) SetDispatcherProvider(provider DispatcherProvider) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.dispatcherProvider = provider
+}
+
+// RequestDispatcher 返回指定路径的请求分发器。
+func (a *WebApp) RequestDispatcher(path string) (RequestDispatcher, error) {
+	a.mu.RLock()
+	provider := a.dispatcherProvider
+	a.mu.RUnlock()
+	if provider == nil {
+		return nil, ErrNilRouter
+	}
+	return provider.RequestDispatcher(path)
+}
+
+// NamedDispatcher 返回指定 Servlet 名称的请求分发器。
+func (a *WebApp) NamedDispatcher(name string) (RequestDispatcher, error) {
+	a.mu.RLock()
+	provider := a.dispatcherProvider
+	a.mu.RUnlock()
+	if provider == nil {
+		return nil, ErrDispatcherTargetNotFound
+	}
+	return provider.NamedDispatcher(name)
+}
+
+type includeResponse struct {
+	target Response
+	header Header
+}
+
+func newIncludeResponse(target Response) Response {
+	if target == nil {
+		return nil
+	}
+	return &includeResponse{target: target, header: NewHeader()}
+}
+
+func (r *includeResponse) Header() Header                    { return r.header }
+func (r *includeResponse) SetStatus(int)                     {}
+func (r *includeResponse) Status() int                       { return r.target.Status() }
+func (r *includeResponse) Write(data []byte) (int, error)    { return r.target.Write(data) }
+func (r *includeResponse) WriteString(v string) (int, error) { return r.target.WriteString(v) }
+func (r *includeResponse) Flush() error                      { return r.target.Flush() }
+func (r *includeResponse) Committed() bool                   { return r.target.Committed() }
+func (r *includeResponse) Reset() error                      { return ErrResponseCommitted }
+func (r *includeResponse) BodyWriter() io.Writer             { return r }
