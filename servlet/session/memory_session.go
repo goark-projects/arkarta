@@ -164,3 +164,49 @@ func (s *memorySession) renewIDLockedByManager(oldID, newID string, now time.Tim
 	s.lastAccessedTime = now
 	return true
 }
+
+// MemoryManagerOption 定制内存会话管理器。
+type MemoryManagerOption func(*MemoryManager)
+
+// WithIDGenerator 设置会话 ID 生成器。
+func WithIDGenerator(generator IDGenerator) MemoryManagerOption {
+	return func(manager *MemoryManager) {
+		if generator != nil {
+			manager.idGenerator = generator
+		}
+	}
+}
+
+// WithClock 设置时间源，测试中用于控制过期行为。
+func WithClock(clock func() time.Time) MemoryManagerOption {
+	return func(manager *MemoryManager) {
+		if clock != nil {
+			manager.clock = clock
+		}
+	}
+}
+
+// WithMaxInactiveInterval 设置默认空闲超时。
+func WithMaxInactiveInterval(interval time.Duration) MemoryManagerOption {
+	return func(manager *MemoryManager) {
+		manager.maxInactiveInterval = interval
+	}
+}
+
+// WithListener 添加会话生命周期监听器。
+func WithListener(listener Listener) MemoryManagerOption {
+	return func(manager *MemoryManager) {
+		if listener != nil {
+			manager.listeners = append(manager.listeners, listener)
+		}
+	}
+}
+
+// WithAttributeListener 添加会话属性监听器。
+func WithAttributeListener(listener AttributeListener) MemoryManagerOption {
+	return func(manager *MemoryManager) {
+		if listener != nil {
+			manager.attributeListeners = append(manager.attributeListeners, listener)
+		}
+	}
+}
