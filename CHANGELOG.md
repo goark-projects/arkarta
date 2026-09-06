@@ -16,12 +16,15 @@ Release notes: [v0.0.3](docs/releases/v0.0.3.md) | [v0.0.2](docs/releases/v0.0.2
 - Reorganized Servlet, Session, and Web contracts into focused files while
   preserving the public API.
 - Added cross-platform CI for Linux, Windows, and macOS, including race tests.
+- Aligned all used `golang.org/x` modules with their latest stable releases.
 
 ### Fixed
 
 - Preserved the documented unlimited URL-encoded form body behavior when the
   configured size limit is zero.
 - Resolved static-analysis findings without changing the standard contracts.
+- Applied bounded request-header and idle timeouts to the `net/http` reference
+  server while preserving streaming response behavior.
 
 ## [0.0.2] - 2026-09-03
 
