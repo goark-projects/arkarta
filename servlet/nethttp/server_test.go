@@ -91,6 +91,21 @@ func TestServerRejectsInvalidInputs(t *testing.T) {
 	}
 }
 
+func TestNewServerUsesSafeHTTPDefaults(t *testing.T) {
+	t.Parallel()
+
+	server, err := NewServer(NewContainer())
+	if err != nil {
+		t.Fatalf("NewServer failed: %v", err)
+	}
+	httpServer := server.HTTPServer()
+	if httpServer.ReadHeaderTimeout != defaultReadHeaderTimeout ||
+		httpServer.IdleTimeout != defaultIdleTimeout ||
+		httpServer.MaxHeaderBytes != http.DefaultMaxHeaderBytes {
+		t.Fatalf("unexpected HTTP defaults: %+v", httpServer)
+	}
+}
+
 func TestServerOptionsConfigureHTTPServer(t *testing.T) {
 	t.Parallel()
 

@@ -5,9 +5,14 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"time"
 )
 
-const defaultServerAddress = ":8080"
+const (
+	defaultServerAddress     = ":8080"
+	defaultReadHeaderTimeout = 10 * time.Second
+	defaultIdleTimeout       = 60 * time.Second
+)
 
 // Server 将 Arkarta net/http 参考容器绑定到标准库 HTTP Server。
 type Server struct {
@@ -21,8 +26,11 @@ func NewServer(container *Container, options ...ServerOption) (*Server, error) {
 		return nil, ErrNilContainer
 	}
 	httpServer := &http.Server{
-		Addr:    defaultServerAddress,
-		Handler: container.Handler(),
+		Addr:              defaultServerAddress,
+		Handler:           container.Handler(),
+		ReadHeaderTimeout: defaultReadHeaderTimeout,
+		IdleTimeout:       defaultIdleTimeout,
+		MaxHeaderBytes:    http.DefaultMaxHeaderBytes,
 	}
 	for _, option := range options {
 		if option != nil {
