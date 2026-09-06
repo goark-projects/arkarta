@@ -30,8 +30,14 @@ func TestBasicAuthenticatorBindsPrincipalAndLogoutClearsIt(t *testing.T) {
 	if err != nil || !ok {
 		t.Fatalf("Authenticate ok/err = %v/%v, want true/nil", ok, err)
 	}
-	if RemoteUser(req) != "alice" || AuthType(req) != AuthTypeBasic || !UserInRole(req, "admin") {
-		t.Fatalf("principal = %q authType=%q admin=%v", RemoteUser(req), AuthType(req), UserInRole(req, "admin"))
+	if RemoteUser(req) != "alice" || AuthType(req) != AuthTypeBasic ||
+		!UserInRole(req, "admin") {
+		t.Fatalf(
+			"principal = %q authType=%q admin=%v",
+			RemoteUser(req),
+			AuthType(req),
+			UserInRole(req, "admin"),
+		)
 	}
 	if err := Logout(context.Background(), req, res, authenticator); err != nil {
 		t.Fatalf("Logout failed: %v", err)
@@ -58,7 +64,10 @@ func TestBasicAuthenticatorChallengesMissingCredentials(t *testing.T) {
 	if res.Status() != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want 401", res.Status())
 	}
-	if challenge := res.Header().Get("WWW-Authenticate"); !strings.Contains(challenge, `Basic realm="arkarta"`) {
+	if challenge := res.Header().Get("WWW-Authenticate"); !strings.Contains(
+		challenge,
+		`Basic realm="arkarta"`,
+	) {
 		t.Fatalf("challenge = %q, want Basic realm", challenge)
 	}
 }

@@ -33,7 +33,13 @@ func TestDefaultServletServesWelcomeFiles(t *testing.T) {
 			t.Fatalf("Serve %s failed: %v", target, err)
 		}
 		if recorder.Code != http.StatusOK || recorder.Body.String() != want {
-			t.Fatalf("%s status/body = %d/%q, want 200/%q", target, recorder.Code, recorder.Body.String(), want)
+			t.Fatalf(
+				"%s status/body = %d/%q, want 200/%q",
+				target,
+				recorder.Code,
+				recorder.Body.String(),
+				want,
+			)
 		}
 	}
 }
@@ -50,7 +56,11 @@ func TestDefaultServletCustomWelcomeFiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewRequest default failed: %v", err)
 	}
-	err = defaultHandler.Serve(context.Background(), req, nethttp.NewResponse(httptest.NewRecorder()))
+	err = defaultHandler.Serve(
+		context.Background(),
+		req,
+		nethttp.NewResponse(httptest.NewRecorder()),
+	)
 	var status servlet.StatusError
 	if !errors.As(err, &status) || status.StatusCode() != http.StatusNotFound {
 		t.Fatalf("disabled welcome err = %v, want 404", err)
@@ -65,7 +75,8 @@ func TestDefaultServletCustomWelcomeFiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewRequest custom failed: %v", err)
 	}
-	if err := customHandler.Serve(context.Background(), req, nethttp.NewResponse(recorder)); err != nil {
+	response := nethttp.NewResponse(recorder)
+	if err := customHandler.Serve(context.Background(), req, response); err != nil {
 		t.Fatalf("Serve custom failed: %v", err)
 	}
 	if recorder.Body.String() != "custom" {
@@ -81,7 +92,11 @@ func TestDefaultServletDirectoryWithoutWelcomeIsNotFound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewRequest failed: %v", err)
 	}
-	err = handler.Serve(context.Background(), req, nethttp.NewResponse(httptest.NewRecorder()))
+	err = handler.Serve(
+		context.Background(),
+		req,
+		nethttp.NewResponse(httptest.NewRecorder()),
+	)
 	var status servlet.StatusError
 	if !errors.As(err, &status) || status.StatusCode() != http.StatusNotFound {
 		t.Fatalf("missing welcome err = %v, want 404", err)
@@ -91,7 +106,10 @@ func TestDefaultServletDirectoryWithoutWelcomeIsNotFound(t *testing.T) {
 func TestDefaultServletRejectsInvalidWelcomeFile(t *testing.T) {
 	t.Parallel()
 
-	_, err := NewDefaultServlet(newWelcomeProvider(t), WithWelcomeFiles("../index.html"))
+	_, err := NewDefaultServlet(
+		newWelcomeProvider(t),
+		WithWelcomeFiles("../index.html"),
+	)
 	if !errors.Is(err, ErrInvalidPath) {
 		t.Fatalf("invalid welcome err = %v, want ErrInvalidPath", err)
 	}

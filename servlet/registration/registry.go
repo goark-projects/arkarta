@@ -33,7 +33,10 @@ func NewRegistry() *Registry {
 }
 
 // AddServlet 注册 Servlet 实例。
-func (r *Registry) AddServlet(name string, target servlet.Handler) (*ServletRegistration, error) {
+func (r *Registry) AddServlet(
+	name string,
+	target servlet.Handler,
+) (*ServletRegistration, error) {
 	if err := validateName(name); err != nil {
 		return nil, err
 	}
@@ -61,7 +64,10 @@ func (r *Registry) AddServlet(name string, target servlet.Handler) (*ServletRegi
 }
 
 // AddFilter 注册 Filter 实例。
-func (r *Registry) AddFilter(name string, target servlet.Filter) (*FilterRegistration, error) {
+func (r *Registry) AddFilter(
+	name string,
+	target servlet.Filter,
+) (*FilterRegistration, error) {
 	if err := validateName(name); err != nil {
 		return nil, err
 	}

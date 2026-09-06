@@ -27,14 +27,19 @@ func runAsyncAwaitAndCompletionState(t *testing.T) {
 	req := newTCKRequest(t, http.MethodGet, "/async")
 	cause := errors.New("tck async failure")
 	var events []string
-	ctx, err := async.NewContext(context.Background(), req, newResponseStub(), async.WithListener(async.ListenerFunc{
-		Error: func(_ context.Context, event async.Event) {
-			events = append(events, "error:"+event.Err.Error())
-		},
-		Complete: func(_ context.Context, event async.Event) {
-			events = append(events, "complete:"+event.Err.Error())
-		},
-	}))
+	ctx, err := async.NewContext(
+		context.Background(),
+		req,
+		newResponseStub(),
+		async.WithListener(async.ListenerFunc{
+			Error: func(_ context.Context, event async.Event) {
+				events = append(events, "error:"+event.Err.Error())
+			},
+			Complete: func(_ context.Context, event async.Event) {
+				events = append(events, "complete:"+event.Err.Error())
+			},
+		}),
+	)
 	if err != nil {
 		t.Fatalf("NewContext failed: %v", err)
 	}
@@ -48,7 +53,10 @@ func runAsyncAwaitAndCompletionState(t *testing.T) {
 	if !ctx.Completed() {
 		t.Fatal("Completed should be true after Complete")
 	}
-	if !reflect.DeepEqual(events, []string{"error:tck async failure", "complete:tck async failure"}) {
+	if !reflect.DeepEqual(
+		events,
+		[]string{"error:tck async failure", "complete:tck async failure"},
+	) {
 		t.Fatalf("events = %#v, want error then complete", events)
 	}
 }
@@ -60,12 +68,14 @@ func runAsyncDispatchCountAndIdempotency(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewContext failed: %v", err)
 	}
-	handler := servlet.HandlerFunc(func(_ context.Context, req *servlet.Request, _ servlet.Response) error {
-		if req.DispatchType() != servlet.DispatchAsync {
-			t.Fatalf("dispatch type = %v, want async", req.DispatchType())
-		}
-		return nil
-	})
+	handler := servlet.HandlerFunc(
+		func(_ context.Context, req *servlet.Request, _ servlet.Response) error {
+			if req.DispatchType() != servlet.DispatchAsync {
+				t.Fatalf("dispatch type = %v, want async", req.DispatchType())
+			}
+			return nil
+		},
+	)
 
 	if err := ctx.Dispatch(handler); err != nil {
 		t.Fatalf("first Dispatch failed: %v", err)
@@ -130,15 +140,26 @@ func runAsyncStreamRejectsAfterClose(t *testing.T) {
 	if err := stream.Close(context.Background()); err != nil {
 		t.Fatalf("Close failed: %v", err)
 	}
-	if _, err := stream.Write(context.Background(), []byte("x")); !errors.Is(err, async.ErrCompleted) {
+	if _, err := stream.Write(context.Background(), []byte("x")); !errors.Is(
+		err,
+		async.ErrCompleted,
+	) {
 		t.Fatalf("Write after close err = %v, want ErrCompleted", err)
 	}
 	if res.body.String() != "data" || res.flushes != 1 {
-		t.Fatalf("stream body/flushes = %q/%d, want data/1", res.body.String(), res.flushes)
+		t.Fatalf(
+			"stream body/flushes = %q/%d, want data/1",
+			res.body.String(),
+			res.flushes,
+		)
 	}
 }
 
-func newTCKRequest(t *testing.T, method, target string, options ...servlet.RequestOption) *servlet.Request {
+func newTCKRequest(
+	t *testing.T,
+	method, target string,
+	options ...servlet.RequestOption,
+) *servlet.Request {
 	t.Helper()
 	req, err := servlet.NewRequest(httptest.NewRequest(method, target, nil), options...)
 	if err != nil {

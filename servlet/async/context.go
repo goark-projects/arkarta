@@ -50,7 +50,12 @@ type Context struct {
 }
 
 // NewContext 创建异步上下文。
-func NewContext(parent context.Context, req *servlet.Request, res servlet.Response, options ...Option) (*Context, error) {
+func NewContext(
+	parent context.Context,
+	req *servlet.Request,
+	res servlet.Response,
+	options ...Option,
+) (*Context, error) {
 	if parent == nil {
 		parent = context.Background()
 	}

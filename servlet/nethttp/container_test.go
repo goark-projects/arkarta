@@ -22,11 +22,17 @@ func TestContainerDeploysApplicationAndServesHTTP(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewWebApp failed: %v", err)
 	}
-	deployment, err := servletcontainer.NewDeployment(app,
-		servletcontainer.WithMapping("/orders", servlet.HandlerFunc(func(_ context.Context, _ *servlet.Request, res servlet.Response) error {
-			_, err := res.WriteString("orders")
-			return err
-		})),
+	deployment, err := servletcontainer.NewDeployment(
+		app,
+		servletcontainer.WithMapping(
+			"/orders",
+			servlet.HandlerFunc(
+				func(_ context.Context, _ *servlet.Request, res servlet.Response) error {
+					_, err := res.WriteString("orders")
+					return err
+				},
+			),
+		),
 	)
 	if err != nil {
 		t.Fatalf("NewDeployment failed: %v", err)
@@ -41,7 +47,8 @@ func TestContainerDeploysApplicationAndServesHTTP(t *testing.T) {
 	}
 
 	recorder := httptest.NewRecorder()
-	container.Handler().ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/orders", nil))
+	container.Handler().
+		ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/orders", nil))
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", recorder.Code)
@@ -61,17 +68,23 @@ func TestContainerServesApplicationRelativePath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewWebApp failed: %v", err)
 	}
-	deployment, err := servletcontainer.NewDeployment(app,
-		servletcontainer.WithMapping("/items", servlet.HandlerFunc(func(_ context.Context, req *servlet.Request, res servlet.Response) error {
-			if req.ContextPath() != "/orders" {
-				t.Fatalf("context path = %q, want /orders", req.ContextPath())
-			}
-			if req.Path() != "/items" {
-				t.Fatalf("path = %q, want /items", req.Path())
-			}
-			_, err := res.WriteString(req.ServletPath())
-			return err
-		})),
+	deployment, err := servletcontainer.NewDeployment(
+		app,
+		servletcontainer.WithMapping(
+			"/items",
+			servlet.HandlerFunc(
+				func(_ context.Context, req *servlet.Request, res servlet.Response) error {
+					if req.ContextPath() != "/orders" {
+						t.Fatalf("context path = %q, want /orders", req.ContextPath())
+					}
+					if req.Path() != "/items" {
+						t.Fatalf("path = %q, want /items", req.Path())
+					}
+					_, err := res.WriteString(req.ServletPath())
+					return err
+				},
+			),
+		),
 	)
 	if err != nil {
 		t.Fatalf("NewDeployment failed: %v", err)
@@ -85,7 +98,8 @@ func TestContainerServesApplicationRelativePath(t *testing.T) {
 	}
 
 	recorder := httptest.NewRecorder()
-	container.Handler().ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/orders/items", nil))
+	container.Handler().
+		ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/orders/items", nil))
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", recorder.Code)
@@ -120,11 +134,17 @@ func TestContainerRejectsUnsupportedProfile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewWebApp failed: %v", err)
 	}
-	deployment, err := servletcontainer.NewDeployment(app,
+	deployment, err := servletcontainer.NewDeployment(
+		app,
 		servletcontainer.WithProfile(servletcontainer.ProfileUpgrade),
-		servletcontainer.WithMapping("/", servlet.HandlerFunc(func(context.Context, *servlet.Request, servlet.Response) error {
-			return nil
-		})),
+		servletcontainer.WithMapping(
+			"/",
+			servlet.HandlerFunc(
+				func(context.Context, *servlet.Request, servlet.Response) error {
+					return nil
+				},
+			),
+		),
 	)
 	if err != nil {
 		t.Fatalf("NewDeployment failed: %v", err)
@@ -150,7 +170,11 @@ func TestContainerExposesNativeSender(t *testing.T) {
 		t.Fatalf("SendFile failed: %v", err)
 	}
 	if dst.String() != "bcd" || result.Bytes() != 3 {
-		t.Fatalf("native sender body/result = %q/%d, want bcd/3", dst.String(), result.Bytes())
+		t.Fatalf(
+			"native sender body/result = %q/%d, want bcd/3",
+			dst.String(),
+			result.Bytes(),
+		)
 	}
 }
 
@@ -161,10 +185,16 @@ func TestContainerShutdownStopsApplications(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewWebApp failed: %v", err)
 	}
-	deployment, err := servletcontainer.NewDeployment(app,
-		servletcontainer.WithMapping("/", servlet.HandlerFunc(func(context.Context, *servlet.Request, servlet.Response) error {
-			return nil
-		})),
+	deployment, err := servletcontainer.NewDeployment(
+		app,
+		servletcontainer.WithMapping(
+			"/",
+			servlet.HandlerFunc(
+				func(context.Context, *servlet.Request, servlet.Response) error {
+					return nil
+				},
+			),
+		),
 	)
 	if err != nil {
 		t.Fatalf("NewDeployment failed: %v", err)

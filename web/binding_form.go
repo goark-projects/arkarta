@@ -17,7 +17,8 @@ func (c *Context) BindForm(target any) error {
 	if c.request == nil {
 		return newBindError(ErrNilContext)
 	}
-	if err := ensureFormContentType(c.request.Method(), c.request.Header().Get("Content-Type")); err != nil {
+	contentType := c.request.Header().Get("Content-Type")
+	if err := ensureFormContentType(c.request.Method(), contentType); err != nil {
 		return err
 	}
 	values, err := c.request.Parameters()

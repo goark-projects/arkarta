@@ -25,15 +25,27 @@ func TestUpgradeWritesHandshakeResponseAndDelegates(t *testing.T) {
 	res := newUpgradeResponse()
 	var seenSubprotocol string
 
-	handshake, err := servletws.Upgrade(context.Background(), req, res, servletws.HandlerFunc(func(_ context.Context, handshake websocket.Handshake, _ upgrade.Connection) error {
-		seenSubprotocol = handshake.Subprotocol()
-		return nil
-	}), websocket.WithSubprotocols("chat"))
+	handshake, err := servletws.Upgrade(
+		context.Background(),
+		req,
+		res,
+		servletws.HandlerFunc(
+			func(_ context.Context, handshake websocket.Handshake, _ upgrade.Connection) error {
+				seenSubprotocol = handshake.Subprotocol()
+				return nil
+			},
+		),
+		websocket.WithSubprotocols("chat"),
+	)
 	if err != nil {
 		t.Fatalf("Upgrade failed: %v", err)
 	}
 	if handshake.Subprotocol() != "chat" || seenSubprotocol != "chat" {
-		t.Fatalf("subprotocol = %q/%q, want chat", handshake.Subprotocol(), seenSubprotocol)
+		t.Fatalf(
+			"subprotocol = %q/%q, want chat",
+			handshake.Subprotocol(),
+			seenSubprotocol,
+		)
 	}
 	raw := strings.ToLower(res.conn.String())
 	if !strings.HasPrefix(raw, "http/1.1 101 switching protocols\r\n") {
@@ -41,7 +53,10 @@ func TestUpgradeWritesHandshakeResponseAndDelegates(t *testing.T) {
 	}
 	if !strings.Contains(raw, "sec-websocket-accept: s3pplmbitxaq9kygzzhzrbk+xoo=") ||
 		!strings.Contains(raw, "sec-websocket-protocol: chat") {
-		t.Fatalf("response headers = %q, want accept and subprotocol", res.conn.String())
+		t.Fatalf(
+			"response headers = %q, want accept and subprotocol",
+			res.conn.String(),
+		)
 	}
 	if !res.upgraded || !res.Committed() {
 		t.Fatal("response should be upgraded and committed")
@@ -65,9 +80,16 @@ func TestUpgradeSupportsTransportNeutralRequest(t *testing.T) {
 	}
 	res := newUpgradeResponse()
 
-	_, err = servletws.Upgrade(t.Context(), req, res, servletws.HandlerFunc(func(context.Context, websocket.Handshake, upgrade.Connection) error {
-		return nil
-	}))
+	_, err = servletws.Upgrade(
+		t.Context(),
+		req,
+		res,
+		servletws.HandlerFunc(
+			func(context.Context, websocket.Handshake, upgrade.Connection) error {
+				return nil
+			},
+		),
+	)
 	if err != nil {
 		t.Fatalf("Upgrade failed: %v", err)
 	}
@@ -83,14 +105,22 @@ func TestUpgradeRejectsInvalidHandshakeBeforeConnectionHandoff(t *testing.T) {
 	req.HTTPRequest().Header.Set("Sec-WebSocket-Key", "bad")
 	res := newUpgradeResponse()
 
-	_, err := servletws.Upgrade(context.Background(), req, res, servletws.HandlerFunc(func(context.Context, websocket.Handshake, upgrade.Connection) error {
-		t.Fatal("handler must not run for invalid handshake")
-		return nil
-	}))
+	_, err := servletws.Upgrade(
+		context.Background(),
+		req,
+		res,
+		servletws.HandlerFunc(
+			func(context.Context, websocket.Handshake, upgrade.Connection) error {
+				t.Fatal("handler must not run for invalid handshake")
+				return nil
+			},
+		),
+	)
 	if !errors.Is(err, websocket.ErrInvalidHandshake) {
 		t.Fatalf("Upgrade err = %v, want ErrInvalidHandshake", err)
 	}
-	if res.Status() != http.StatusBadRequest || !strings.Contains(res.body.String(), "invalid websocket key") {
+	if res.Status() != http.StatusBadRequest ||
+		!strings.Contains(res.body.String(), "invalid websocket key") {
 		t.Fatalf("error response = status %d body %q", res.Status(), res.body.String())
 	}
 	if res.upgraded {
@@ -176,7 +206,11 @@ func (r *upgradeResponse) BodyWriter() io.Writer {
 	return &r.body
 }
 
-func (r *upgradeResponse) UpgradeHTTP(ctx context.Context, _ *arkservlet.Request, handler upgrade.Handler) error {
+func (r *upgradeResponse) UpgradeHTTP(
+	ctx context.Context,
+	_ *arkservlet.Request,
+	handler upgrade.Handler,
+) error {
 	r.upgraded = true
 	r.committed = true
 	return handler.ServeUpgrade(ctx, r.conn)

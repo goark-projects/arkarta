@@ -4,11 +4,9 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
-	"sync"
 	"testing"
 	"time"
 
@@ -36,13 +34,17 @@ func TestContextDispatchesAsyncRequest(t *testing.T) {
 		t.Fatalf("NewContext failed: %v", err)
 	}
 
-	err = async.Dispatch(servlet.HandlerFunc(func(_ context.Context, req *servlet.Request, res servlet.Response) error {
-		if req.DispatchType() != servlet.DispatchAsync {
-			t.Fatalf("dispatch = %v, want async", req.DispatchType())
-		}
-		_, writeErr := res.WriteString("async")
-		return writeErr
-	}))
+	err = async.Dispatch(
+		servlet.HandlerFunc(
+			func(_ context.Context, req *servlet.Request, res servlet.Response) error {
+				if req.DispatchType() != servlet.DispatchAsync {
+					t.Fatalf("dispatch = %v, want async", req.DispatchType())
+				}
+				_, writeErr := res.WriteString("async")
+				return writeErr
+			},
+		),
+	)
 	if err != nil {
 		t.Fatalf("Dispatch failed: %v", err)
 	}
@@ -101,7 +103,12 @@ func TestContextAwaitQuiescenceWaitsForTimedOutWorker(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewRequest failed: %v", err)
 	}
-	async, err := NewContext(context.Background(), req, newAsyncResponse(), WithTimeout(time.Millisecond))
+	async, err := NewContext(
+		context.Background(),
+		req,
+		newAsyncResponse(),
+		WithTimeout(time.Millisecond),
+	)
 	if err != nil {
 		t.Fatalf("NewContext failed: %v", err)
 	}
@@ -120,7 +127,10 @@ func TestContextAwaitQuiescenceWaitsForTimedOutWorker(t *testing.T) {
 	}
 	waitCtx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 	defer cancel()
-	if err := async.AwaitQuiescence(waitCtx); !errors.Is(err, context.DeadlineExceeded) {
+	if err := async.AwaitQuiescence(waitCtx); !errors.Is(
+		err,
+		context.DeadlineExceeded,
+	) {
 		t.Fatalf("AwaitQuiescence err = %v, want context deadline exceeded", err)
 	}
 
@@ -139,14 +149,19 @@ func TestContextCompleteIsIdempotentAndAwaitReturnsError(t *testing.T) {
 	}
 	cause := errors.New("boom")
 	var events []string
-	async, err := NewContext(context.Background(), req, newAsyncResponse(), WithListener(ListenerFunc{
-		Error: func(_ context.Context, event Event) {
-			events = append(events, "error:"+event.Err.Error())
-		},
-		Complete: func(_ context.Context, event Event) {
-			events = append(events, "complete:"+event.Err.Error())
-		},
-	}))
+	async, err := NewContext(
+		context.Background(),
+		req,
+		newAsyncResponse(),
+		WithListener(ListenerFunc{
+			Error: func(_ context.Context, event Event) {
+				events = append(events, "error:"+event.Err.Error())
+			},
+			Complete: func(_ context.Context, event Event) {
+				events = append(events, "complete:"+event.Err.Error())
+			},
+		}),
+	)
 	if err != nil {
 		t.Fatalf("NewContext failed: %v", err)
 	}
@@ -180,9 +195,11 @@ func TestContextDispatchCountsAndRejectsAfterComplete(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewContext failed: %v", err)
 	}
-	handler := servlet.HandlerFunc(func(context.Context, *servlet.Request, servlet.Response) error {
-		return nil
-	})
+	handler := servlet.HandlerFunc(
+		func(context.Context, *servlet.Request, servlet.Response) error {
+			return nil
+		},
+	)
 
 	if err := async.Dispatch(handler); err != nil {
 		t.Fatalf("first Dispatch failed: %v", err)
@@ -218,7 +235,10 @@ func TestStreamWriteFlushAndClose(t *testing.T) {
 	if err := stream.Close(context.Background()); err != nil {
 		t.Fatalf("Close failed: %v", err)
 	}
-	if _, err := stream.Write(context.Background(), []byte("b")); !errors.Is(err, ErrCompleted) {
+	if _, err := stream.Write(context.Background(), []byte("b")); !errors.Is(
+		err,
+		ErrCompleted,
+	) {
 		t.Fatalf("write after close err = %v, want ErrCompleted", err)
 	}
 	if res.body.String() != "a" || res.flushes != 2 {
@@ -302,44 +322,4 @@ func (r *asyncResponse) Flush() error {
 
 func (r *asyncResponse) Committed() bool {
 	return r.committed
-}
-
-func (r *asyncResponse) Reset() error {
-	r.body.Reset()
-	r.committed = false
-	return nil
-}
-
-func (r *asyncResponse) BodyWriter() io.Writer {
-	return r
-}
-
-type blockingAsyncResponse struct {
-	asyncResponse
-	writeStarted chan struct{}
-	releaseWrite chan struct{}
-	flushCalled  chan struct{}
-	flushOnce    sync.Once
-}
-
-func newBlockingAsyncResponse() *blockingAsyncResponse {
-	return &blockingAsyncResponse{
-		asyncResponse: asyncResponse{header: servlet.NewHeader(), status: http.StatusOK},
-		writeStarted:  make(chan struct{}),
-		releaseWrite:  make(chan struct{}),
-		flushCalled:   make(chan struct{}),
-	}
-}
-
-func (r *blockingAsyncResponse) Write(data []byte) (int, error) {
-	close(r.writeStarted)
-	<-r.releaseWrite
-	return r.asyncResponse.Write(data)
-}
-
-func (r *blockingAsyncResponse) Flush() error {
-	r.flushOnce.Do(func() {
-		close(r.flushCalled)
-	})
-	return r.asyncResponse.Flush()
 }

@@ -14,14 +14,15 @@ func TestErrorPageRegistryHandlesStatusMapping(t *testing.T) {
 	t.Parallel()
 
 	registry := NewErrorPageRegistry()
-	if err := registry.RegisterStatus(http.StatusNotFound, HandlerFunc(func(_ context.Context, req *Request, res Response) error {
+	handler := HandlerFunc(func(_ context.Context, req *Request, res Response) error {
 		status, _ := req.Attribute(AttributeErrorStatusCode)
 		if status != http.StatusNotFound {
 			t.Fatalf("status attr = %v, want 404", status)
 		}
 		_, err := res.WriteString("not-found-page")
 		return err
-	})); err != nil {
+	})
+	if err := registry.RegisterStatus(http.StatusNotFound, handler); err != nil {
 		t.Fatalf("RegisterStatus failed: %v", err)
 	}
 
@@ -50,13 +51,14 @@ func TestErrorPageRegistryPrefersErrorTypeMapping(t *testing.T) {
 	t.Parallel()
 
 	registry := NewErrorPageRegistry()
-	if err := registry.RegisterStatus(http.StatusInternalServerError, HandlerFunc(func(_ context.Context, _ *Request, res Response) error {
+	statusHandler := HandlerFunc(func(_ context.Context, _ *Request, res Response) error {
 		_, err := res.WriteString("status-page")
 		return err
-	})); err != nil {
+	})
+	if err := registry.RegisterStatus(http.StatusInternalServerError, statusHandler); err != nil {
 		t.Fatalf("RegisterStatus failed: %v", err)
 	}
-	if err := RegisterErrorType[*typedFailure](registry, HandlerFunc(func(_ context.Context, req *Request, res Response) error {
+	typeHandler := HandlerFunc(func(_ context.Context, req *Request, res Response) error {
 		errValue, _ := req.Attribute(AttributeErrorException)
 		var failure *typedFailure
 		if !errors.As(errValue.(error), &failure) || failure.code != "E_TYPED" {
@@ -64,7 +66,8 @@ func TestErrorPageRegistryPrefersErrorTypeMapping(t *testing.T) {
 		}
 		_, err := res.WriteString("type-page")
 		return err
-	})); err != nil {
+	})
+	if err := RegisterErrorType[*typedFailure](registry, typeHandler); err != nil {
 		t.Fatalf("RegisterErrorType failed: %v", err)
 	}
 
@@ -75,7 +78,9 @@ func TestErrorPageRegistryPrefersErrorTypeMapping(t *testing.T) {
 	response := newTestResponse()
 	cause := errors.Join(&typedFailure{code: "E_TYPED"}, errors.New("wrapper"))
 
-	handled, err := registry.Handle(context.Background(), req, response, http.StatusInternalServerError, cause)
+	handled, err := registry.Handle(
+		context.Background(), req, response, http.StatusInternalServerError, cause,
+	)
 	if err != nil {
 		t.Fatalf("Handle failed: %v", err)
 	}
@@ -88,16 +93,18 @@ func TestErrorPageRegistryPrefersMostSpecificErrorTypeMapping(t *testing.T) {
 	t.Parallel()
 
 	registry := NewErrorPageRegistry()
-	if err := RegisterErrorType[baseFailure](registry, HandlerFunc(func(_ context.Context, _ *Request, res Response) error {
+	baseHandler := HandlerFunc(func(_ context.Context, _ *Request, res Response) error {
 		_, err := res.WriteString("base-page")
 		return err
-	})); err != nil {
+	})
+	if err := RegisterErrorType[baseFailure](registry, baseHandler); err != nil {
 		t.Fatalf("RegisterErrorType base failed: %v", err)
 	}
-	if err := RegisterErrorType[*specificFailure](registry, HandlerFunc(func(_ context.Context, _ *Request, res Response) error {
+	specificHandler := HandlerFunc(func(_ context.Context, _ *Request, res Response) error {
 		_, err := res.WriteString("specific-page")
 		return err
-	})); err != nil {
+	})
+	if err := RegisterErrorType[*specificFailure](registry, specificHandler); err != nil {
 		t.Fatalf("RegisterErrorType specific failed: %v", err)
 	}
 
@@ -106,7 +113,10 @@ func TestErrorPageRegistryPrefersMostSpecificErrorTypeMapping(t *testing.T) {
 		t.Fatalf("NewRequest failed: %v", err)
 	}
 	response := newTestResponse()
-	handled, err := registry.Handle(context.Background(), req, response, http.StatusInternalServerError, &specificFailure{})
+	handled, err := registry.Handle(
+		context.Background(), req, response,
+		http.StatusInternalServerError, &specificFailure{},
+	)
 	if err != nil || !handled {
 		t.Fatalf("Handle handled/err = %v/%v, want true/nil", handled, err)
 	}
@@ -119,13 +129,17 @@ func TestErrorPageRegistryUsesDefaultAndPreventsLoop(t *testing.T) {
 	t.Parallel()
 
 	registry := NewErrorPageRegistry()
-	if err := registry.RegisterDefault(HandlerFunc(func(ctx context.Context, req *Request, res Response) error {
-		if handled, err := registry.Handle(ctx, req, res, http.StatusInternalServerError, errors.New("loop")); handled || !errors.Is(err, ErrErrorPageLoop) {
+	handler := HandlerFunc(func(ctx context.Context, req *Request, res Response) error {
+		handled, err := registry.Handle(
+			ctx, req, res, http.StatusInternalServerError, errors.New("loop"),
+		)
+		if handled || !errors.Is(err, ErrErrorPageLoop) {
 			t.Fatalf("loop handled/err = %v/%v, want false/ErrErrorPageLoop", handled, err)
 		}
-		_, err := res.WriteString("default-page")
+		_, err = res.WriteString("default-page")
 		return err
-	})); err != nil {
+	})
+	if err := registry.RegisterDefault(handler); err != nil {
 		t.Fatalf("RegisterDefault failed: %v", err)
 	}
 	req, err := NewRequest(httptest.NewRequest(http.MethodGet, "/boom", nil))
@@ -147,10 +161,11 @@ func TestErrorPageRegistrySkipsCommittedResponse(t *testing.T) {
 	t.Parallel()
 
 	registry := NewErrorPageRegistry()
-	if err := registry.RegisterStatus(http.StatusInternalServerError, HandlerFunc(func(context.Context, *Request, Response) error {
+	handler := HandlerFunc(func(context.Context, *Request, Response) error {
 		t.Fatal("committed response should not dispatch error page")
 		return nil
-	})); err != nil {
+	})
+	if err := registry.RegisterStatus(http.StatusInternalServerError, handler); err != nil {
 		t.Fatalf("RegisterStatus failed: %v", err)
 	}
 	req, err := NewRequest(httptest.NewRequest(http.MethodGet, "/boom", nil))
@@ -162,7 +177,10 @@ func TestErrorPageRegistrySkipsCommittedResponse(t *testing.T) {
 		t.Fatalf("WriteString failed: %v", err)
 	}
 
-	handled, err := registry.Handle(context.Background(), req, response, http.StatusInternalServerError, errors.New("boom"))
+	handled, err := registry.Handle(
+		context.Background(), req, response,
+		http.StatusInternalServerError, errors.New("boom"),
+	)
 	if !errors.Is(err, ErrResponseCommitted) {
 		t.Fatalf("err = %v, want ErrResponseCommitted", err)
 	}
@@ -196,7 +214,10 @@ func (e *specificFailure) Base() {
 func TestParseAcceptSortsByQualityAndSpecificity(t *testing.T) {
 	t.Parallel()
 
-	accepted := ParseAccept("application/xml;q=0.4, text/*;q=0.7, application/json; charset=utf-8, */*;q=0.1")
+	accepted := ParseAccept(
+		"application/xml;q=0.4, text/*;q=0.7, " +
+			"application/json; charset=utf-8, */*;q=0.1",
+	)
 	got := mediaTexts(accepted)
 	want := []string{"application/json; charset=utf-8", "text/*", "application/xml", "*/*"}
 	if !reflect.DeepEqual(got, want) {
@@ -227,12 +248,14 @@ func TestNegotiateContentTypeUsesMostSpecificQuality(t *testing.T) {
 	t.Parallel()
 
 	accepted := ParseAccept("application/json;q=0, */*;q=0.8")
-	if got, ok := NegotiateContentType(accepted, "application/json", "text/plain"); !ok || got != "text/plain" {
+	got, ok := NegotiateContentType(accepted, "application/json", "text/plain")
+	if !ok || got != "text/plain" {
 		t.Fatalf("negotiated = %q/%v, want text/plain/true", got, ok)
 	}
 
 	accepted = ParseAccept("text/*;q=0.5, application/json;q=0.9")
-	if got, ok := NegotiateContentType(accepted, "text/plain", "application/json"); !ok || got != "application/json" {
+	got, ok = NegotiateContentType(accepted, "text/plain", "application/json")
+	if !ok || got != "application/json" {
 		t.Fatalf("negotiated = %q/%v, want application/json/true", got, ok)
 	}
 }
@@ -246,7 +269,8 @@ func TestRequestNegotiateContentType(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewRequest failed: %v", err)
 	}
-	if got, ok := req.NegotiateContentType("application/xml", "application/json"); !ok || got != "application/json" {
+	got, ok := req.NegotiateContentType("application/xml", "application/json")
+	if !ok || got != "application/json" {
 		t.Fatalf("negotiated = %q/%v, want application/json/true", got, ok)
 	}
 }
@@ -272,7 +296,9 @@ func TestCookieStringWritesStandardAttributes(t *testing.T) {
 		SameSite:    SameSiteStrictMode,
 		Partitioned: true,
 	}
-	want := "sid=abc; Path=/app; Domain=example.test; Expires=Tue, 01 Jan 2030 19:04:05 GMT; Max-Age=3600; HttpOnly; Secure; SameSite=Strict; Partitioned"
+	want := "sid=abc; Path=/app; Domain=example.test; " +
+		"Expires=Tue, 01 Jan 2030 19:04:05 GMT; Max-Age=3600; " +
+		"HttpOnly; Secure; SameSite=Strict; Partitioned"
 	if got := cookie.String(); got != want {
 		t.Fatalf("Cookie.String() = %q, want %q", got, want)
 	}

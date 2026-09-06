@@ -45,14 +45,21 @@ type MessageResolver interface {
 type MessageResolverFunc func(ctx context.Context, message MessageContext) (string, bool)
 
 // ResolveMessage 执行底层消息解析函数。
-func (f MessageResolverFunc) ResolveMessage(ctx context.Context, message MessageContext) (string, bool) {
+func (f MessageResolverFunc) ResolveMessage(
+	ctx context.Context,
+	message MessageContext,
+) (string, bool) {
 	if f == nil {
 		return "", false
 	}
 	return f(ctx, message)
 }
 
-func (v *DefaultValidator) resolveMessage(ctx context.Context, violation Violation, field FieldContext) Violation {
+func (v *DefaultValidator) resolveMessage(
+	ctx context.Context,
+	violation Violation,
+	field FieldContext,
+) Violation {
 	if v.messageResolver == nil {
 		return violation
 	}

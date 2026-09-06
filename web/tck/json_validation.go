@@ -44,23 +44,34 @@ func runBindValidateAndWriteJSON(t *testing.T, factory HTTPHandlerFactory) {
 		web.WithJSONCodec(arkjson.NewCodec(arkjson.WithDisallowUnknownFields(true))),
 		web.WithValidator(validation.NewValidator()),
 	)
-	mustHandle(t, router, http.MethodPost, "/accounts/{id}", web.HandlerFunc(func(ctx *web.Context) (web.Result, error) {
-		var body input
-		if err := ctx.BindAndValidateJSON(&body); err != nil {
-			return nil, err
-		}
-		return web.JSON(http.StatusCreated, map[string]string{
-			"id":   ctx.PathValue("id"),
-			"name": body.Name,
-		}), nil
-	}))
+	mustHandle(
+		t,
+		router,
+		http.MethodPost,
+		"/accounts/{id}",
+		web.HandlerFunc(func(ctx *web.Context) (web.Result, error) {
+			var body input
+			if err := ctx.BindAndValidateJSON(&body); err != nil {
+				return nil, err
+			}
+			return web.JSON(http.StatusCreated, map[string]string{
+				"id":   ctx.PathValue("id"),
+				"name": body.Name,
+			}), nil
+		}),
+	)
 
 	recorder := httptest.NewRecorder()
 	request := jsonRequest(http.MethodPost, "/accounts/7", `{"name":"goark"}`)
 	factory(router).ServeHTTP(recorder, request)
 
 	if recorder.Code != http.StatusCreated {
-		t.Fatalf("status = %d, want %d, body=%s", recorder.Code, http.StatusCreated, recorder.Body.String())
+		t.Fatalf(
+			"status = %d, want %d, body=%s",
+			recorder.Code,
+			http.StatusCreated,
+			recorder.Body.String(),
+		)
 	}
 	payload := decodeBody[map[string]string](t, recorder)
 	if payload["id"] != "7" || payload["name"] != "goark" {
@@ -74,19 +85,32 @@ func runValidationError(t *testing.T, factory HTTPHandlerFactory) {
 		Name string `json:"name" arkarta:"required"`
 	}
 	router := web.NewRouter()
-	mustHandle(t, router, http.MethodPost, "/accounts", web.HandlerFunc(func(ctx *web.Context) (web.Result, error) {
-		var body input
-		if err := ctx.BindAndValidateJSON(&body); err != nil {
-			return nil, err
-		}
-		return web.NoContent(), nil
-	}))
+	mustHandle(
+		t,
+		router,
+		http.MethodPost,
+		"/accounts",
+		web.HandlerFunc(func(ctx *web.Context) (web.Result, error) {
+			var body input
+			if err := ctx.BindAndValidateJSON(&body); err != nil {
+				return nil, err
+			}
+			return web.NoContent(), nil
+		}),
+	)
 
 	recorder := httptest.NewRecorder()
-	factory(router).ServeHTTP(recorder, jsonRequest(http.MethodPost, "/accounts", `{"name":""}`))
+	factory(
+		router,
+	).ServeHTTP(recorder, jsonRequest(http.MethodPost, "/accounts", `{"name":""}`))
 
 	if recorder.Code != http.StatusUnprocessableEntity {
-		t.Fatalf("status = %d, want %d, body=%s", recorder.Code, http.StatusUnprocessableEntity, recorder.Body.String())
+		t.Fatalf(
+			"status = %d, want %d, body=%s",
+			recorder.Code,
+			http.StatusUnprocessableEntity,
+			recorder.Body.String(),
+		)
 	}
 	payload := decodeBody[web.ErrorResponse](t, recorder)
 	if payload.Error.Code != "VALIDATION_ERROR" {
@@ -97,19 +121,32 @@ func runValidationError(t *testing.T, factory HTTPHandlerFactory) {
 func runBadJSON(t *testing.T, factory HTTPHandlerFactory) {
 	t.Helper()
 	router := web.NewRouter()
-	mustHandle(t, router, http.MethodPost, "/accounts", web.HandlerFunc(func(ctx *web.Context) (web.Result, error) {
-		var body map[string]string
-		if err := ctx.BindJSON(&body); err != nil {
-			return nil, err
-		}
-		return web.NoContent(), nil
-	}))
+	mustHandle(
+		t,
+		router,
+		http.MethodPost,
+		"/accounts",
+		web.HandlerFunc(func(ctx *web.Context) (web.Result, error) {
+			var body map[string]string
+			if err := ctx.BindJSON(&body); err != nil {
+				return nil, err
+			}
+			return web.NoContent(), nil
+		}),
+	)
 
 	recorder := httptest.NewRecorder()
-	factory(router).ServeHTTP(recorder, jsonRequest(http.MethodPost, "/accounts", `{"name":`))
+	factory(
+		router,
+	).ServeHTTP(recorder, jsonRequest(http.MethodPost, "/accounts", `{"name":`))
 
 	if recorder.Code != http.StatusBadRequest {
-		t.Fatalf("status = %d, want %d, body=%s", recorder.Code, http.StatusBadRequest, recorder.Body.String())
+		t.Fatalf(
+			"status = %d, want %d, body=%s",
+			recorder.Code,
+			http.StatusBadRequest,
+			recorder.Body.String(),
+		)
 	}
 	payload := decodeBody[web.ErrorResponse](t, recorder)
 	if payload.Error.Code != "BAD_REQUEST" {
@@ -120,9 +157,15 @@ func runBadJSON(t *testing.T, factory HTTPHandlerFactory) {
 func runNotAcceptable(t *testing.T, factory HTTPHandlerFactory) {
 	t.Helper()
 	router := web.NewRouter()
-	mustHandle(t, router, http.MethodGet, "/accounts", web.HandlerFunc(func(ctx *web.Context) (web.Result, error) {
-		return web.JSON(http.StatusOK, map[string]string{"ok": "true"}), nil
-	}))
+	mustHandle(
+		t,
+		router,
+		http.MethodGet,
+		"/accounts",
+		web.HandlerFunc(func(ctx *web.Context) (web.Result, error) {
+			return web.JSON(http.StatusOK, map[string]string{"ok": "true"}), nil
+		}),
+	)
 
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodGet, "/accounts", nil)
@@ -137,9 +180,15 @@ func runNotAcceptable(t *testing.T, factory HTTPHandlerFactory) {
 func runMethodNotAllowed(t *testing.T, factory HTTPHandlerFactory) {
 	t.Helper()
 	router := web.NewRouter()
-	mustHandle(t, router, http.MethodGet, "/accounts/{id}", web.HandlerFunc(func(ctx *web.Context) (web.Result, error) {
-		return web.NoContent(), nil
-	}))
+	mustHandle(
+		t,
+		router,
+		http.MethodGet,
+		"/accounts/{id}",
+		web.HandlerFunc(func(ctx *web.Context) (web.Result, error) {
+			return web.NoContent(), nil
+		}),
+	)
 
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodDelete, "/accounts/7", nil)
@@ -161,7 +210,12 @@ func jsonRequest(method, target, body string) *http.Request {
 	return request
 }
 
-func mustHandle(t *testing.T, router *web.Router, method, pattern string, handler web.Handler) {
+func mustHandle(
+	t *testing.T,
+	router *web.Router,
+	method, pattern string,
+	handler web.Handler,
+) {
 	t.Helper()
 	if err := router.Handle(method, pattern, handler); err != nil {
 		t.Fatalf("Handle(%s %s) failed: %v", method, pattern, err)

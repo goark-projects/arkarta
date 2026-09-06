@@ -181,8 +181,13 @@ func (c Constraint) Authorize(ctx context.Context, req *servlet.Request) error {
 }
 
 func (c Constraint) authorizeBase(ctx context.Context, req *servlet.Request) error {
-	if c.transportGuarantee == TransportConfidential && (req == nil || !req.IsSecure()) {
-		return servlet.NewHTTPError(http.StatusForbidden, "secure transport required", nil)
+	if c.transportGuarantee == TransportConfidential &&
+		(req == nil || !req.IsSecure()) {
+		return servlet.NewHTTPError(
+			http.StatusForbidden,
+			"secure transport required",
+			nil,
+		)
 	}
 	if len(c.roles) == 0 {
 		if c.emptyRoleSemantic == EmptyRoleDeny {
@@ -191,7 +196,11 @@ func (c Constraint) authorizeBase(ctx context.Context, req *servlet.Request) err
 		return nil
 	}
 	if _, ok := CurrentPrincipal(req); !ok {
-		return servlet.NewHTTPError(http.StatusUnauthorized, "authentication required", nil)
+		return servlet.NewHTTPError(
+			http.StatusUnauthorized,
+			"authentication required",
+			nil,
+		)
 	}
 	for role := range c.roles {
 		if UserInRole(req, c.actualRole(role)) {

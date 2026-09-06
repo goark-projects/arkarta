@@ -6,4 +6,6 @@ import "errors"
 var ErrNilHandler = errors.New("arkarta/websocket/servlet: handler is nil")
 
 // ErrNilConnection 表示 WebSocket 升级后连接为空。
-var ErrNilConnection = errors.New("arkarta/websocket/servlet: upgrade connection is nil")
+var ErrNilConnection = errors.New(
+	"arkarta/websocket/servlet: upgrade connection is nil",
+)

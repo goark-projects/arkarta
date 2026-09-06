@@ -33,7 +33,11 @@ func TestURLRewriterEncodesSessionIDInPath(t *testing.T) {
 func TestURLRewriterReplacesExistingSessionID(t *testing.T) {
 	t.Parallel()
 
-	got, err := EncodeURL(newRewriteRequest(t, "http://example.com/orders"), "/orders;jsessionid=OLD?status=open", "NEW")
+	got, err := EncodeURL(
+		newRewriteRequest(t, "http://example.com/orders"),
+		"/orders;jsessionid=OLD?status=open",
+		"NEW",
+	)
 	if err != nil {
 		t.Fatalf("EncodeURL failed: %v", err)
 	}
@@ -60,7 +64,11 @@ func TestURLRewriterSkipsCookieAndExternalURLs(t *testing.T) {
 		t.Fatalf("cookie preferred URL = %q, want unchanged", got)
 	}
 
-	got, err = EncodeURL(newRewriteRequest(t, "http://example.com/orders"), "https://other.example/orders", "S123")
+	got, err = EncodeURL(
+		newRewriteRequest(t, "http://example.com/orders"),
+		"https://other.example/orders",
+		"S123",
+	)
 	if err != nil {
 		t.Fatalf("EncodeURL external failed: %v", err)
 	}
@@ -78,7 +86,10 @@ func TestURLRewriterSupportsCustomParameterAndCookiePolicy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewRequest failed: %v", err)
 	}
-	rewriter, err := NewURLRewriter(WithRewriteParameterName("sid"), WithCookiePreferred(false))
+	rewriter, err := NewURLRewriter(
+		WithRewriteParameterName("sid"),
+		WithCookiePreferred(false),
+	)
 	if err != nil {
 		t.Fatalf("NewURLRewriter failed: %v", err)
 	}
@@ -94,7 +105,10 @@ func TestURLRewriterSupportsCustomParameterAndCookiePolicy(t *testing.T) {
 func TestAccessorEncodesCurrentSessionURL(t *testing.T) {
 	t.Parallel()
 
-	accessor, err := NewAccessor(NewMemoryManager(), WithTrackingModes(TrackingCookie, TrackingURL))
+	accessor, err := NewAccessor(
+		NewMemoryManager(),
+		WithTrackingModes(TrackingCookie, TrackingURL),
+	)
 	if err != nil {
 		t.Fatalf("NewAccessor failed: %v", err)
 	}
@@ -117,7 +131,10 @@ func TestAccessorEncodesCurrentSessionURL(t *testing.T) {
 func TestURLRewriterRejectsInvalidConfig(t *testing.T) {
 	t.Parallel()
 
-	if _, err := NewURLRewriter(WithRewriteParameterName("bad/name")); !errors.Is(err, ErrInvalidURLRewriteConfig) {
+	if _, err := NewURLRewriter(WithRewriteParameterName("bad/name")); !errors.Is(
+		err,
+		ErrInvalidURLRewriteConfig,
+	) {
 		t.Fatalf("invalid parameter err = %v, want ErrInvalidURLRewriteConfig", err)
 	}
 }

@@ -180,7 +180,12 @@ func (r *ServletRegistration) SecurityConfig() (security.Constraint, bool) {
 
 func validateURLPattern(pattern string) error {
 	router := servlet.NewRouter()
-	return router.Handle(pattern, servlet.HandlerFunc(func(context.Context, *servlet.Request, servlet.Response) error {
-		return nil
-	}))
+	return router.Handle(
+		pattern,
+		servlet.HandlerFunc(
+			func(context.Context, *servlet.Request, servlet.Response) error {
+				return nil
+			},
+		),
+	)
 }

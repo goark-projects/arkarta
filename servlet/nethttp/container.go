@@ -34,7 +34,10 @@ func NewContainer() *Container {
 		metadata: servletcontainer.NewMetadata(
 			containerName,
 			containerVersion,
-			[]servletcontainer.Profile{servletcontainer.ProfileCore, servletcontainer.ProfileNativeIO},
+			[]servletcontainer.Profile{
+				servletcontainer.ProfileCore,
+				servletcontainer.ProfileNativeIO,
+			},
 			map[string]string{"transport": "net/http"},
 		),
 		sender: nativeio.NewStandardSender(),
@@ -55,7 +58,10 @@ func (c *Container) NativeSender() nativeio.Sender {
 }
 
 // Deploy 部署 Web 应用。
-func (c *Container) Deploy(ctx context.Context, deployment *servletcontainer.Deployment) (servletcontainer.Application, error) {
+func (c *Container) Deploy(
+	ctx context.Context,
+	deployment *servletcontainer.Deployment,
+) (servletcontainer.Application, error) {
 	if err := c.ensureProfiles(deployment); err != nil {
 		return nil, err
 	}
@@ -164,9 +170,15 @@ func (serviceUnavailableApplication) WebApp() *servlet.WebApp {
 }
 
 func (serviceUnavailableApplication) Handler() servlet.Handler {
-	return servlet.HandlerFunc(func(context.Context, *servlet.Request, servlet.Response) error {
-		return servlet.NewHTTPError(http.StatusServiceUnavailable, http.StatusText(http.StatusServiceUnavailable), nil)
-	})
+	return servlet.HandlerFunc(
+		func(context.Context, *servlet.Request, servlet.Response) error {
+			return servlet.NewHTTPError(
+				http.StatusServiceUnavailable,
+				http.StatusText(http.StatusServiceUnavailable),
+				nil,
+			)
+		},
+	)
 }
 
 func (serviceUnavailableApplication) Stop(context.Context) error {

@@ -27,7 +27,12 @@ func (f PrincipalFunc) Name() string {
 }
 
 // SetPrincipal 绑定当前请求的认证主体。
-func SetPrincipal(req *servlet.Request, principal Principal, authType string, roles ...string) {
+func SetPrincipal(
+	req *servlet.Request,
+	principal Principal,
+	authType string,
+	roles ...string,
+) {
 	if req == nil {
 		return
 	}

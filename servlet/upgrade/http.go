@@ -12,7 +12,12 @@ type HTTPUpgrader interface {
 }
 
 // HTTP 将当前请求升级并移交连接所有权。
-func HTTP(ctx context.Context, req *servlet.Request, res servlet.Response, handler Handler) error {
+func HTTP(
+	ctx context.Context,
+	req *servlet.Request,
+	res servlet.Response,
+	handler Handler,
+) error {
 	if handler == nil {
 		return ErrNilHandler
 	}

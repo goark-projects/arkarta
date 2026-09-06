@@ -26,7 +26,10 @@ func TestFilterRegistrationMappings(t *testing.T) {
 	if err := filter.AddMappingForURLPatterns(0, false, "/secure/*", "/admin/*"); err != nil {
 		t.Fatalf("AddMappingForURLPatterns failed: %v", err)
 	}
-	dispatchers, err := registration.NewDispatcherTypes(registration.DispatcherRequest, registration.DispatcherError)
+	dispatchers, err := registration.NewDispatcherTypes(
+		registration.DispatcherRequest,
+		registration.DispatcherError,
+	)
 	if err != nil {
 		t.Fatalf("NewDispatcherTypes failed: %v", err)
 	}
@@ -41,14 +44,18 @@ func TestFilterRegistrationMappings(t *testing.T) {
 	if !urlMappings[0].DispatcherTypes().Contains(registration.DispatcherRequest) {
 		t.Fatal("zero dispatcher set should default to REQUEST")
 	}
-	if !reflect.DeepEqual(urlMappings[0].URLPatterns(), []string{"/secure/*", "/admin/*"}) {
+	if !reflect.DeepEqual(
+		urlMappings[0].URLPatterns(),
+		[]string{"/secure/*", "/admin/*"},
+	) {
 		t.Fatalf("url patterns = %#v, want secure/admin", urlMappings[0].URLPatterns())
 	}
 	nameMappings := filter.ServletNameMappings()
 	if len(nameMappings) != 1 {
 		t.Fatalf("servlet-name mapping count = %d, want 1", len(nameMappings))
 	}
-	if !nameMappings[0].MatchAfter() || !nameMappings[0].DispatcherTypes().Contains(registration.DispatcherError) {
+	if !nameMappings[0].MatchAfter() ||
+		!nameMappings[0].DispatcherTypes().Contains(registration.DispatcherError) {
 		t.Fatalf("name mapping flags invalid")
 	}
 	if !reflect.DeepEqual(nameMappings[0].ServletNames(), []string{"orders"}) {
@@ -57,7 +64,8 @@ func TestFilterRegistrationMappings(t *testing.T) {
 
 	snapshot := registry.Snapshot()
 	descriptor := snapshot.Filters()[0]
-	if descriptor.Name() != "audit" || !descriptor.AsyncSupported() || descriptor.InitParams()["level"] != "full" {
+	if descriptor.Name() != "audit" || !descriptor.AsyncSupported() ||
+		descriptor.InitParams()["level"] != "full" {
 		t.Fatalf("filter descriptor mismatch")
 	}
 	patterns := descriptor.URLPatternMappings()[0].URLPatterns()
@@ -71,24 +79,42 @@ func TestFilterRegistrationRejectsInvalidInput(t *testing.T) {
 	t.Parallel()
 
 	registry := registration.NewRegistry()
-	if _, err := registry.AddFilter(" ", servlet.FilterFunc(noopFilter)); !errors.Is(err, registration.ErrInvalidName) {
+	if _, err := registry.AddFilter(" ", servlet.FilterFunc(noopFilter)); !errors.Is(
+		err,
+		registration.ErrInvalidName,
+	) {
 		t.Fatalf("blank filter name err = %v, want ErrInvalidName", err)
 	}
 	var nilFilter servlet.FilterFunc
-	if _, err := registry.AddFilter("nil", nilFilter); !errors.Is(err, registration.ErrNilFilter) {
+	if _, err := registry.AddFilter("nil", nilFilter); !errors.Is(
+		err,
+		registration.ErrNilFilter,
+	) {
 		t.Fatalf("nil filter err = %v, want ErrNilFilter", err)
 	}
 	filter, err := registry.AddFilter("audit", servlet.FilterFunc(noopFilter))
 	if err != nil {
 		t.Fatalf("AddFilter failed: %v", err)
 	}
-	if err := filter.AddMappingForURLPatterns(registration.DispatcherTypes(1<<7), false, "/secure/*"); !errors.Is(err, registration.ErrInvalidDispatcherTypes) {
+	err = filter.AddMappingForURLPatterns(
+		registration.DispatcherTypes(1<<7), false, "/secure/*",
+	)
+	if !errors.Is(
+		err,
+		registration.ErrInvalidDispatcherTypes,
+	) {
 		t.Fatalf("invalid dispatchers err = %v, want ErrInvalidDispatcherTypes", err)
 	}
-	if err := filter.AddMappingForURLPatterns(0, false, "bad"); !errors.Is(err, servlet.ErrInvalidMappingPattern) {
+	if err := filter.AddMappingForURLPatterns(0, false, "bad"); !errors.Is(
+		err,
+		servlet.ErrInvalidMappingPattern,
+	) {
 		t.Fatalf("invalid URL pattern err = %v, want ErrInvalidMappingPattern", err)
 	}
-	if err := filter.AddMappingForServletNames(0, false, ""); !errors.Is(err, registration.ErrInvalidName) {
+	if err := filter.AddMappingForServletNames(0, false, ""); !errors.Is(
+		err,
+		registration.ErrInvalidName,
+	) {
 		t.Fatalf("invalid servlet name err = %v, want ErrInvalidName", err)
 	}
 }
@@ -96,15 +122,24 @@ func TestFilterRegistrationRejectsInvalidInput(t *testing.T) {
 func TestDispatcherTypesList(t *testing.T) {
 	t.Parallel()
 
-	dispatchers, err := registration.NewDispatcherTypes(registration.DispatcherError, registration.DispatcherRequest)
+	dispatchers, err := registration.NewDispatcherTypes(
+		registration.DispatcherError,
+		registration.DispatcherRequest,
+	)
 	if err != nil {
 		t.Fatalf("NewDispatcherTypes failed: %v", err)
 	}
-	want := []registration.DispatcherType{registration.DispatcherRequest, registration.DispatcherError}
+	want := []registration.DispatcherType{
+		registration.DispatcherRequest,
+		registration.DispatcherError,
+	}
 	if !reflect.DeepEqual(dispatchers.List(), want) {
 		t.Fatalf("list = %#v, want %#v", dispatchers.List(), want)
 	}
-	if _, err := registration.NewDispatcherTypes(registration.DispatcherType(99)); !errors.Is(err, registration.ErrInvalidDispatcherTypes) {
+	if _, err := registration.NewDispatcherTypes(registration.DispatcherType(99)); !errors.Is(
+		err,
+		registration.ErrInvalidDispatcherTypes,
+	) {
 		t.Fatalf("invalid dispatcher err = %v, want ErrInvalidDispatcherTypes", err)
 	}
 }

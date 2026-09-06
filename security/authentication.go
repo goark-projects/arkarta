@@ -15,7 +15,10 @@ type Authentication struct {
 type AuthenticationOption func(*Authentication)
 
 // NewAuthentication 创建认证结果。
-func NewAuthentication(principal Principal, options ...AuthenticationOption) Authentication {
+func NewAuthentication(
+	principal Principal,
+	options ...AuthenticationOption,
+) Authentication {
 	auth := Authentication{
 		principal: principal,
 		details:   make(map[string]any),

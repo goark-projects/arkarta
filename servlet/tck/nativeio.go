@@ -34,7 +34,11 @@ func RunNativeIO(t *testing.T, factory NativeIOSenderFactory) {
 	})
 	t.Run("rejects_invalid_region", func(t *testing.T) {
 		sender := factory()
-		_, err := sender.SendFile(context.Background(), io.Discard, nativeio.FileRegion{})
+		_, err := sender.SendFile(
+			context.Background(),
+			io.Discard,
+			nativeio.FileRegion{},
+		)
 		if !errors.Is(err, nativeio.ErrNilSource) {
 			t.Fatalf("SendFile err = %v, want ErrNilSource", err)
 		}

@@ -14,10 +14,10 @@ func TestDefaultValidatorValidatesStructTags(t *testing.T) {
 		City string `json:"city" arkarta:"required,notblank"`
 	}
 	type user struct {
-		Name    string  `json:"name" arkarta:"required,min=2,max=8"`
-		Email   string  `json:"email" arkarta:"email"`
-		Status  string  `json:"status" arkarta:"oneof=ACTIVE|DISABLED"`
-		Age     int     `json:"age" arkarta:"min=18,max=120"`
+		Name    string  `json:"name"    arkarta:"required,min=2,max=8"`
+		Email   string  `json:"email"   arkarta:"email"`
+		Status  string  `json:"status"  arkarta:"oneof=ACTIVE|DISABLED"`
+		Age     int     `json:"age"     arkarta:"min=18,max=120"`
 		Address address `json:"address"`
 	}
 
@@ -37,7 +37,13 @@ func TestDefaultValidatorValidatesStructTags(t *testing.T) {
 		t.Fatal("result should be invalid")
 	}
 	got := violationPaths(result)
-	want := []string{"name:min", "email:email", "status:oneof", "age:min", "address.city:notblank"}
+	want := []string{
+		"name:min",
+		"email:email",
+		"status:oneof",
+		"age:min",
+		"address.city:notblank",
+	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("violations = %#v, want %#v", got, want)
 	}
@@ -57,7 +63,10 @@ func TestDefaultValidatorValidatesNestedSlices(t *testing.T) {
 		Tags  []string
 	}
 
-	result, err := Validate(context.Background(), order{Items: []item{{}, {SKU: "ok"}}, Tags: []string{"a"}})
+	result, err := Validate(
+		context.Background(),
+		order{Items: []item{{}, {SKU: "ok"}}, Tags: []string{"a"}},
+	)
 	if err != nil {
 		t.Fatalf("Validate failed: %v", err)
 	}
@@ -72,7 +81,7 @@ func TestDefaultValidatorAllowsNilForOptionalRules(t *testing.T) {
 	t.Parallel()
 
 	type payload struct {
-		Name   *string `json:"name" arkarta:"min=2"`
+		Name   *string `json:"name"   arkarta:"min=2"`
 		Status *string `json:"status" arkarta:"oneof=ACTIVE|DISABLED"`
 	}
 	result, err := Validate(context.Background(), payload{})
@@ -97,7 +106,12 @@ func TestDefaultValidatorCustomConstraintAndContext(t *testing.T) {
 				return Violation{}, false, err
 			}
 			if field.Value().String() != "arkarta" {
-				return NewViolation(field.Path(), "ark", "必须等于 arkarta", field.Value().String()), true, nil
+				return NewViolation(
+					field.Path(),
+					"ark",
+					"必须等于 arkarta",
+					field.Value().String(),
+				), true, nil
 			}
 			return Violation{}, false, nil
 		},
@@ -112,7 +126,10 @@ func TestDefaultValidatorCustomConstraintAndContext(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if _, err := validator.Validate(ctx, payload{Name: "arkarta"}); !errors.Is(err, context.Canceled) {
+	if _, err := validator.Validate(ctx, payload{Name: "arkarta"}); !errors.Is(
+		err,
+		context.Canceled,
+	) {
 		t.Fatalf("canceled err = %v, want context.Canceled", err)
 	}
 }
@@ -120,7 +137,10 @@ func TestDefaultValidatorCustomConstraintAndContext(t *testing.T) {
 func TestDefaultValidatorRejectsInvalidInput(t *testing.T) {
 	t.Parallel()
 
-	if _, err := (*DefaultValidator)(nil).Validate(context.Background(), struct{}{}); !errors.Is(err, ErrNilValidator) {
+	if _, err := (*DefaultValidator)(nil).Validate(context.Background(), struct{}{}); !errors.Is(
+		err,
+		ErrNilValidator,
+	) {
 		t.Fatalf("nil validator err = %v, want ErrNilValidator", err)
 	}
 	if _, err := Validate(context.Background(), nil); !errors.Is(err, ErrNilValue) {
@@ -129,7 +149,10 @@ func TestDefaultValidatorRejectsInvalidInput(t *testing.T) {
 	type payload struct {
 		Name string `arkarta:"min=x"`
 	}
-	if _, err := Validate(context.Background(), payload{Name: "a"}); !errors.Is(err, ErrInvalidRule) {
+	if _, err := Validate(context.Background(), payload{Name: "a"}); !errors.Is(
+		err,
+		ErrInvalidRule,
+	) {
 		t.Fatalf("invalid rule err = %v, want ErrInvalidRule", err)
 	}
 }

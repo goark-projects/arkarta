@@ -10,10 +10,16 @@ import (
 )
 
 // ErrUnknownServletName 表示 Filter 引用了不存在的 Servlet 名称。
-var ErrUnknownServletName = errors.New("arkarta/servlet/container: unknown servlet name")
+var ErrUnknownServletName = errors.New(
+	"arkarta/servlet/container: unknown servlet name",
+)
 
 // DeploymentFromRegistration 将注册快照转换为标准部署描述。
-func DeploymentFromRegistration(app *servlet.WebApp, snapshot registration.Snapshot, options ...DeploymentOption) (*Deployment, error) {
+func DeploymentFromRegistration(
+	app *servlet.WebApp,
+	snapshot registration.Snapshot,
+	options ...DeploymentOption,
+) (*Deployment, error) {
 	all := make([]DeploymentOption, 0, len(options)+1)
 	all = append(all, WithRegistration(snapshot))
 	all = append(all, options...)
@@ -39,7 +45,15 @@ func WithRegistration(snapshot registration.Snapshot) DeploymentOption {
 		for _, descriptor := range snapshot.Servlets() {
 			for _, pattern := range descriptor.Mappings() {
 				loadOrder, hasLoadOrder := descriptor.LoadOnStartup()
-				mapping, err := newRegistrationMapping(pattern, descriptor.Name(), descriptor.Handler(), descriptor.InitParams(), loadOrder, hasLoadOrder, descriptor.RunAsRole())
+				mapping, err := newRegistrationMapping(
+					pattern,
+					descriptor.Name(),
+					descriptor.Handler(),
+					descriptor.InitParams(),
+					loadOrder,
+					hasLoadOrder,
+					descriptor.RunAsRole(),
+				)
 				if err != nil {
 					return err
 				}
@@ -47,19 +61,34 @@ func WithRegistration(snapshot registration.Snapshot) DeploymentOption {
 					return err
 				}
 				deployment.mappings = append(deployment.mappings, mapping)
-				nameIndex[descriptor.Name()] = append(nameIndex[descriptor.Name()], len(deployment.mappings)-1)
+				nameIndex[descriptor.Name()] = append(
+					nameIndex[descriptor.Name()],
+					len(deployment.mappings)-1,
+				)
 			}
 		}
-		return attachRegistrationFilters(deployment, start, nameIndex, snapshot.Filters())
+		return attachRegistrationFilters(
+			deployment,
+			start,
+			nameIndex,
+			snapshot.Filters(),
+		)
 	}
 }
 
-func attachSecurityFilter(mapping *Mapping, descriptor registration.ServletDescriptor) error {
+func attachSecurityFilter(
+	mapping *Mapping,
+	descriptor registration.ServletDescriptor,
+) error {
 	config, ok := descriptor.SecurityConfig()
 	if !ok {
 		return nil
 	}
-	dispatchers, err := servlet.NewDispatchTypes(servlet.DispatchRequest, servlet.DispatchForward, servlet.DispatchAsync)
+	dispatchers, err := servlet.NewDispatchTypes(
+		servlet.DispatchRequest,
+		servlet.DispatchForward,
+		servlet.DispatchAsync,
+	)
 	if err != nil {
 		return err
 	}
@@ -72,17 +101,26 @@ func attachSecurityFilter(mapping *Mapping, descriptor registration.ServletDescr
 	if err != nil {
 		return err
 	}
-	mapping.filterBindings = append([]servlet.FilterBinding{binding}, mapping.filterBindings...)
+	mapping.filterBindings = append(
+		[]servlet.FilterBinding{binding},
+		mapping.filterBindings...)
 	return nil
 }
 
-func attachRegistrationListeners(app *servlet.WebApp, descriptors []registration.ListenerDescriptor) error {
+func attachRegistrationListeners(
+	app *servlet.WebApp,
+	descriptors []registration.ListenerDescriptor,
+) error {
 	for _, descriptor := range descriptors {
 		switch descriptor.Kind() {
 		case registration.ListenerContext:
 			listener, ok := descriptor.Listener().(servlet.ContextListener)
 			if !ok {
-				return fmt.Errorf("%w: %s", registration.ErrNilListener, descriptor.ClassName())
+				return fmt.Errorf(
+					"%w: %s",
+					registration.ErrNilListener,
+					descriptor.ClassName(),
+				)
 			}
 			if err := app.AddContextListener(listener); err != nil {
 				return err
@@ -90,7 +128,11 @@ func attachRegistrationListeners(app *servlet.WebApp, descriptors []registration
 		case registration.ListenerRequest:
 			listener, ok := descriptor.Listener().(servlet.RequestListener)
 			if !ok {
-				return fmt.Errorf("%w: %s", registration.ErrNilListener, descriptor.ClassName())
+				return fmt.Errorf(
+					"%w: %s",
+					registration.ErrNilListener,
+					descriptor.ClassName(),
+				)
 			}
 			if err := app.AddRequestListener(listener); err != nil {
 				return err
@@ -98,7 +140,11 @@ func attachRegistrationListeners(app *servlet.WebApp, descriptors []registration
 		case registration.ListenerContextAttribute:
 			listener, ok := descriptor.Listener().(servlet.ContextAttributeListener)
 			if !ok {
-				return fmt.Errorf("%w: %s", registration.ErrNilListener, descriptor.ClassName())
+				return fmt.Errorf(
+					"%w: %s",
+					registration.ErrNilListener,
+					descriptor.ClassName(),
+				)
 			}
 			if err := app.AddContextAttributeListener(listener); err != nil {
 				return err
@@ -106,7 +152,11 @@ func attachRegistrationListeners(app *servlet.WebApp, descriptors []registration
 		case registration.ListenerRequestAttribute:
 			listener, ok := descriptor.Listener().(servlet.RequestAttributeListener)
 			if !ok {
-				return fmt.Errorf("%w: %s", registration.ErrNilListener, descriptor.ClassName())
+				return fmt.Errorf(
+					"%w: %s",
+					registration.ErrNilListener,
+					descriptor.ClassName(),
+				)
 			}
 			if err := app.AddRequestAttributeListener(listener); err != nil {
 				return err
@@ -116,19 +166,32 @@ func attachRegistrationListeners(app *servlet.WebApp, descriptors []registration
 		case registration.ListenerSessionAttribute:
 			continue
 		default:
-			return fmt.Errorf("%w: %s", registration.ErrNilListener, descriptor.ClassName())
+			return fmt.Errorf(
+				"%w: %s",
+				registration.ErrNilListener,
+				descriptor.ClassName(),
+			)
 		}
 	}
 	return nil
 }
 
-func attachRegistrationFilters(deployment *Deployment, start int, nameIndex map[string][]int, descriptors []registration.FilterDescriptor) error {
+func attachRegistrationFilters(
+	deployment *Deployment,
+	start int,
+	nameIndex map[string][]int,
+	descriptors []registration.FilterDescriptor,
+) error {
 	orders := make([]orderedFilterBindings, len(deployment.mappings))
 	for index := 0; index < start; index++ {
-		orders[index].base = cloneFilterBindings(deployment.mappings[index].filterBindings)
+		orders[index].base = cloneFilterBindings(
+			deployment.mappings[index].filterBindings,
+		)
 	}
 	for index := start; index < len(deployment.mappings); index++ {
-		orders[index].base = cloneFilterBindings(deployment.mappings[index].filterBindings)
+		orders[index].base = cloneFilterBindings(
+			deployment.mappings[index].filterBindings,
+		)
 	}
 	for _, descriptor := range descriptors {
 		if err := attachURLPatternFilters(orders, descriptor); err != nil {
@@ -144,10 +207,17 @@ func attachRegistrationFilters(deployment *Deployment, start int, nameIndex map[
 	return nil
 }
 
-func attachURLPatternFilters(orders []orderedFilterBindings, descriptor registration.FilterDescriptor) error {
+func attachURLPatternFilters(
+	orders []orderedFilterBindings,
+	descriptor registration.FilterDescriptor,
+) error {
 	for _, mapping := range descriptor.URLPatternMappings() {
 		for _, pattern := range mapping.URLPatterns() {
-			binding, err := newRegistrationFilterBinding(descriptor, mapping.DispatcherTypes(), pattern)
+			binding, err := newRegistrationFilterBinding(
+				descriptor,
+				mapping.DispatcherTypes(),
+				pattern,
+			)
 			if err != nil {
 				return err
 			}
@@ -159,9 +229,17 @@ func attachURLPatternFilters(orders []orderedFilterBindings, descriptor registra
 	return nil
 }
 
-func attachServletNameFilters(orders []orderedFilterBindings, nameIndex map[string][]int, descriptor registration.FilterDescriptor) error {
+func attachServletNameFilters(
+	orders []orderedFilterBindings,
+	nameIndex map[string][]int,
+	descriptor registration.FilterDescriptor,
+) error {
 	for _, mapping := range descriptor.ServletNameMappings() {
-		binding, err := newRegistrationFilterBinding(descriptor, mapping.DispatcherTypes(), "")
+		binding, err := newRegistrationFilterBinding(
+			descriptor,
+			mapping.DispatcherTypes(),
+			"",
+		)
 		if err != nil {
 			return err
 		}
@@ -178,7 +256,11 @@ func attachServletNameFilters(orders []orderedFilterBindings, nameIndex map[stri
 	return nil
 }
 
-func newRegistrationFilterBinding(descriptor registration.FilterDescriptor, dispatchers registration.DispatcherTypes, pattern string) (servlet.FilterBinding, error) {
+func newRegistrationFilterBinding(
+	descriptor registration.FilterDescriptor,
+	dispatchers registration.DispatcherTypes,
+	pattern string,
+) (servlet.FilterBinding, error) {
 	return servlet.NewFilterBinding(
 		descriptor.Name(),
 		descriptor.Filter(),

@@ -17,13 +17,27 @@ func TestDeploymentBuildsHandler(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewWebApp failed: %v", err)
 	}
-	deployment, err := NewDeployment(app,
-		WithMapping("/orders", servlet.HandlerFunc(func(context.Context, *servlet.Request, servlet.Response) error {
-			return nil
-		}), servlet.FilterFunc(func(ctx context.Context, req *servlet.Request, res servlet.Response, chain servlet.Chain) error {
-			req.SetAttribute("filtered", true)
-			return chain.Next(ctx, req, res)
-		})),
+	deployment, err := NewDeployment(
+		app,
+		WithMapping(
+			"/orders",
+			servlet.HandlerFunc(
+				func(context.Context, *servlet.Request, servlet.Response) error {
+					return nil
+				},
+			),
+			servlet.FilterFunc(
+				func(
+					ctx context.Context,
+					req *servlet.Request,
+					res servlet.Response,
+					chain servlet.Chain,
+				) error {
+					req.SetAttribute("filtered", true)
+					return chain.Next(ctx, req, res)
+				},
+			),
+		),
 	)
 	if err != nil {
 		t.Fatalf("NewDeployment failed: %v", err)
@@ -83,7 +97,11 @@ func (s servletNameServlet) Init(context.Context, servlet.ServletConfig) error {
 	return nil
 }
 
-func (s servletNameServlet) Serve(_ context.Context, req *servlet.Request, _ servlet.Response) error {
+func (s servletNameServlet) Serve(
+	_ context.Context,
+	req *servlet.Request,
+	_ servlet.Response,
+) error {
 	value, ok := req.Attribute(servlet.AttributeServletName)
 	if !ok || value != "ordersServlet" {
 		s.t.Fatalf("servlet name = %v/%v, want ordersServlet/true", value, ok)
@@ -102,13 +120,24 @@ func TestDeploymentRejectsDuplicateMappingAtBuild(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewWebApp failed: %v", err)
 	}
-	deployment, err := NewDeployment(app,
-		WithMapping("/orders", servlet.HandlerFunc(func(context.Context, *servlet.Request, servlet.Response) error {
-			return nil
-		})),
-		WithMapping("/orders", servlet.HandlerFunc(func(context.Context, *servlet.Request, servlet.Response) error {
-			return nil
-		})),
+	deployment, err := NewDeployment(
+		app,
+		WithMapping(
+			"/orders",
+			servlet.HandlerFunc(
+				func(context.Context, *servlet.Request, servlet.Response) error {
+					return nil
+				},
+			),
+		),
+		WithMapping(
+			"/orders",
+			servlet.HandlerFunc(
+				func(context.Context, *servlet.Request, servlet.Response) error {
+					return nil
+				},
+			),
+		),
 	)
 	if err != nil {
 		t.Fatalf("NewDeployment failed: %v", err)

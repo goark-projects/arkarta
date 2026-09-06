@@ -189,7 +189,13 @@ func (r *ErrorPageRegistry) RegisterDefault(handler Handler) error {
 }
 
 // Handle 尝试用已注册错误页处理错误。
-func (r *ErrorPageRegistry) Handle(ctx context.Context, req *Request, res Response, statusCode int, cause error) (bool, error) {
+func (r *ErrorPageRegistry) Handle(
+	ctx context.Context,
+	req *Request,
+	res Response,
+	statusCode int,
+	cause error,
+) (bool, error) {
 	if r == nil {
 		return false, nil
 	}
@@ -289,8 +295,15 @@ type RequestMapping struct {
 	pathInfo    string
 }
 
-func newRequestMapping(pattern string, mappingType MappingType, servletPath, pathInfo string) RequestMapping {
-	return RequestMapping{pattern: pattern, mappingType: mappingType, servletPath: servletPath, pathInfo: pathInfo}
+func newRequestMapping(
+	pattern string,
+	mappingType MappingType,
+	servletPath, pathInfo string,
+) RequestMapping {
+	return RequestMapping{
+		pattern: pattern, mappingType: mappingType,
+		servletPath: servletPath, pathInfo: pathInfo,
+	}
 }
 
 // Pattern 返回声明的 Servlet 映射模式。

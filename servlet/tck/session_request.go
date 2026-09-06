@@ -42,7 +42,8 @@ func runCreateSessionWritesCookie(t *testing.T, factory SessionManagerFactory) {
 		t.Fatalf("session = %v/%v, want new session", current, ok)
 	}
 	cookie := res.Header().Get("Set-Cookie")
-	if !strings.Contains(cookie, session.DefaultCookieName+"="+current.ID()) || !strings.Contains(cookie, "HttpOnly") {
+	if !strings.Contains(cookie, session.DefaultCookieName+"="+current.ID()) ||
+		!strings.Contains(cookie, "HttpOnly") {
 		t.Fatalf("Set-Cookie = %q, want session id and HttpOnly", cookie)
 	}
 }
@@ -80,7 +81,8 @@ func runChangeSessionID(t *testing.T, factory SessionManagerFactory) {
 	oldID := created.ID()
 	accessor := newTCKAccessor(t, manager)
 	req := newTCKSessionRequest(t, session.DefaultCookieName+"="+oldID)
-	if _, ok, err := accessor.Get(context.Background(), req, nil, false); err != nil || !ok {
+	if _, ok, err := accessor.Get(context.Background(), req, nil, false); err != nil ||
+		!ok {
 		t.Fatalf("Get existing ok/err = %v/%v, want true/nil", ok, err)
 	}
 	res := newMemoryResponse()
@@ -98,19 +100,30 @@ func runChangeSessionID(t *testing.T, factory SessionManagerFactory) {
 	if _, ok, err := manager.Get(context.Background(), newID); err != nil || !ok {
 		t.Fatalf("new id ok/err = %v/%v, want true/nil", ok, err)
 	}
-	if cookie := res.Header().Get("Set-Cookie"); !strings.Contains(cookie, session.DefaultCookieName+"="+newID) {
+	if cookie := res.Header().Get("Set-Cookie"); !strings.Contains(
+		cookie,
+		session.DefaultCookieName+"="+newID,
+	) {
 		t.Fatalf("Set-Cookie = %q, want new session id", cookie)
 	}
 }
 
 func runEncodeSessionURL(t *testing.T, factory SessionManagerFactory) {
 	t.Helper()
-	accessor, err := session.NewAccessor(factory(), session.WithTrackingModes(session.TrackingCookie, session.TrackingURL))
+	accessor, err := session.NewAccessor(
+		factory(),
+		session.WithTrackingModes(session.TrackingCookie, session.TrackingURL),
+	)
 	if err != nil {
 		t.Fatalf("NewAccessor failed: %v", err)
 	}
 	req := newTCKSessionRequest(t, "")
-	current, ok, err := accessor.Get(context.Background(), req, newMemoryResponse(), true)
+	current, ok, err := accessor.Get(
+		context.Background(),
+		req,
+		newMemoryResponse(),
+		true,
+	)
 	if err != nil || !ok {
 		t.Fatalf("Get create ok/err = %v/%v, want true/nil", ok, err)
 	}

@@ -82,7 +82,10 @@ func EncodeRedirectURL(req *servlet.Request, rawURL, sessionID string) (string, 
 }
 
 // EncodeURL 在 URL 路径中写入会话 ID。
-func (r *URLRewriter) EncodeURL(req *servlet.Request, rawURL, sessionID string) (string, error) {
+func (r *URLRewriter) EncodeURL(
+	req *servlet.Request,
+	rawURL, sessionID string,
+) (string, error) {
 	if r == nil {
 		return rawURL, ErrInvalidURLRewriteConfig
 	}
@@ -102,7 +105,10 @@ func (r *URLRewriter) EncodeURL(req *servlet.Request, rawURL, sessionID string) 
 }
 
 // EncodeRedirectURL 在重定向 URL 路径中写入会话 ID。
-func (r *URLRewriter) EncodeRedirectURL(req *servlet.Request, rawURL, sessionID string) (string, error) {
+func (r *URLRewriter) EncodeRedirectURL(
+	req *servlet.Request,
+	rawURL, sessionID string,
+) (string, error) {
 	return r.EncodeURL(req, rawURL, sessionID)
 }
 
@@ -160,7 +166,8 @@ func validPathParameterName(name string) bool {
 		return false
 	}
 	for _, r := range name {
-		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '-' || r == '.' {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '-' ||
+			r == '.' {
 			continue
 		}
 		return false

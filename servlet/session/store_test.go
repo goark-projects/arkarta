@@ -34,7 +34,11 @@ func TestMemoryManagerPassivatesAndActivatesSession(t *testing.T) {
 		t.Fatalf("Activate ok/err = %v/%v, want true/nil", ok, err)
 	}
 	if activated.ID() != "S1" || activated.IsNew() {
-		t.Fatalf("activated session id/new = %q/%v, want S1/false", activated.ID(), activated.IsNew())
+		t.Fatalf(
+			"activated session id/new = %q/%v, want S1/false",
+			activated.ID(),
+			activated.IsNew(),
+		)
 	}
 	if got, exists := activated.Attribute("token"); !exists || got != value {
 		t.Fatalf("activated attr = %v/%v, want original value", got, exists)

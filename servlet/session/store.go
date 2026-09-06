@@ -120,7 +120,11 @@ func (s *MemoryStore) Delete(ctx context.Context, id string) error {
 }
 
 // Rename 原子替换会话 ID。
-func (s *MemoryStore) Rename(ctx context.Context, oldID, newID string, record Record) error {
+func (s *MemoryStore) Rename(
+	ctx context.Context,
+	oldID, newID string,
+	record Record,
+) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}

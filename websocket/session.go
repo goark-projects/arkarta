@@ -32,7 +32,11 @@ type StandardSession struct {
 }
 
 // NewSession 创建标准 WebSocket 会话。
-func NewSession(id string, connection Connection, options ...SessionOption) (*StandardSession, error) {
+func NewSession(
+	id string,
+	connection Connection,
+	options ...SessionOption,
+) (*StandardSession, error) {
 	if connection == nil {
 		return nil, ErrNilConnection
 	}

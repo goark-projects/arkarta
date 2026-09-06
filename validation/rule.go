@@ -67,7 +67,10 @@ func (f ConstraintFunc) Name() string {
 }
 
 // Validate 执行约束函数。
-func (f ConstraintFunc) Validate(ctx context.Context, field FieldContext) (Violation, bool, error) {
+func (f ConstraintFunc) Validate(
+	ctx context.Context,
+	field FieldContext,
+) (Violation, bool, error) {
 	if f.Fn == nil {
 		return Violation{}, false, nil
 	}

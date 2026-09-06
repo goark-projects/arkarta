@@ -24,14 +24,20 @@ func TestRegistrationContextWrapsWebAppAndRegistry(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewContext failed: %v", err)
 	}
-	orders, err := ctx.AddServlet("orders", servlet.HandlerFunc(func(_ context.Context, _ *servlet.Request, res servlet.Response) error {
-		_, err := res.WriteString("orders")
-		return err
-	}))
+	orders, err := ctx.AddServlet(
+		"orders",
+		servlet.HandlerFunc(
+			func(_ context.Context, _ *servlet.Request, res servlet.Response) error {
+				_, err := res.WriteString("orders")
+				return err
+			},
+		),
+	)
 	if err != nil {
 		t.Fatalf("AddServlet failed: %v", err)
 	}
-	if conflicts, err := orders.AddMapping("/orders"); err != nil || len(conflicts) != 0 {
+	if conflicts, err := orders.AddMapping("/orders"); err != nil ||
+		len(conflicts) != 0 {
 		t.Fatalf("AddMapping = %#v/%v, want none/nil", conflicts, err)
 	}
 	snapshot, err := ctx.Freeze()
@@ -69,7 +75,10 @@ func TestRegistrationContextWrapsWebAppAndRegistry(t *testing.T) {
 func TestRegistrationContextRejectsNilWebApp(t *testing.T) {
 	t.Parallel()
 
-	if _, err := registration.NewContext(nil, nil); !errors.Is(err, registration.ErrNilWebApp) {
+	if _, err := registration.NewContext(nil, nil); !errors.Is(
+		err,
+		registration.ErrNilWebApp,
+	) {
 		t.Fatalf("NewContext err = %v, want ErrNilWebApp", err)
 	}
 }
@@ -92,14 +101,24 @@ func TestRegistrationContextRejectsMutationAfterStart(t *testing.T) {
 		t.Fatalf("NewContext failed: %v", err)
 	}
 
-	_, err = ctx.AddServlet("orders", servlet.HandlerFunc(func(context.Context, *servlet.Request, servlet.Response) error {
-		return nil
-	}))
+	_, err = ctx.AddServlet(
+		"orders",
+		servlet.HandlerFunc(
+			func(context.Context, *servlet.Request, servlet.Response) error {
+				return nil
+			},
+		),
+	)
 	if !errors.Is(err, registration.ErrRegistrationClosed) {
 		t.Fatalf("AddServlet err = %v, want ErrRegistrationClosed", err)
 	}
-	if ok, err := ctx.SetInitParam("encoding", "utf-8"); ok || !errors.Is(err, registration.ErrRegistrationClosed) {
-		t.Fatalf("SetInitParam ok/err = %v/%v, want false/ErrRegistrationClosed", ok, err)
+	if ok, err := ctx.SetInitParam("encoding", "utf-8"); ok ||
+		!errors.Is(err, registration.ErrRegistrationClosed) {
+		t.Fatalf(
+			"SetInitParam ok/err = %v/%v, want false/ErrRegistrationClosed",
+			ok,
+			err,
+		)
 	}
 }
 

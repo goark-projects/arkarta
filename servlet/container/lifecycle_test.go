@@ -30,7 +30,10 @@ func TestManagedApplicationInitializesServletAndRequestEvents(t *testing.T) {
 		t.Fatalf("NewWebApp failed: %v", err)
 	}
 	target := &recordingServlet{calls: &calls}
-	deployment, err := NewDeployment(app, WithServlet("/orders", "ordersServlet", target))
+	deployment, err := NewDeployment(
+		app,
+		WithServlet("/orders", "ordersServlet", target),
+	)
 	if err != nil {
 		t.Fatalf("NewDeployment failed: %v", err)
 	}
@@ -50,7 +53,13 @@ func TestManagedApplicationInitializesServletAndRequestEvents(t *testing.T) {
 		t.Fatalf("Stop failed: %v", err)
 	}
 
-	want := []string{"init:ordersServlet", "request-init", "serve", "request-destroy", "destroy"}
+	want := []string{
+		"init:ordersServlet",
+		"request-init",
+		"serve",
+		"request-destroy",
+		"destroy",
+	}
 	if !reflect.DeepEqual(calls, want) {
 		t.Fatalf("calls = %#v, want %#v", calls, want)
 	}
@@ -68,10 +77,19 @@ func TestManagedApplicationInitializesFilters(t *testing.T) {
 		t.Fatalf("NewWebApp failed: %v", err)
 	}
 	filter := &recordingFilter{calls: &calls}
-	deployment, err := NewDeployment(app, WithMapping("/orders", servlet.HandlerFunc(func(context.Context, *servlet.Request, servlet.Response) error {
-		calls = append(calls, "handler")
-		return nil
-	}), filter))
+	deployment, err := NewDeployment(
+		app,
+		WithMapping(
+			"/orders",
+			servlet.HandlerFunc(
+				func(context.Context, *servlet.Request, servlet.Response) error {
+					calls = append(calls, "handler")
+					return nil
+				},
+			),
+			filter,
+		),
+	)
 	if err != nil {
 		t.Fatalf("NewDeployment failed: %v", err)
 	}
@@ -90,7 +108,12 @@ func TestManagedApplicationInitializesFilters(t *testing.T) {
 		t.Fatalf("Stop failed: %v", err)
 	}
 
-	want := []string{"filter-init:/orders#filter0", "filter", "handler", "filter-destroy"}
+	want := []string{
+		"filter-init:/orders#filter0",
+		"filter",
+		"handler",
+		"filter-destroy",
+	}
 	if !reflect.DeepEqual(calls, want) {
 		t.Fatalf("calls = %#v, want %#v", calls, want)
 	}
@@ -104,13 +127,29 @@ func TestDeploymentFiltersDefaultToRequestDispatcher(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewWebApp failed: %v", err)
 	}
-	deployment, err := NewDeployment(app, WithMapping("/orders", servlet.HandlerFunc(func(context.Context, *servlet.Request, servlet.Response) error {
-		calls = append(calls, "handler")
-		return nil
-	}), servlet.FilterFunc(func(ctx context.Context, req *servlet.Request, res servlet.Response, chain servlet.Chain) error {
-		calls = append(calls, "filter")
-		return chain.Next(ctx, req, res)
-	})))
+	deployment, err := NewDeployment(
+		app,
+		WithMapping(
+			"/orders",
+			servlet.HandlerFunc(
+				func(context.Context, *servlet.Request, servlet.Response) error {
+					calls = append(calls, "handler")
+					return nil
+				},
+			),
+			servlet.FilterFunc(
+				func(
+					ctx context.Context,
+					req *servlet.Request,
+					res servlet.Response,
+					chain servlet.Chain,
+				) error {
+					calls = append(calls, "filter")
+					return chain.Next(ctx, req, res)
+				},
+			),
+		),
+	)
 	if err != nil {
 		t.Fatalf("NewDeployment failed: %v", err)
 	}
@@ -118,7 +157,10 @@ func TestDeploymentFiltersDefaultToRequestDispatcher(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Handler failed: %v", err)
 	}
-	req, err := servlet.NewRequest(httptest.NewRequest(http.MethodGet, "/orders", nil), servlet.WithDispatchType(servlet.DispatchForward))
+	req, err := servlet.NewRequest(
+		httptest.NewRequest(http.MethodGet, "/orders", nil),
+		servlet.WithDispatchType(servlet.DispatchForward),
+	)
 	if err != nil {
 		t.Fatalf("NewRequest failed: %v", err)
 	}
@@ -141,7 +183,11 @@ func (s *recordingServlet) Init(_ context.Context, cfg servlet.ServletConfig) er
 	return nil
 }
 
-func (s *recordingServlet) Serve(context.Context, *servlet.Request, servlet.Response) error {
+func (s *recordingServlet) Serve(
+	context.Context,
+	*servlet.Request,
+	servlet.Response,
+) error {
 	*s.calls = append(*s.calls, "serve")
 	return nil
 }
@@ -160,7 +206,12 @@ func (f *recordingFilter) Init(_ context.Context, cfg servlet.FilterConfig) erro
 	return nil
 }
 
-func (f *recordingFilter) Filter(ctx context.Context, req *servlet.Request, res servlet.Response, chain servlet.Chain) error {
+func (f *recordingFilter) Filter(
+	ctx context.Context,
+	req *servlet.Request,
+	res servlet.Response,
+	chain servlet.Chain,
+) error {
 	*f.calls = append(*f.calls, "filter")
 	return chain.Next(ctx, req, res)
 }

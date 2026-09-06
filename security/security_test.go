@@ -20,7 +20,10 @@ func TestAuthenticationNormalizesAuthoritiesAndContext(t *testing.T) {
 	if !auth.Authenticated() || auth.Principal().Name() != "alice" {
 		t.Fatalf("authentication = %#v, want authenticated alice", auth)
 	}
-	if got := auth.Authorities(); !reflect.DeepEqual(got, []security.Authority{"ROLE_ADMIN", "ROLE_USER"}) {
+	if got := auth.Authorities(); !reflect.DeepEqual(
+		got,
+		[]security.Authority{"ROLE_ADMIN", "ROLE_USER"},
+	) {
 		t.Fatalf("authorities = %#v, want sorted unique", got)
 	}
 	if !auth.HasAuthority("ROLE_ADMIN") || auth.HasAuthority("ROLE_GUEST") {
@@ -37,29 +40,39 @@ func TestAuthenticationNormalizesAuthoritiesAndContext(t *testing.T) {
 func TestAuthenticationManagerFuncAuthenticatesCredential(t *testing.T) {
 	t.Parallel()
 
-	manager := security.AuthenticationManagerFunc(func(ctx context.Context, credential security.Credential) (security.Authentication, error) {
-		if err := ctx.Err(); err != nil {
-			return security.Authentication{}, err
-		}
-		password, ok := credential.(security.PasswordCredential)
-		if !ok || password.Username() != "alice" || password.Password() != "secret" {
-			return security.Authentication{}, security.ErrBadCredentials
-		}
-		return security.NewAuthentication(
-			security.PrincipalFunc(func() string { return password.Username() }),
-			security.WithAuthorities("ROLE_USER"),
-			security.WithAuthenticated(true),
-		), nil
-	})
+	manager := security.AuthenticationManagerFunc(
+		func(ctx context.Context, credential security.Credential) (security.Authentication, error) {
+			if err := ctx.Err(); err != nil {
+				return security.Authentication{}, err
+			}
+			password, ok := credential.(security.PasswordCredential)
+			if !ok || password.Username() != "alice" ||
+				password.Password() != "secret" {
+				return security.Authentication{}, security.ErrBadCredentials
+			}
+			return security.NewAuthentication(
+				security.PrincipalFunc(func() string { return password.Username() }),
+				security.WithAuthorities("ROLE_USER"),
+				security.WithAuthenticated(true),
+			), nil
+		},
+	)
 
-	auth, err := manager.Authenticate(context.Background(), security.NewPasswordCredential("alice", "secret"))
+	auth, err := manager.Authenticate(
+		context.Background(),
+		security.NewPasswordCredential("alice", "secret"),
+	)
 	if err != nil {
 		t.Fatalf("Authenticate failed: %v", err)
 	}
 	if !auth.Authenticated() || !auth.HasAuthority("ROLE_USER") {
 		t.Fatalf("auth = %#v, want ROLE_USER", auth)
 	}
-	if _, err := manager.Authenticate(context.Background(), security.NewBearerCredential("bad")); !errors.Is(err, security.ErrBadCredentials) {
+	credential := security.NewBearerCredential("bad")
+	if _, err := manager.Authenticate(context.Background(), credential); !errors.Is(
+		err,
+		security.ErrBadCredentials,
+	) {
 		t.Fatalf("bad credential err = %v, want ErrBadCredentials", err)
 	}
 }
@@ -73,11 +86,14 @@ func TestAuthorizerRequiresAuthority(t *testing.T) {
 		security.WithAuthenticated(true),
 	)
 	authorizer := security.RequireAuthority("orders:read")
-	decision, err := authorizer.Authorize(context.Background(), security.AuthorizationRequest{
-		Authentication: auth,
-		Resource:       "orders",
-		Action:         "read",
-	})
+	decision, err := authorizer.Authorize(
+		context.Background(),
+		security.AuthorizationRequest{
+			Authentication: auth,
+			Resource:       "orders",
+			Action:         "read",
+		},
+	)
 	if err != nil {
 		t.Fatalf("Authorize failed: %v", err)
 	}
@@ -85,11 +101,12 @@ func TestAuthorizerRequiresAuthority(t *testing.T) {
 		t.Fatalf("decision = %#v, want granted", decision)
 	}
 
-	decision, err = security.RequireAuthority("orders:write").Authorize(context.Background(), security.AuthorizationRequest{
-		Authentication: auth,
-		Resource:       "orders",
-		Action:         "write",
-	})
+	decision, err = security.RequireAuthority("orders:write").
+		Authorize(context.Background(), security.AuthorizationRequest{
+			Authentication: auth,
+			Resource:       "orders",
+			Action:         "write",
+		})
 	if err != nil {
 		t.Fatalf("Authorize write failed: %v", err)
 	}

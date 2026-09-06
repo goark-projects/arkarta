@@ -56,18 +56,34 @@ type ViolationDetail struct {
 
 func errorResponse(err error) (int, ErrorResponse) {
 	if err == nil {
-		return http.StatusInternalServerError, newErrorResponse("INTERNAL_ERROR", http.StatusText(http.StatusInternalServerError), nil)
+		return http.StatusInternalServerError, newErrorResponse(
+			"INTERNAL_ERROR",
+			http.StatusText(http.StatusInternalServerError),
+			nil,
+		)
 	}
 
 	var validationErr validation.ValidationError
 	if errors.As(err, &validationErr) {
-		return http.StatusUnprocessableEntity, newErrorResponse("VALIDATION_ERROR", "请求参数校验失败", violationDetails(validationErr.Result()))
+		return http.StatusUnprocessableEntity, newErrorResponse(
+			"VALIDATION_ERROR",
+			"请求参数校验失败",
+			violationDetails(validationErr.Result()),
+		)
 	}
 	if errors.Is(err, arkjson.ErrPayloadTooLarge) {
-		return http.StatusRequestEntityTooLarge, newErrorResponse("PAYLOAD_TOO_LARGE", http.StatusText(http.StatusRequestEntityTooLarge), nil)
+		return http.StatusRequestEntityTooLarge, newErrorResponse(
+			"PAYLOAD_TOO_LARGE",
+			http.StatusText(http.StatusRequestEntityTooLarge),
+			nil,
+		)
 	}
 	if errors.Is(err, ErrUnsupportedMediaType) {
-		return http.StatusUnsupportedMediaType, newErrorResponse("UNSUPPORTED_MEDIA_TYPE", http.StatusText(http.StatusUnsupportedMediaType), nil)
+		return http.StatusUnsupportedMediaType, newErrorResponse(
+			"UNSUPPORTED_MEDIA_TYPE",
+			http.StatusText(http.StatusUnsupportedMediaType),
+			nil,
+		)
 	}
 	var parameterErr *ParameterError
 	if errors.As(err, &parameterErr) {
@@ -79,9 +95,17 @@ func errorResponse(err error) (int, ErrorResponse) {
 	}
 	var statusErr servlet.StatusError
 	if errors.As(err, &statusErr) {
-		return statusErr.StatusCode(), newErrorResponse(statusCodeName(statusErr.StatusCode()), statusErr.PublicMessage(), nil)
+		return statusErr.StatusCode(), newErrorResponse(
+			statusCodeName(statusErr.StatusCode()),
+			statusErr.PublicMessage(),
+			nil,
+		)
 	}
-	return http.StatusInternalServerError, newErrorResponse("INTERNAL_ERROR", http.StatusText(http.StatusInternalServerError), nil)
+	return http.StatusInternalServerError, newErrorResponse(
+		"INTERNAL_ERROR",
+		http.StatusText(http.StatusInternalServerError),
+		nil,
+	)
 }
 
 func newErrorResponse(code, message string, details any) ErrorResponse {

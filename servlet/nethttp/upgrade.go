@@ -11,7 +11,11 @@ import (
 )
 
 // UpgradeHTTP 将标准库 HTTP 连接升级并交给协议处理器。
-func (r *Response) UpgradeHTTP(ctx context.Context, req *servlet.Request, handler upgrade.Handler) error {
+func (r *Response) UpgradeHTTP(
+	ctx context.Context,
+	req *servlet.Request,
+	handler upgrade.Handler,
+) error {
 	if handler == nil {
 		return upgrade.ErrNilHandler
 	}

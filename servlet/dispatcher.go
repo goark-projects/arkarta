@@ -39,7 +39,10 @@ func NewRequestDispatcher(router *Router, path string) (*Dispatcher, error) {
 	if err != nil {
 		return nil, ErrInvalidMappingPattern
 	}
-	return &Dispatcher{router: router, path: targetPath, queryString: queryString, hasQuery: hasQuery}, nil
+	return &Dispatcher{
+		router: router, path: targetPath,
+		queryString: queryString, hasQuery: hasQuery,
+	}, nil
 }
 
 // Forward 在响应提交前转发请求。
@@ -63,7 +66,13 @@ func (d *Dispatcher) Include(ctx context.Context, req *Request, res Response) er
 }
 
 // Error 执行错误分发。
-func (d *Dispatcher) Error(ctx context.Context, req *Request, res Response, statusCode int, cause error) error {
+func (d *Dispatcher) Error(
+	ctx context.Context,
+	req *Request,
+	res Response,
+	statusCode int,
+	cause error,
+) error {
 	if statusCode < 100 || statusCode > 999 {
 		statusCode = http.StatusInternalServerError
 	}
@@ -74,7 +83,12 @@ func (d *Dispatcher) Error(ctx context.Context, req *Request, res Response, stat
 	return d.dispatch(ctx, req, res, DispatchError)
 }
 
-func (d *Dispatcher) dispatch(ctx context.Context, req *Request, res Response, dispatchType DispatchType) error {
+func (d *Dispatcher) dispatch(
+	ctx context.Context,
+	req *Request,
+	res Response,
+	dispatchType DispatchType,
+) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}

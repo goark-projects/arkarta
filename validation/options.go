@@ -34,7 +34,11 @@ func WithObjectConstraint(sample any, constraint ObjectConstraint) Option {
 }
 
 // WithObjectConstraintForGroups 注册指定分组的对象级约束。
-func WithObjectConstraintForGroups(sample any, constraint ObjectConstraint, groups ...string) Option {
+func WithObjectConstraintForGroups(
+	sample any,
+	constraint ObjectConstraint,
+	groups ...string,
+) Option {
 	return func(validator *DefaultValidator) {
 		validator.registerObjectConstraint(sample, constraint, groups)
 	}

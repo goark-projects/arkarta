@@ -9,4 +9,6 @@ var ErrUnsupported = errors.New("arkarta/servlet/upgrade: unsupported")
 var ErrNilHandler = errors.New("arkarta/servlet/upgrade: handler is nil")
 
 // ErrAlreadyCommitted 表示响应已经提交，不能升级。
-var ErrAlreadyCommitted = errors.New("arkarta/servlet/upgrade: response already committed")
+var ErrAlreadyCommitted = errors.New(
+	"arkarta/servlet/upgrade: response already committed",
+)

@@ -180,7 +180,8 @@ func mediaQuality(candidate MediaType, accepted []MediaType) (float64, int, bool
 			continue
 		}
 		specificity := mediaRange.Specificity()
-		if !found || specificity > bestSpecificity || specificity == bestSpecificity && mediaRange.Quality() > bestQuality {
+		if !found || specificity > bestSpecificity ||
+			specificity == bestSpecificity && mediaRange.Quality() > bestQuality {
 			found = true
 			bestQuality = mediaRange.Quality()
 			bestSpecificity = specificity

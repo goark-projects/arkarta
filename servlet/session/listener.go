@@ -48,7 +48,10 @@ func (f ListenerFunc) SessionDestroyed(ctx context.Context, event Event) error {
 }
 
 // SessionIDChanged 触发会话 ID 轮换回调。
-func (f ListenerFunc) SessionIDChanged(ctx context.Context, event IDChangedEvent) error {
+func (f ListenerFunc) SessionIDChanged(
+	ctx context.Context,
+	event IDChangedEvent,
+) error {
 	if f.IDChanged == nil {
 		return nil
 	}
@@ -75,7 +78,10 @@ func (m *MemoryManager) fireSessionCreated(ctx context.Context, target Session) 
 	return result
 }
 
-func (m *MemoryManager) fireSessionDestroyed(ctx context.Context, target Session) error {
+func (m *MemoryManager) fireSessionDestroyed(
+	ctx context.Context,
+	target Session,
+) error {
 	event := Event{Session: target}
 	var result error
 	listeners := m.listenerSnapshot()
@@ -85,7 +91,11 @@ func (m *MemoryManager) fireSessionDestroyed(ctx context.Context, target Session
 	return result
 }
 
-func (m *MemoryManager) fireSessionIDChanged(ctx context.Context, target Session, oldID, newID string) error {
+func (m *MemoryManager) fireSessionIDChanged(
+	ctx context.Context,
+	target Session,
+	oldID, newID string,
+) error {
 	event := IDChangedEvent{
 		Session: target,
 		OldID:   oldID,

@@ -107,7 +107,10 @@ func (a *Accessor) EncodeURL(req *servlet.Request, rawURL string) (string, error
 }
 
 // EncodeRedirectURL 使用当前请求会话编码重定向 URL。
-func (a *Accessor) EncodeRedirectURL(req *servlet.Request, rawURL string) (string, error) {
+func (a *Accessor) EncodeRedirectURL(
+	req *servlet.Request,
+	rawURL string,
+) (string, error) {
 	return a.encodeURL(req, rawURL)
 }
 

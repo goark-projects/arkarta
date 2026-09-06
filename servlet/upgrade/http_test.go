@@ -18,14 +18,19 @@ func TestHTTPDelegatesToContainerUpgrader(t *testing.T) {
 	req := mustUpgradeRequest(t)
 	res := &fakeUpgradeResponse{plainResponse: newPlainResponse(), conn: fakeConn{}}
 	called := false
-	err := HTTP(context.Background(), req, res, HandlerFunc(func(_ context.Context, conn Connection) error {
-		called = true
-		_, ok := conn.(fakeConn)
-		if !ok {
-			t.Fatalf("conn = %T, want fakeConn", conn)
-		}
-		return nil
-	}))
+	err := HTTP(
+		context.Background(),
+		req,
+		res,
+		HandlerFunc(func(_ context.Context, conn Connection) error {
+			called = true
+			_, ok := conn.(fakeConn)
+			if !ok {
+				t.Fatalf("conn = %T, want fakeConn", conn)
+			}
+			return nil
+		}),
+	)
 	if err != nil {
 		t.Fatalf("HTTP failed: %v", err)
 	}
@@ -38,9 +43,14 @@ func TestHTTPRejectsUnsupportedResponse(t *testing.T) {
 	t.Parallel()
 
 	req := mustUpgradeRequest(t)
-	err := HTTP(context.Background(), req, newPlainResponse(), HandlerFunc(func(context.Context, Connection) error {
-		return nil
-	}))
+	err := HTTP(
+		context.Background(),
+		req,
+		newPlainResponse(),
+		HandlerFunc(func(context.Context, Connection) error {
+			return nil
+		}),
+	)
 	if !errors.Is(err, ErrUnsupported) {
 		t.Fatalf("HTTP err = %v, want ErrUnsupported", err)
 	}
@@ -74,7 +84,11 @@ type fakeUpgradeResponse struct {
 	conn Connection
 }
 
-func (r *fakeUpgradeResponse) UpgradeHTTP(ctx context.Context, _ *servlet.Request, handler Handler) error {
+func (r *fakeUpgradeResponse) UpgradeHTTP(
+	ctx context.Context,
+	_ *servlet.Request,
+	handler Handler,
+) error {
 	return handler.ServeUpgrade(ctx, r.conn)
 }
 

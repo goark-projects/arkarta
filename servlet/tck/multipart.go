@@ -53,7 +53,10 @@ func newMultipartRequest(t *testing.T, field, value string) *servlet.Request {
 	return newMultipartRequestWithFile(t, field, value, "tck.txt")
 }
 
-func newMultipartRequestWithFile(t *testing.T, field, value, filename string) *servlet.Request {
+func newMultipartRequestWithFile(
+	t *testing.T,
+	field, value, filename string,
+) *servlet.Request {
 	t.Helper()
 	var body bytes.Buffer
 	writer := stdmultipart.NewWriter(&body)
@@ -79,7 +82,10 @@ func newMultipartRequestWithFile(t *testing.T, field, value, filename string) *s
 	return req
 }
 
-func runMultipartStorageLocationFilenameAndCleanup(t *testing.T, factory MultipartParserFactory) {
+func runMultipartStorageLocationFilenameAndCleanup(
+	t *testing.T,
+	factory MultipartParserFactory,
+) {
 	t.Helper()
 	location := t.TempDir()
 	req := newMultipartRequestWithFile(t, "field", "value", `..\secret.txt`)

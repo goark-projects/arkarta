@@ -22,31 +22,47 @@ func RunHandshake(t *testing.T, factory HandshakerFactory) {
 		if err != nil {
 			t.Fatalf("Accept failed: %v", err)
 		}
-		if handshake.AcceptValue() != "s3pPLMBiTxaQ9kYGzzhZRbK+xOo=" || handshake.Subprotocol() != "chat" {
-			t.Fatalf("handshake accept/subprotocol = %q/%q", handshake.AcceptValue(), handshake.Subprotocol())
+		if handshake.AcceptValue() != "s3pPLMBiTxaQ9kYGzzhZRbK+xOo=" ||
+			handshake.Subprotocol() != "chat" {
+			t.Fatalf(
+				"handshake accept/subprotocol = %q/%q",
+				handshake.AcceptValue(),
+				handshake.Subprotocol(),
+			)
 		}
 	})
 	t.Run("selects_subprotocol_by_client_order", func(t *testing.T) {
 		request := NewHandshakeRequest()
-		handshake, err := factory(websocket.WithSubprotocols("chat", "superchat")).Accept(request)
+		handshake, err := factory(
+			websocket.WithSubprotocols("chat", "superchat"),
+		).Accept(request)
 		if err != nil {
 			t.Fatalf("Accept failed: %v", err)
 		}
 		if handshake.Subprotocol() != "superchat" {
-			t.Fatalf("subprotocol = %q, want client preferred superchat", handshake.Subprotocol())
+			t.Fatalf(
+				"subprotocol = %q, want client preferred superchat",
+				handshake.Subprotocol(),
+			)
 		}
 	})
 	t.Run("negotiates_permessage_deflate", func(t *testing.T) {
 		request := NewHandshakeRequest()
-		request.Header.Set("Sec-WebSocket-Extensions", "permessage-deflate; client_max_window_bits")
-		handshake, err := factory(websocket.WithExtensions(websocket.NewPerMessageDeflate(
-			websocket.WithServerNoContextTakeover(true),
-		))).Accept(request)
+		request.Header.Set(
+			"Sec-WebSocket-Extensions",
+			"permessage-deflate; client_max_window_bits",
+		)
+		handshake, err := factory(
+			websocket.WithExtensions(websocket.NewPerMessageDeflate(
+				websocket.WithServerNoContextTakeover(true),
+			)),
+		).Accept(request)
 		if err != nil {
 			t.Fatalf("Accept failed: %v", err)
 		}
 		header := websocket.FormatExtensions(handshake.Extensions())
-		if !strings.Contains(header, websocket.ExtensionPerMessageDeflate) || !strings.Contains(header, "server_no_context_takeover") {
+		if !strings.Contains(header, websocket.ExtensionPerMessageDeflate) ||
+			!strings.Contains(header, "server_no_context_takeover") {
 			t.Fatalf("extensions = %q, want permessage-deflate", header)
 		}
 	})
@@ -56,8 +72,13 @@ func RunHandshake(t *testing.T, factory HandshakerFactory) {
 		if err != nil {
 			t.Fatalf("AcceptHTTP failed: %v", err)
 		}
-		if recorder.Code != http.StatusSwitchingProtocols || recorder.Header().Get("Sec-WebSocket-Accept") == "" {
-			t.Fatalf("status/accept = %d/%q, want 101/accept", recorder.Code, recorder.Header().Get("Sec-WebSocket-Accept"))
+		if recorder.Code != http.StatusSwitchingProtocols ||
+			recorder.Header().Get("Sec-WebSocket-Accept") == "" {
+			t.Fatalf(
+				"status/accept = %d/%q, want 101/accept",
+				recorder.Code,
+				recorder.Header().Get("Sec-WebSocket-Accept"),
+			)
 		}
 	})
 	t.Run("rejects_bad_key", func(t *testing.T) {

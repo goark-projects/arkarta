@@ -31,11 +31,17 @@ func RunHTTPContainer(t *testing.T, factory HTTPContainerFactory) {
 		if err != nil {
 			t.Fatalf("NewWebApp failed: %v", err)
 		}
-		deployment, err := servletcontainer.NewDeployment(app,
-			servletcontainer.WithMapping("/", servlet.HandlerFunc(func(_ context.Context, _ *servlet.Request, res servlet.Response) error {
-				_, err := res.WriteString("container")
-				return err
-			})),
+		deployment, err := servletcontainer.NewDeployment(
+			app,
+			servletcontainer.WithMapping(
+				"/",
+				servlet.HandlerFunc(
+					func(_ context.Context, _ *servlet.Request, res servlet.Response) error {
+						_, err := res.WriteString("container")
+						return err
+					},
+				),
+			),
 		)
 		if err != nil {
 			t.Fatalf("NewDeployment failed: %v", err)
@@ -49,7 +55,8 @@ func RunHTTPContainer(t *testing.T, factory HTTPContainerFactory) {
 		}
 
 		recorder := httptest.NewRecorder()
-		target.Handler().ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/", nil))
+		target.Handler().
+			ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/", nil))
 		if recorder.Code != http.StatusOK || recorder.Body.String() != "container" {
 			t.Fatalf("status/body = %d/%q", recorder.Code, recorder.Body.String())
 		}

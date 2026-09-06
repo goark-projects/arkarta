@@ -91,5 +91,9 @@ func detectContentType(value string) string {
 }
 
 func weakETag(size, modUnixNano int64) string {
-	return fmt.Sprintf(`W/"%s-%s"`, strconv.FormatInt(size, 16), strconv.FormatInt(modUnixNano, 16))
+	return fmt.Sprintf(
+		`W/"%s-%s"`,
+		strconv.FormatInt(size, 16),
+		strconv.FormatInt(modUnixNano, 16),
+	)
 }

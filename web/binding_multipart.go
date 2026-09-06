@@ -12,7 +12,9 @@ import (
 var multipartPartType = reflect.TypeOf(servletmultipart.Part{})
 
 // MultipartForm 解析并返回 multipart/form-data 表单。
-func (c *Context) MultipartForm(options ...servletmultipart.Option) (*servletmultipart.Form, error) {
+func (c *Context) MultipartForm(
+	options ...servletmultipart.Option,
+) (*servletmultipart.Form, error) {
 	if c == nil {
 		return nil, ErrNilContext
 	}
@@ -61,20 +63,23 @@ func ensureMultipartContentType(value string) error {
 }
 
 func bindMultipartParts(binder structBinder, form *servletmultipart.Form) error {
-	return walkStructFields(binder.value, func(field reflect.StructField, value reflect.Value) error {
-		name, ok := bindingName(field, "multipart")
-		if !ok || !value.CanSet() || !isMultipartTarget(value.Type()) {
+	return walkStructFields(
+		binder.value,
+		func(field reflect.StructField, value reflect.Value) error {
+			name, ok := bindingName(field, "multipart")
+			if !ok || !value.CanSet() || !isMultipartTarget(value.Type()) {
+				return nil
+			}
+			parts := partsByName(form, name)
+			if len(parts) == 0 {
+				return nil
+			}
+			if err := setMultipartField(value, parts); err != nil {
+				return fmt.Errorf("%s: %w", name, err)
+			}
 			return nil
-		}
-		parts := partsByName(form, name)
-		if len(parts) == 0 {
-			return nil
-		}
-		if err := setMultipartField(value, parts); err != nil {
-			return fmt.Errorf("%s: %w", name, err)
-		}
-		return nil
-	})
+		},
+	)
 }
 
 func isMultipartTarget(targetType reflect.Type) bool {

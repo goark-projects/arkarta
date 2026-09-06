@@ -189,7 +189,11 @@ func (m *MemoryManager) Passivate(ctx context.Context, id string, store Store) e
 }
 
 // Activate 从 Store 恢复会话，并触发属性值激活回调。
-func (m *MemoryManager) Activate(ctx context.Context, id string, store Store) (Session, bool, error) {
+func (m *MemoryManager) Activate(
+	ctx context.Context,
+	id string,
+	store Store,
+) (Session, bool, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, false, err
 	}

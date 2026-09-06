@@ -12,12 +12,22 @@ import (
 var ErrNilAuthenticator = errors.New("arkarta/servlet/security: authenticator is nil")
 
 // ErrAuthenticationFailed 表示凭证认证失败。
-var ErrAuthenticationFailed = errors.New("arkarta/servlet/security: authentication failed")
+var ErrAuthenticationFailed = errors.New(
+	"arkarta/servlet/security: authentication failed",
+)
 
 // Authenticator 定义容器认证入口。
 type Authenticator interface {
-	Authenticate(ctx context.Context, req *servlet.Request, res servlet.Response) (Identity, bool, error)
-	Login(ctx context.Context, req *servlet.Request, username, password string) (Identity, error)
+	Authenticate(
+		ctx context.Context,
+		req *servlet.Request,
+		res servlet.Response,
+	) (Identity, bool, error)
+	Login(
+		ctx context.Context,
+		req *servlet.Request,
+		username, password string,
+	) (Identity, error)
 	Logout(ctx context.Context, req *servlet.Request, res servlet.Response) error
 }
 
@@ -30,12 +40,20 @@ type Realm interface {
 type RealmFunc func(ctx context.Context, username, password string) (Identity, bool, error)
 
 // Verify 执行用户名密码校验。
-func (f RealmFunc) Verify(ctx context.Context, username, password string) (Identity, bool, error) {
+func (f RealmFunc) Verify(
+	ctx context.Context,
+	username, password string,
+) (Identity, bool, error) {
 	return f(ctx, username, password)
 }
 
 // Authenticate 执行容器认证；认证成功时写入当前请求安全上下文。
-func Authenticate(ctx context.Context, req *servlet.Request, res servlet.Response, authenticator Authenticator) (bool, error) {
+func Authenticate(
+	ctx context.Context,
+	req *servlet.Request,
+	res servlet.Response,
+	authenticator Authenticator,
+) (bool, error) {
 	if authenticator == nil {
 		return false, ErrNilAuthenticator
 	}
@@ -51,7 +69,12 @@ func Authenticate(ctx context.Context, req *servlet.Request, res servlet.Respons
 }
 
 // Login 使用显式用户名密码登录；认证成功时写入当前请求安全上下文。
-func Login(ctx context.Context, req *servlet.Request, username, password string, authenticator Authenticator) error {
+func Login(
+	ctx context.Context,
+	req *servlet.Request,
+	username, password string,
+	authenticator Authenticator,
+) error {
 	if authenticator == nil {
 		return ErrNilAuthenticator
 	}
@@ -67,7 +90,12 @@ func Login(ctx context.Context, req *servlet.Request, username, password string,
 }
 
 // Logout 清理当前请求安全上下文并调用认证器退出逻辑。
-func Logout(ctx context.Context, req *servlet.Request, res servlet.Response, authenticator Authenticator) error {
+func Logout(
+	ctx context.Context,
+	req *servlet.Request,
+	res servlet.Response,
+	authenticator Authenticator,
+) error {
 	if authenticator == nil {
 		return ErrNilAuthenticator
 	}

@@ -55,29 +55,58 @@ func (h *Handshaker) Accept(request *http.Request) (Handshake, error) {
 }
 
 // AcceptRequest 校验传输中立的请求方法与请求头并返回握手响应。
-func (h *Handshaker) AcceptRequest(method string, header HandshakeHeader) (Handshake, error) {
+func (h *Handshaker) AcceptRequest(
+	method string,
+	header HandshakeHeader,
+) (Handshake, error) {
 	if header == nil {
 		return Handshake{}, ErrNilHTTPRequest
 	}
 	if method != http.MethodGet {
-		return Handshake{}, newHandshakeError(http.StatusMethodNotAllowed, "websocket handshake requires GET", ErrInvalidHandshake)
+		return Handshake{}, newHandshakeError(
+			http.StatusMethodNotAllowed,
+			"websocket handshake requires GET",
+			ErrInvalidHandshake,
+		)
 	}
 	if !headerContainsToken(header, "Connection", "Upgrade") {
-		return Handshake{}, newHandshakeError(http.StatusBadRequest, "missing Connection upgrade token", ErrInvalidHandshake)
+		return Handshake{}, newHandshakeError(
+			http.StatusBadRequest,
+			"missing Connection upgrade token",
+			ErrInvalidHandshake,
+		)
 	}
 	if !headerContainsToken(header, "Upgrade", "websocket") {
-		return Handshake{}, newHandshakeError(http.StatusBadRequest, "missing websocket upgrade header", ErrInvalidHandshake)
+		return Handshake{}, newHandshakeError(
+			http.StatusBadRequest,
+			"missing websocket upgrade header",
+			ErrInvalidHandshake,
+		)
 	}
 	if header.Get("Sec-WebSocket-Version") != ProtocolVersion {
-		return Handshake{}, newHandshakeError(http.StatusUpgradeRequired, "unsupported websocket version", ErrUnsupportedVersion)
+		return Handshake{}, newHandshakeError(
+			http.StatusUpgradeRequired,
+			"unsupported websocket version",
+			ErrUnsupportedVersion,
+		)
 	}
 	key := strings.TrimSpace(header.Get("Sec-WebSocket-Key"))
 	if !validHandshakeKey(key) {
-		return Handshake{}, newHandshakeError(http.StatusBadRequest, "invalid websocket key", ErrInvalidHandshake)
+		return Handshake{}, newHandshakeError(
+			http.StatusBadRequest,
+			"invalid websocket key",
+			ErrInvalidHandshake,
+		)
 	}
 
-	subprotocol := selectSubprotocol(headerTokens(header.Values("Sec-WebSocket-Protocol")), h.subprotocols)
-	extensions := negotiateExtensions(ParseExtensions(header.Values("Sec-WebSocket-Extensions")...), h.extensions)
+	subprotocol := selectSubprotocol(
+		headerTokens(header.Values("Sec-WebSocket-Protocol")),
+		h.subprotocols,
+	)
+	extensions := negotiateExtensions(
+		ParseExtensions(header.Values("Sec-WebSocket-Extensions")...),
+		h.extensions,
+	)
 	responseHeader := http.Header{}
 	responseHeader.Set("Upgrade", "websocket")
 	responseHeader.Set("Connection", "Upgrade")
@@ -97,7 +126,10 @@ func (h *Handshaker) AcceptRequest(method string, header HandshakeHeader) (Hands
 }
 
 // AcceptHTTP 执行握手并写出标准 HTTP 101 响应头。
-func (h *Handshaker) AcceptHTTP(writer http.ResponseWriter, request *http.Request) (Handshake, error) {
+func (h *Handshaker) AcceptHTTP(
+	writer http.ResponseWriter,
+	request *http.Request,
+) (Handshake, error) {
 	if writer == nil {
 		return Handshake{}, ErrNilResponseWriter
 	}
@@ -196,7 +228,10 @@ func selectSubprotocol(clientProtocols, serverProtocols []string) string {
 	return ""
 }
 
-func negotiateExtensions(offers []Extension, negotiators []ExtensionNegotiator) []Extension {
+func negotiateExtensions(
+	offers []Extension,
+	negotiators []ExtensionNegotiator,
+) []Extension {
 	if len(offers) == 0 || len(negotiators) == 0 {
 		return nil
 	}

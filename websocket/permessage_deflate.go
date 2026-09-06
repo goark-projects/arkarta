@@ -101,8 +101,15 @@ func (p *PerMessageDeflate) CompressMessage(data []byte) ([]byte, error) {
 }
 
 // DecompressMessage 解压 permessage-deflate 单条消息；maxSize 小于 0 表示不限制。
-func (p *PerMessageDeflate) DecompressMessage(data []byte, maxSize int64) ([]byte, error) {
-	payload := make([]byte, 0, len(data)+len(perMessageDeflateTail)+len(perMessageDeflateFinalBlock))
+func (p *PerMessageDeflate) DecompressMessage(
+	data []byte,
+	maxSize int64,
+) ([]byte, error) {
+	payload := make(
+		[]byte,
+		0,
+		len(data)+len(perMessageDeflateTail)+len(perMessageDeflateFinalBlock),
+	)
 	payload = append(payload, data...)
 	payload = append(payload, perMessageDeflateTail...)
 	payload = append(payload, perMessageDeflateFinalBlock...)

@@ -21,20 +21,28 @@ func TestRouterGroupUsesScopedInterceptorsAndConvenienceMethods(t *testing.T) {
 
 	var order []string
 	router := web.NewRouter()
-	router.Use(web.InterceptorFunc(func(ctx *web.Context, next web.Handler) (web.Result, error) {
-		order = append(order, "global-before")
-		result, err := next.Handle(ctx)
-		order = append(order, "global-after")
-		return result, err
-	}))
+	router.Use(
+		web.InterceptorFunc(
+			func(ctx *web.Context, next web.Handler) (web.Result, error) {
+				order = append(order, "global-before")
+				result, err := next.Handle(ctx)
+				order = append(order, "global-after")
+				return result, err
+			},
+		),
+	)
 
 	api := router.Group("/api")
-	api.Use(web.InterceptorFunc(func(ctx *web.Context, next web.Handler) (web.Result, error) {
-		order = append(order, "group-before")
-		result, err := next.Handle(ctx)
-		order = append(order, "group-after")
-		return result, err
-	}))
+	api.Use(
+		web.InterceptorFunc(
+			func(ctx *web.Context, next web.Handler) (web.Result, error) {
+				order = append(order, "group-before")
+				result, err := next.Handle(ctx)
+				order = append(order, "group-after")
+				return result, err
+			},
+		),
+	)
 	if err := api.GET("/users/{id}", web.HandlerFunc(func(ctx *web.Context) (web.Result, error) {
 		order = append(order, "handler")
 		return web.Text(http.StatusOK, ctx.PathValue("id")), nil
@@ -43,12 +51,19 @@ func TestRouterGroupUsesScopedInterceptorsAndConvenienceMethods(t *testing.T) {
 	}
 
 	recorder := httptest.NewRecorder()
-	nethttp.Handler(router).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/api/users/42", nil))
+	nethttp.Handler(router).
+		ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/api/users/42", nil))
 
 	if recorder.Code != http.StatusOK || recorder.Body.String() != "42" {
 		t.Fatalf("response = %d %q, want 200 42", recorder.Code, recorder.Body.String())
 	}
-	wantOrder := []string{"global-before", "group-before", "handler", "group-after", "global-after"}
+	wantOrder := []string{
+		"global-before",
+		"group-before",
+		"handler",
+		"group-after",
+		"global-after",
+	}
 	if !reflect.DeepEqual(order, wantOrder) {
 		t.Fatalf("order = %#v, want %#v", order, wantOrder)
 	}
@@ -65,7 +80,8 @@ func TestRouterProvidesAutomaticHeadOptionsAndAllow(t *testing.T) {
 	}
 
 	headRecorder := httptest.NewRecorder()
-	nethttp.Handler(router).ServeHTTP(headRecorder, httptest.NewRequest(http.MethodHead, "/health", nil))
+	nethttp.Handler(router).
+		ServeHTTP(headRecorder, httptest.NewRequest(http.MethodHead, "/health", nil))
 	if headRecorder.Code != http.StatusOK {
 		t.Fatalf("HEAD status = %d, want 200", headRecorder.Code)
 	}
@@ -74,7 +90,8 @@ func TestRouterProvidesAutomaticHeadOptionsAndAllow(t *testing.T) {
 	}
 
 	optionsRecorder := httptest.NewRecorder()
-	nethttp.Handler(router).ServeHTTP(optionsRecorder, httptest.NewRequest(http.MethodOptions, "/health", nil))
+	nethttp.Handler(router).
+		ServeHTTP(optionsRecorder, httptest.NewRequest(http.MethodOptions, "/health", nil))
 	if optionsRecorder.Code != http.StatusNoContent {
 		t.Fatalf("OPTIONS status = %d, want 204", optionsRecorder.Code)
 	}
@@ -132,14 +149,22 @@ func TestContextBindsFormAndConvertsParameters(t *testing.T) {
 	form.Set("count", "3")
 	form.Add("tag", "servlet")
 	form.Add("tag", "web")
-	request := httptest.NewRequest(http.MethodPost, "/items/42?trace=true", strings.NewReader(form.Encode()))
+	request := httptest.NewRequest(
+		http.MethodPost,
+		"/items/42?trace=true",
+		strings.NewReader(form.Encode()),
+	)
 	request.Header.Set("Accept", arkjson.ContentType)
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	recorder := httptest.NewRecorder()
 	nethttp.Handler(router).ServeHTTP(recorder, request)
 
 	if recorder.Code != http.StatusOK {
-		t.Fatalf("status = %d, want 200, body=%s", recorder.Code, recorder.Body.String())
+		t.Fatalf(
+			"status = %d, want 200, body=%s",
+			recorder.Code,
+			recorder.Body.String(),
+		)
 	}
 	var payload struct {
 		ID    int      `json:"id"`
@@ -151,7 +176,9 @@ func TestContextBindsFormAndConvertsParameters(t *testing.T) {
 	if err := arkjson.Unmarshal(nil, recorder.Body.Bytes(), &payload); err != nil {
 		t.Fatalf("response json invalid: %v", err)
 	}
-	if payload.ID != 42 || !payload.Trace || payload.Name != "arkarta" || payload.Count != 3 || !reflect.DeepEqual(payload.Tags, []string{"servlet", "web"}) {
+	if payload.ID != 42 || !payload.Trace || payload.Name != "arkarta" ||
+		payload.Count != 3 ||
+		!reflect.DeepEqual(payload.Tags, []string{"servlet", "web"}) {
 		t.Fatalf("payload = %#v, want converted form values", payload)
 	}
 }
@@ -161,7 +188,7 @@ func TestContextBindsMultipartValuesAndParts(t *testing.T) {
 
 	type uploadInput struct {
 		Title  string                `form:"title"`
-		Avatar servletmultipart.Part `multipart:"avatar"`
+		Avatar servletmultipart.Part `             multipart:"avatar"`
 	}
 	router := web.NewRouter()
 	if err := router.POST("/uploads", web.HandlerFunc(func(ctx *web.Context) (web.Result, error) {
@@ -204,20 +231,30 @@ func TestContextBindsMultipartValuesAndParts(t *testing.T) {
 		t.Fatalf("multipart close failed: %v", err)
 	}
 
-	request := httptest.NewRequest(http.MethodPost, "/uploads", strings.NewReader(body.String()))
+	request := httptest.NewRequest(
+		http.MethodPost,
+		"/uploads",
+		strings.NewReader(body.String()),
+	)
 	request.Header.Set("Accept", arkjson.ContentType)
 	request.Header.Set("Content-Type", writer.FormDataContentType())
 	recorder := httptest.NewRecorder()
 	nethttp.Handler(router).ServeHTTP(recorder, request)
 
 	if recorder.Code != http.StatusCreated {
-		t.Fatalf("status = %d, want 201, body=%s", recorder.Code, recorder.Body.String())
+		t.Fatalf(
+			"status = %d, want 201, body=%s",
+			recorder.Code,
+			recorder.Body.String(),
+		)
 	}
 	var payload map[string]any
 	if err := arkjson.Unmarshal(nil, recorder.Body.Bytes(), &payload); err != nil {
 		t.Fatalf("response json invalid: %v", err)
 	}
-	if payload["title"] != "avatar" || payload["filename"] != "profile.txt" || payload["body"] != "hello" || payload["size"].(float64) != 5 {
+	if payload["title"] != "avatar" || payload["filename"] != "profile.txt" ||
+		payload["body"] != "hello" ||
+		payload["size"].(float64) != 5 {
 		t.Fatalf("payload = %#v, want multipart value and file", payload)
 	}
 }
@@ -225,10 +262,16 @@ func TestContextBindsMultipartValuesAndParts(t *testing.T) {
 func TestRouterAppliesResponseAdviceBeforeWrite(t *testing.T) {
 	t.Parallel()
 
-	router := web.NewRouter(web.WithResponseAdvice(web.ResponseAdviceFunc(func(ctx *web.Context, result web.Result) (web.Result, error) {
-		ctx.Response().Header().Set("X-Advised", "true")
-		return web.Text(http.StatusAccepted, "advised"), nil
-	})))
+	router := web.NewRouter(
+		web.WithResponseAdvice(
+			web.ResponseAdviceFunc(
+				func(ctx *web.Context, result web.Result) (web.Result, error) {
+					ctx.Response().Header().Set("X-Advised", "true")
+					return web.Text(http.StatusAccepted, "advised"), nil
+				},
+			),
+		),
+	)
 	if err := router.GET("/advice", web.HandlerFunc(func(ctx *web.Context) (web.Result, error) {
 		return web.Text(http.StatusOK, "origin"), nil
 	})); err != nil {
@@ -236,10 +279,15 @@ func TestRouterAppliesResponseAdviceBeforeWrite(t *testing.T) {
 	}
 
 	recorder := httptest.NewRecorder()
-	nethttp.Handler(router).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/advice", nil))
+	nethttp.Handler(router).
+		ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/advice", nil))
 
 	if recorder.Code != http.StatusAccepted || recorder.Body.String() != "advised" {
-		t.Fatalf("response = %d %q, want 202 advised", recorder.Code, recorder.Body.String())
+		t.Fatalf(
+			"response = %d %q, want 202 advised",
+			recorder.Code,
+			recorder.Body.String(),
+		)
 	}
 	if got := recorder.Header().Get("X-Advised"); got != "true" {
 		t.Fatalf("X-Advised = %q, want true", got)

@@ -19,7 +19,10 @@ func RunRegistration(t *testing.T) {
 	t.Run("filter_dispatcher_mappings", runFilterDispatcherMappings)
 	t.Run("registry_freeze", runRegistrationFreeze)
 	t.Run("deployment_requires_frozen_snapshot", runDeploymentRequiresFrozenSnapshot)
-	t.Run("context_closes_after_webapp_start", runRegistrationContextClosesAfterWebAppStart)
+	t.Run(
+		"context_closes_after_webapp_start",
+		runRegistrationContextClosesAfterWebAppStart,
+	)
 	t.Run("load_on_startup_order_and_single_init", runLoadOnStartupOrderAndSingleInit)
 }
 
@@ -33,7 +36,8 @@ func runServletRegistrationConflicts(t *testing.T) {
 	if ok, err := orders.SetInitParam("encoding", "utf-8"); err != nil || !ok {
 		t.Fatalf("SetInitParam ok/err = %v/%v, want true/nil", ok, err)
 	}
-	if conflicts, err := orders.AddMapping("/orders", "/orders/*"); err != nil || len(conflicts) != 0 {
+	if conflicts, err := orders.AddMapping("/orders", "/orders/*"); err != nil ||
+		len(conflicts) != 0 {
 		t.Fatalf("AddMapping conflicts/err = %#v/%v, want none/nil", conflicts, err)
 	}
 	other, err := registry.AddServlet("other", servlet.HandlerFunc(noopTCKServe))
@@ -52,13 +56,26 @@ func runServletRegistrationConflicts(t *testing.T) {
 func runFilterDispatcherMappings(t *testing.T) {
 	t.Helper()
 	registry := registration.NewRegistry()
-	filter, err := registry.AddFilter("audit", servlet.FilterFunc(func(ctx context.Context, req *servlet.Request, res servlet.Response, chain servlet.Chain) error {
-		return chain.Next(ctx, req, res)
-	}))
+	filter, err := registry.AddFilter(
+		"audit",
+		servlet.FilterFunc(
+			func(
+				ctx context.Context,
+				req *servlet.Request,
+				res servlet.Response,
+				chain servlet.Chain,
+			) error {
+				return chain.Next(ctx, req, res)
+			},
+		),
+	)
 	if err != nil {
 		t.Fatalf("AddFilter failed: %v", err)
 	}
-	dispatchers, err := registration.NewDispatcherTypes(registration.DispatcherRequest, registration.DispatcherError)
+	dispatchers, err := registration.NewDispatcherTypes(
+		registration.DispatcherRequest,
+		registration.DispatcherError,
+	)
 	if err != nil {
 		t.Fatalf("NewDispatcherTypes failed: %v", err)
 	}
@@ -66,7 +83,8 @@ func runFilterDispatcherMappings(t *testing.T) {
 		t.Fatalf("AddMappingForURLPatterns failed: %v", err)
 	}
 	mappings := registry.Snapshot().Filters()[0].URLPatternMappings()
-	if len(mappings) != 1 || !mappings[0].MatchAfter() || !mappings[0].DispatcherTypes().Contains(registration.DispatcherError) {
+	if len(mappings) != 1 || !mappings[0].MatchAfter() ||
+		!mappings[0].DispatcherTypes().Contains(registration.DispatcherError) {
 		t.Fatalf("filter mapping = %#v, want request/error matchAfter", mappings)
 	}
 }
@@ -81,7 +99,10 @@ func runRegistrationFreeze(t *testing.T) {
 	if _, err := registry.Freeze(); err != nil {
 		t.Fatalf("Freeze failed: %v", err)
 	}
-	if _, err := target.AddMapping("/target"); !errors.Is(err, registration.ErrRegistryFrozen) {
+	if _, err := target.AddMapping("/target"); !errors.Is(
+		err,
+		registration.ErrRegistryFrozen,
+	) {
 		t.Fatalf("AddMapping after freeze err = %v, want ErrRegistryFrozen", err)
 	}
 }
@@ -128,10 +149,16 @@ func runRegistrationContextClosesAfterWebAppStart(t *testing.T) {
 		_ = app.Destroy(context.Background())
 	})
 
-	if _, err := ctx.AddServlet("late", servlet.HandlerFunc(noopTCKServe)); !errors.Is(err, registration.ErrRegistrationClosed) {
+	if _, err := ctx.AddServlet("late", servlet.HandlerFunc(noopTCKServe)); !errors.Is(
+		err,
+		registration.ErrRegistrationClosed,
+	) {
 		t.Fatalf("AddServlet after start err = %v, want ErrRegistrationClosed", err)
 	}
-	if _, err := ctx.SetInitParam("late", "true"); !errors.Is(err, registration.ErrRegistrationClosed) {
+	if _, err := ctx.SetInitParam("late", "true"); !errors.Is(
+		err,
+		registration.ErrRegistrationClosed,
+	) {
 		t.Fatalf("SetInitParam after start err = %v, want ErrRegistrationClosed", err)
 	}
 }
@@ -151,7 +178,8 @@ func runLoadOnStartupOrderAndSingleInit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AddServlet late failed: %v", err)
 	}
-	if conflicts, err := late.AddMapping("/late", "/late/*"); err != nil || len(conflicts) != 0 {
+	if conflicts, err := late.AddMapping("/late", "/late/*"); err != nil ||
+		len(conflicts) != 0 {
 		t.Fatalf("late AddMapping conflicts/err = %#v/%v", conflicts, err)
 	}
 	if err := late.SetLoadOnStartup(10); err != nil {
@@ -175,7 +203,10 @@ func runLoadOnStartupOrderAndSingleInit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("DeploymentFromRegistration failed: %v", err)
 	}
-	application, err := servletcontainer.NewApplication(context.Background(), deployment)
+	application, err := servletcontainer.NewApplication(
+		context.Background(),
+		deployment,
+	)
 	if err != nil {
 		t.Fatalf("NewApplication failed: %v", err)
 	}

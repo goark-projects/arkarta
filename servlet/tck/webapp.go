@@ -13,12 +13,15 @@ import (
 // RunWebAppContext 执行 WebApp/ServletContext 标准能力兼容性测试。
 func RunWebAppContext(t *testing.T) {
 	t.Helper()
-	app, err := servlet.NewWebApp("tck",
+	app, err := servlet.NewWebApp(
+		"tck",
 		servlet.WithContextPath("/tck"),
 		servlet.WithVirtualServerName("tck.local"),
 		servlet.WithSessionTimeout(20*time.Minute),
 		servlet.WithMimeType("tck", "application/x-tck"),
-		servlet.WithResourceFS(fstest.MapFS{"assets/tck.txt": &fstest.MapFile{Data: []byte("ok")}}),
+		servlet.WithResourceFS(
+			fstest.MapFS{"assets/tck.txt": &fstest.MapFile{Data: []byte("ok")}},
+		),
 	)
 	if err != nil {
 		t.Fatalf("NewWebApp failed: %v", err)
@@ -35,7 +38,8 @@ func RunWebAppContext(t *testing.T) {
 	if app.MimeType("probe.tck") != "application/x-tck" {
 		t.Fatalf("mime type = %q, want application/x-tck", app.MimeType("probe.tck"))
 	}
-	if app.EffectiveMajorVersion() != servlet.ServletSpecMajorVersion || app.EffectiveMinorVersion() != servlet.ServletSpecMinorVersion {
+	if app.EffectiveMajorVersion() != servlet.ServletSpecMajorVersion ||
+		app.EffectiveMinorVersion() != servlet.ServletSpecMinorVersion {
 		t.Fatalf("effective version = %d.%d, want %d.%d",
 			app.EffectiveMajorVersion(),
 			app.EffectiveMinorVersion(),

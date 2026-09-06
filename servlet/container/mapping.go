@@ -20,7 +20,11 @@ type Mapping struct {
 }
 
 // NewMapping 创建路径映射。
-func NewMapping(pattern string, handler servlet.Handler, filters ...servlet.Filter) (Mapping, error) {
+func NewMapping(
+	pattern string,
+	handler servlet.Handler,
+	filters ...servlet.Filter,
+) (Mapping, error) {
 	if handler == nil {
 		return Mapping{}, servlet.ErrNilHandler
 	}
@@ -41,7 +45,11 @@ func NewMapping(pattern string, handler servlet.Handler, filters ...servlet.Filt
 	}, nil
 }
 
-func newServletMapping(pattern, name string, handler servlet.Servlet, filters ...servlet.Filter) (Mapping, error) {
+func newServletMapping(
+	pattern, name string,
+	handler servlet.Servlet,
+	filters ...servlet.Filter,
+) (Mapping, error) {
 	if name == "" {
 		name = pattern
 	}
@@ -53,7 +61,14 @@ func newServletMapping(pattern, name string, handler servlet.Servlet, filters ..
 	return mapping, nil
 }
 
-func newRegistrationMapping(pattern, name string, handler servlet.Handler, initParam map[string]string, loadOnStartup int, hasLoadOnStartup bool, runAsRole string) (Mapping, error) {
+func newRegistrationMapping(
+	pattern, name string,
+	handler servlet.Handler,
+	initParam map[string]string,
+	loadOnStartup int,
+	hasLoadOnStartup bool,
+	runAsRole string,
+) (Mapping, error) {
 	mapping, err := NewMapping(pattern, handler)
 	if err != nil {
 		return Mapping{}, err
@@ -112,25 +127,29 @@ func (m Mapping) LoadOnStartup() (int, bool) {
 func (m Mapping) servletHandler() servlet.Handler {
 	handler := m.handler
 	if m.runAsRole != "" {
-		handler = servlet.HandlerFunc(func(ctx context.Context, req *servlet.Request, res servlet.Response) error {
-			return security.RunAs(req, m.runAsRole, func() error {
-				return m.handler.Serve(ctx, req, res)
-			})
-		})
+		handler = servlet.HandlerFunc(
+			func(ctx context.Context, req *servlet.Request, res servlet.Response) error {
+				return security.RunAs(req, m.runAsRole, func() error {
+					return m.handler.Serve(ctx, req, res)
+				})
+			},
+		)
 	}
 	target := servlet.ChainFilterBindings(handler, m.filterBindings...)
-	return servlet.HandlerFunc(func(ctx context.Context, req *servlet.Request, res servlet.Response) error {
-		previous, hadPrevious := req.Attribute(servlet.AttributeServletName)
-		req.SetAttribute(servlet.AttributeServletName, m.name)
-		defer func() {
-			if hadPrevious {
-				req.SetAttribute(servlet.AttributeServletName, previous)
-				return
-			}
-			req.SetAttribute(servlet.AttributeServletName, nil)
-		}()
-		return target.Serve(ctx, req, res)
-	})
+	return servlet.HandlerFunc(
+		func(ctx context.Context, req *servlet.Request, res servlet.Response) error {
+			previous, hadPrevious := req.Attribute(servlet.AttributeServletName)
+			req.SetAttribute(servlet.AttributeServletName, m.name)
+			defer func() {
+				if hadPrevious {
+					req.SetAttribute(servlet.AttributeServletName, previous)
+					return
+				}
+				req.SetAttribute(servlet.AttributeServletName, nil)
+			}()
+			return target.Serve(ctx, req, res)
+		},
+	)
 }
 
 func requestFilterBindings(filters []servlet.Filter) ([]servlet.FilterBinding, error) {

@@ -19,9 +19,30 @@ func TestFrameConnectionReadsFragmentsAndAutoPongs(t *testing.T) {
 	t.Parallel()
 
 	conn := newDuplexUpgradeConn()
-	writeClientFrame(t, conn.inbound, frame.New(frame.OpPing, []byte("p"), frame.WithMask(frame.MaskKey{1, 2, 3, 4})))
-	writeClientFrame(t, conn.inbound, frame.New(frame.OpText, []byte("hel"), frame.WithFin(false), frame.WithMask(frame.MaskKey{4, 3, 2, 1})))
-	writeClientFrame(t, conn.inbound, frame.New(frame.OpContinuation, []byte("lo"), frame.WithMask(frame.MaskKey{9, 8, 7, 6})))
+	writeClientFrame(
+		t,
+		conn.inbound,
+		frame.New(frame.OpPing, []byte("p"), frame.WithMask(frame.MaskKey{1, 2, 3, 4})),
+	)
+	writeClientFrame(
+		t,
+		conn.inbound,
+		frame.New(
+			frame.OpText,
+			[]byte("hel"),
+			frame.WithFin(false),
+			frame.WithMask(frame.MaskKey{4, 3, 2, 1}),
+		),
+	)
+	writeClientFrame(
+		t,
+		conn.inbound,
+		frame.New(
+			frame.OpContinuation,
+			[]byte("lo"),
+			frame.WithMask(frame.MaskKey{9, 8, 7, 6}),
+		),
+	)
 
 	wsConn, err := servletws.NewFrameConnection(conn)
 	if err != nil {
@@ -35,7 +56,10 @@ func TestFrameConnectionReadsFragmentsAndAutoPongs(t *testing.T) {
 		t.Fatalf("message = %v/%q, want text hello", message.Type(), message.Text())
 	}
 
-	pong, err := frame.Read(bytes.NewReader(conn.outbound.Bytes()), frame.WithMaskPolicy(frame.MaskForbidden))
+	pong, err := frame.Read(
+		bytes.NewReader(conn.outbound.Bytes()),
+		frame.WithMaskPolicy(frame.MaskForbidden),
+	)
 	if err != nil {
 		t.Fatalf("read pong failed: %v", err)
 	}
@@ -55,7 +79,8 @@ func TestFrameConnectionWritesServerFramesAndCloses(t *testing.T) {
 	if err := wsConn.Write(context.Background(), websocket.TextMessage("ready")); err != nil {
 		t.Fatalf("Write failed: %v", err)
 	}
-	if err := wsConn.Close(context.Background(), websocket.NewCloseReason(websocket.CloseNormal, "bye")); err != nil {
+	closeReason := websocket.NewCloseReason(websocket.CloseNormal, "bye")
+	if err := wsConn.Close(context.Background(), closeReason); err != nil {
 		t.Fatalf("Close failed: %v", err)
 	}
 	reader := bytes.NewReader(conn.outbound.Bytes())
@@ -74,8 +99,15 @@ func TestFrameConnectionWritesServerFramesAndCloses(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ParseClosePayload failed: %v", err)
 	}
-	if closeFrame.OpCode() != frame.OpClose || code != 1000 || reason != "bye" || !conn.closed {
-		t.Fatalf("close = opcode %v code %d reason %q closed %v", closeFrame.OpCode(), code, reason, conn.closed)
+	if closeFrame.OpCode() != frame.OpClose || code != 1000 || reason != "bye" ||
+		!conn.closed {
+		t.Fatalf(
+			"close = opcode %v code %d reason %q closed %v",
+			closeFrame.OpCode(),
+			code,
+			reason,
+			conn.closed,
+		)
 	}
 }
 
@@ -87,8 +119,24 @@ func TestServeEndpointUsesFrameConnection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ClosePayload failed: %v", err)
 	}
-	writeClientFrame(t, conn.inbound, frame.New(frame.OpText, []byte("hello"), frame.WithMask(frame.MaskKey{1, 1, 1, 1})))
-	writeClientFrame(t, conn.inbound, frame.New(frame.OpClose, closePayload, frame.WithMask(frame.MaskKey{2, 2, 2, 2})))
+	writeClientFrame(
+		t,
+		conn.inbound,
+		frame.New(
+			frame.OpText,
+			[]byte("hello"),
+			frame.WithMask(frame.MaskKey{1, 1, 1, 1}),
+		),
+	)
+	writeClientFrame(
+		t,
+		conn.inbound,
+		frame.New(
+			frame.OpClose,
+			closePayload,
+			frame.WithMask(frame.MaskKey{2, 2, 2, 2}),
+		),
+	)
 
 	var events []string
 	endpoint := websocket.EndpointFunc{
@@ -112,10 +160,14 @@ func TestServeEndpointUsesFrameConnection(t *testing.T) {
 		},
 	}
 	handshake := newHandshakeWithSubprotocol(t, "chat")
-	if err := servletws.ServeEndpoint(context.Background(), "s1", handshake, conn, endpoint); err != nil {
+	err = servletws.ServeEndpoint(context.Background(), "s1", handshake, conn, endpoint)
+	if err != nil {
 		t.Fatalf("ServeEndpoint failed: %v", err)
 	}
-	if want := []string{"open", "text:hello", "close:bye"}; !reflectDeepEqual(events, want) {
+	if want := []string{"open", "text:hello", "close:bye"}; !reflectDeepEqual(
+		events,
+		want,
+	) {
 		t.Fatalf("events = %#v, want %#v", events, want)
 	}
 }
@@ -180,7 +232,8 @@ func newHandshakeWithSubprotocol(t *testing.T, subprotocol string) websocket.Han
 	request.Header.Set("Sec-WebSocket-Key", "dGhlIHNhbXBsZSBub25jZQ==")
 	request.Header.Set("Sec-WebSocket-Version", websocket.ProtocolVersion)
 	request.Header.Set("Sec-WebSocket-Protocol", subprotocol)
-	handshake, err := websocket.NewHandshaker(websocket.WithSubprotocols(subprotocol)).Accept(request)
+	handshake, err := websocket.NewHandshaker(websocket.WithSubprotocols(subprotocol)).
+		Accept(request)
 	if err != nil {
 		t.Fatalf("Accept failed: %v", err)
 	}

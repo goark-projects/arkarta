@@ -15,21 +15,22 @@ func TestDispatcherForwardUsesTargetPathAndRestoresRequest(t *testing.T) {
 	t.Parallel()
 
 	router := NewRouter()
-	mustHandle(t, router, "/target", HandlerFunc(func(_ context.Context, req *Request, res Response) error {
-		if req.DispatchType() != DispatchForward {
-			t.Fatalf("dispatch = %v, want forward", req.DispatchType())
-		}
-		value, ok := req.Attribute(AttributeForwardRequestURI)
-		if !ok || value != "/source" {
-			t.Fatalf("forward request uri = %v/%v, want /source/true", value, ok)
-		}
-		query, _ := req.Attribute(AttributeForwardQueryString)
-		if query != "from=source" {
-			t.Fatalf("forward query = %v, want from=source", query)
-		}
-		_, err := res.WriteString(req.Path())
-		return err
-	}))
+	mustHandle(t, router, "/target", HandlerFunc(
+		func(_ context.Context, req *Request, res Response) error {
+			if req.DispatchType() != DispatchForward {
+				t.Fatalf("dispatch = %v, want forward", req.DispatchType())
+			}
+			value, ok := req.Attribute(AttributeForwardRequestURI)
+			if !ok || value != "/source" {
+				t.Fatalf("forward request uri = %v/%v, want /source/true", value, ok)
+			}
+			query, _ := req.Attribute(AttributeForwardQueryString)
+			if query != "from=source" {
+				t.Fatalf("forward query = %v, want from=source", query)
+			}
+			_, err := res.WriteString(req.Path())
+			return err
+		}))
 
 	req, err := NewRequest(httptest.NewRequest(http.MethodGet, "/source?from=source", nil))
 	if err != nil {
@@ -85,22 +86,23 @@ func TestDispatcherForwardAppliesQueryString(t *testing.T) {
 	t.Parallel()
 
 	router := NewRouter()
-	mustHandle(t, router, "/target", HandlerFunc(func(_ context.Context, req *Request, _ Response) error {
-		if req.QueryString() != "from=dispatcher&x=1" {
-			t.Fatalf("query string = %q, want dispatcher query", req.QueryString())
-		}
-		if req.Query().Get("from") != "dispatcher" {
-			t.Fatalf("from = %q, want dispatcher", req.Query().Get("from"))
-		}
-		value, ok, err := req.Parameter("x")
-		if err != nil {
-			t.Fatalf("Parameter failed: %v", err)
-		}
-		if !ok || value != "1" {
-			t.Fatalf("x = %q/%v, want 1/true", value, ok)
-		}
-		return nil
-	}))
+	mustHandle(t, router, "/target", HandlerFunc(
+		func(_ context.Context, req *Request, _ Response) error {
+			if req.QueryString() != "from=dispatcher&x=1" {
+				t.Fatalf("query string = %q, want dispatcher query", req.QueryString())
+			}
+			if req.Query().Get("from") != "dispatcher" {
+				t.Fatalf("from = %q, want dispatcher", req.Query().Get("from"))
+			}
+			value, ok, err := req.Parameter("x")
+			if err != nil {
+				t.Fatalf("Parameter failed: %v", err)
+			}
+			if !ok || value != "1" {
+				t.Fatalf("x = %q/%v, want 1/true", value, ok)
+			}
+			return nil
+		}))
 
 	req, err := NewRequest(httptest.NewRequest(http.MethodGet, "/source?from=source", nil))
 	if err != nil {
@@ -123,23 +125,24 @@ func TestDispatcherIncludeCannotChangeOuterStatusOrHeaders(t *testing.T) {
 	t.Parallel()
 
 	router := NewRouter()
-	mustHandle(t, router, "/fragment", HandlerFunc(func(_ context.Context, req *Request, res Response) error {
-		if req.DispatchType() != DispatchInclude {
-			t.Fatalf("dispatch = %v, want include", req.DispatchType())
-		}
-		value, ok := req.Attribute(AttributeIncludeRequestURI)
-		if !ok || value != "/page" {
-			t.Fatalf("include request uri = %v/%v, want /page/true", value, ok)
-		}
-		query, _ := req.Attribute(AttributeIncludeQueryString)
-		if query != "mode=full" {
-			t.Fatalf("include query = %v, want mode=full", query)
-		}
-		res.SetStatus(http.StatusCreated)
-		res.Header().Set("X-Include", "ignored")
-		_, err := res.WriteString("fragment")
-		return err
-	}))
+	mustHandle(t, router, "/fragment", HandlerFunc(
+		func(_ context.Context, req *Request, res Response) error {
+			if req.DispatchType() != DispatchInclude {
+				t.Fatalf("dispatch = %v, want include", req.DispatchType())
+			}
+			value, ok := req.Attribute(AttributeIncludeRequestURI)
+			if !ok || value != "/page" {
+				t.Fatalf("include request uri = %v/%v, want /page/true", value, ok)
+			}
+			query, _ := req.Attribute(AttributeIncludeQueryString)
+			if query != "mode=full" {
+				t.Fatalf("include query = %v, want mode=full", query)
+			}
+			res.SetStatus(http.StatusCreated)
+			res.Header().Set("X-Include", "ignored")
+			_, err := res.WriteString("fragment")
+			return err
+		}))
 
 	req, err := NewRequest(httptest.NewRequest(http.MethodGet, "/page?mode=full", nil))
 	if err != nil {
@@ -171,22 +174,25 @@ func TestDispatcherErrorSetsErrorAttributes(t *testing.T) {
 
 	cause := errors.New("boom")
 	router := NewRouter()
-	mustHandle(t, router, "/error", HandlerFunc(func(_ context.Context, req *Request, res Response) error {
-		status, _ := req.Attribute(AttributeErrorStatusCode)
-		errValue, _ := req.Attribute(AttributeErrorException)
-		path, _ := req.Attribute(AttributeErrorRequestURI)
-		query, _ := req.Attribute(AttributeErrorQueryString)
-		message, _ := req.Attribute(AttributeErrorMessage)
-		exceptionType, _ := req.Attribute(AttributeErrorExceptionType)
-		if status != http.StatusBadGateway || errValue != cause || path != "/upstream" {
-			t.Fatalf("error attrs = %v/%v/%v", status, errValue, path)
-		}
-		if query != "trace=1" || message != http.StatusText(http.StatusBadGateway) || exceptionType != reflect.TypeOf(cause).String() {
-			t.Fatalf("error extended attrs = %v/%v/%v", query, message, exceptionType)
-		}
-		_, err := res.WriteString("error")
-		return err
-	}))
+	mustHandle(t, router, "/error", HandlerFunc(
+		func(_ context.Context, req *Request, res Response) error {
+			status, _ := req.Attribute(AttributeErrorStatusCode)
+			errValue, _ := req.Attribute(AttributeErrorException)
+			path, _ := req.Attribute(AttributeErrorRequestURI)
+			query, _ := req.Attribute(AttributeErrorQueryString)
+			message, _ := req.Attribute(AttributeErrorMessage)
+			exceptionType, _ := req.Attribute(AttributeErrorExceptionType)
+			if status != http.StatusBadGateway || errValue != cause || path != "/upstream" {
+				t.Fatalf("error attrs = %v/%v/%v", status, errValue, path)
+			}
+			if query != "trace=1" ||
+				message != http.StatusText(http.StatusBadGateway) ||
+				exceptionType != reflect.TypeOf(cause).String() {
+				t.Fatalf("error extended attrs = %v/%v/%v", query, message, exceptionType)
+			}
+			_, err := res.WriteString("error")
+			return err
+		}))
 
 	req, err := NewRequest(httptest.NewRequest(http.MethodGet, "/upstream?trace=1", nil))
 	if err != nil {
@@ -198,7 +204,10 @@ func TestDispatcherErrorSetsErrorAttributes(t *testing.T) {
 		t.Fatalf("NewRequestDispatcher failed: %v", err)
 	}
 
-	if err := dispatcher.Error(context.Background(), req, response, http.StatusBadGateway, cause); err != nil {
+	err = dispatcher.Error(
+		context.Background(), req, response, http.StatusBadGateway, cause,
+	)
+	if err != nil {
 		t.Fatalf("Error failed: %v", err)
 	}
 	if response.Status() != http.StatusBadGateway {

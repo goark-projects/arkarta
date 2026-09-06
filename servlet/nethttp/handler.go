@@ -28,7 +28,11 @@ func HandlerWithOptions(handler servlet.Handler, options ...Option) http.Handler
 }
 
 // ServeHTTP 执行一次标准库到 Servlet 的请求适配。
-func ServeHTTP(writer http.ResponseWriter, request *http.Request, handler servlet.Handler) {
+func ServeHTTP(
+	writer http.ResponseWriter,
+	request *http.Request,
+	handler servlet.Handler,
+) {
 	Handler(handler).ServeHTTP(writer, request)
 }
 
@@ -41,7 +45,14 @@ type adapter struct {
 func (a *adapter) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	response := NewResponse(writer)
 	if a.handler == nil {
-		writeError(response, servlet.NewHTTPError(http.StatusInternalServerError, "handler is nil", servlet.ErrNilHandler))
+		writeError(
+			response,
+			servlet.NewHTTPError(
+				http.StatusInternalServerError,
+				"handler is nil",
+				servlet.ErrNilHandler,
+			),
+		)
 		return
 	}
 	req, err := servlet.NewRequest(request, a.requestOptions...)
@@ -58,18 +69,40 @@ func (a *adapter) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
-func (a *adapter) recoverPanic(httpRequest *http.Request, req *servlet.Request, response *Response) {
+func (a *adapter) recoverPanic(
+	httpRequest *http.Request,
+	req *servlet.Request,
+	response *Response,
+) {
 	value := recover()
 	if value == nil {
 		return
 	}
 	err := fmt.Errorf("panic recovered: %v\n%s", value, debug.Stack())
-	a.writeError(httpRequest, req, response, servlet.NewHTTPError(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError), err))
+	a.writeError(
+		httpRequest,
+		req,
+		response,
+		servlet.NewHTTPError(
+			http.StatusInternalServerError,
+			http.StatusText(http.StatusInternalServerError),
+			err,
+		),
+	)
 }
 
-func (a *adapter) writeError(httpRequest *http.Request, req *servlet.Request, response *Response, err error) {
+func (a *adapter) writeError(
+	httpRequest *http.Request,
+	req *servlet.Request,
+	response *Response,
+	err error,
+) {
 	statusCode, _ := errorStatus(err)
-	if handled, dispatchErr := a.errorPages.Handle(httpRequest.Context(), req, response, statusCode, err); handled && dispatchErr == nil {
+	handled, dispatchErr := a.errorPages.Handle(
+		httpRequest.Context(), req, response, statusCode, err,
+	)
+	if handled &&
+		dispatchErr == nil {
 		return
 	}
 	writeError(response, err)

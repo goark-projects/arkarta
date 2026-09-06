@@ -20,7 +20,9 @@ const (
 )
 
 // ErrInvalidTrackingMode 表示会话跟踪模式非法。
-var ErrInvalidTrackingMode = errors.New("arkarta/servlet/session: invalid tracking mode")
+var ErrInvalidTrackingMode = errors.New(
+	"arkarta/servlet/session: invalid tracking mode",
+)
 
 // TrackingPolicy 描述当前应用允许的会话跟踪模式。
 type TrackingPolicy struct {

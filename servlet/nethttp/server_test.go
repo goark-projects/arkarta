@@ -20,11 +20,17 @@ func TestServerServesDeployedApplicationAndStopsOnContextCancel(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewWebApp failed: %v", err)
 	}
-	deployment, err := servletcontainer.NewDeployment(app,
-		servletcontainer.WithMapping("/", servlet.HandlerFunc(func(_ context.Context, _ *servlet.Request, res servlet.Response) error {
-			_, err := res.WriteString("ok")
-			return err
-		})),
+	deployment, err := servletcontainer.NewDeployment(
+		app,
+		servletcontainer.WithMapping(
+			"/",
+			servlet.HandlerFunc(
+				func(_ context.Context, _ *servlet.Request, res servlet.Response) error {
+					_, err := res.WriteString("ok")
+					return err
+				},
+			),
+		),
 	)
 	if err != nil {
 		t.Fatalf("NewDeployment failed: %v", err)
@@ -33,7 +39,11 @@ func TestServerServesDeployedApplicationAndStopsOnContextCancel(t *testing.T) {
 	if _, err := container.Deploy(context.Background(), deployment); err != nil {
 		t.Fatalf("Deploy failed: %v", err)
 	}
-	server, err := NewServer(container, WithReadHeaderTimeout(time.Second), WithIdleTimeout(time.Second))
+	server, err := NewServer(
+		container,
+		WithReadHeaderTimeout(time.Second),
+		WithIdleTimeout(time.Second),
+	)
 	if err != nil {
 		t.Fatalf("NewServer failed: %v", err)
 	}

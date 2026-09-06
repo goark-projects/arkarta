@@ -98,7 +98,11 @@ type FilterBinding struct {
 }
 
 // NewFilterBinding 创建 Filter 运行时映射。
-func NewFilterBinding(name string, filter Filter, options ...FilterBindingOption) (FilterBinding, error) {
+func NewFilterBinding(
+	name string,
+	filter Filter,
+	options ...FilterBindingOption,
+) (FilterBinding, error) {
 	if isNilFilter(filter) {
 		return FilterBinding{}, ErrNilFilter
 	}

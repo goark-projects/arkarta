@@ -22,7 +22,9 @@ const (
 
 // Valid 判断操作码是否属于 RFC 6455 已定义集合。
 func (o OpCode) Valid() bool {
-	return o == OpContinuation || o == OpText || o == OpBinary || o == OpClose || o == OpPing || o == OpPong
+	return o == OpContinuation || o == OpText || o == OpBinary || o == OpClose ||
+		o == OpPing ||
+		o == OpPong
 }
 
 // Control 判断操作码是否为控制帧。

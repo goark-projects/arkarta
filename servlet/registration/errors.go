@@ -9,22 +9,32 @@ var ErrNilRegistry = errors.New("arkarta/servlet/registration: registry is nil")
 var ErrRegistryFrozen = errors.New("arkarta/servlet/registration: registry is frozen")
 
 // ErrRegistrationClosed 表示 Web 应用已经越过动态注册阶段。
-var ErrRegistrationClosed = errors.New("arkarta/servlet/registration: registration phase is closed")
+var ErrRegistrationClosed = errors.New(
+	"arkarta/servlet/registration: registration phase is closed",
+)
 
 // ErrSnapshotNotFrozen 表示部署使用了仍可变化的注册快照。
-var ErrSnapshotNotFrozen = errors.New("arkarta/servlet/registration: snapshot is not frozen")
+var ErrSnapshotNotFrozen = errors.New(
+	"arkarta/servlet/registration: snapshot is not frozen",
+)
 
 // ErrInvalidName 表示 Servlet、Filter 或 Listener 名称非法。
 var ErrInvalidName = errors.New("arkarta/servlet/registration: invalid name")
 
 // ErrInvalidInitParamName 表示初始化参数名称非法。
-var ErrInvalidInitParamName = errors.New("arkarta/servlet/registration: invalid init parameter name")
+var ErrInvalidInitParamName = errors.New(
+	"arkarta/servlet/registration: invalid init parameter name",
+)
 
 // ErrInvalidDispatcherTypes 表示 DispatcherType 位集合非法。
-var ErrInvalidDispatcherTypes = errors.New("arkarta/servlet/registration: invalid dispatcher types")
+var ErrInvalidDispatcherTypes = errors.New(
+	"arkarta/servlet/registration: invalid dispatcher types",
+)
 
 // ErrDuplicateRegistration 表示同名注册项已经存在。
-var ErrDuplicateRegistration = errors.New("arkarta/servlet/registration: duplicate registration")
+var ErrDuplicateRegistration = errors.New(
+	"arkarta/servlet/registration: duplicate registration",
+)
 
 // ErrNilServlet 表示 Servlet 实例为空。
 var ErrNilServlet = errors.New("arkarta/servlet/registration: servlet is nil")

@@ -90,10 +90,16 @@ func runNilAndLimit(t *testing.T, factory CodecFactory) {
 		t.Fatalf("nil reader err = %v, want ErrNilReader", err)
 	}
 	var target map[string]any
-	if err := codec.Unmarshal([]byte(`{"name":"arkarta"}`), &target); !errors.Is(err, arkjson.ErrPayloadTooLarge) {
+	if err := codec.Unmarshal([]byte(`{"name":"arkarta"}`), &target); !errors.Is(
+		err,
+		arkjson.ErrPayloadTooLarge,
+	) {
 		t.Fatalf("large payload err = %v, want ErrPayloadTooLarge", err)
 	}
-	if err := codec.Unmarshal([]byte(`{}`), nil); !errors.Is(err, arkjson.ErrNilTarget) {
+	if err := codec.Unmarshal([]byte(`{}`), nil); !errors.Is(
+		err,
+		arkjson.ErrNilTarget,
+	) {
 		t.Fatalf("nil target err = %v, want ErrNilTarget", err)
 	}
 }

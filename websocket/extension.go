@@ -197,7 +197,23 @@ func validToken(value string) bool {
 			return false
 		}
 		switch r {
-		case '(', ')', '<', '>', '@', ',', ';', ':', '\\', '"', '/', '[', ']', '?', '=', '{', '}':
+		case '(',
+			')',
+			'<',
+			'>',
+			'@',
+			',',
+			';',
+			':',
+			'\\',
+			'"',
+			'/',
+			'[',
+			']',
+			'?',
+			'=',
+			'{',
+			'}':
 			return false
 		}
 	}
@@ -210,7 +226,10 @@ func cloneExtensions(src []Extension) []Extension {
 	}
 	dst := make([]Extension, len(src))
 	for i, extension := range src {
-		dst[i] = Extension{name: extension.name, params: cloneStringMap(extension.params)}
+		dst[i] = Extension{
+			name:   extension.name,
+			params: cloneStringMap(extension.params),
+		}
 	}
 	return dst
 }

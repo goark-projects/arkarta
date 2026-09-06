@@ -36,7 +36,11 @@ func (r *FilterRegistration) Filter() servlet.Filter {
 }
 
 // AddMappingForURLPatterns 为 Filter 增加 URL 模式映射。
-func (r *FilterRegistration) AddMappingForURLPatterns(dispatchers DispatcherTypes, matchAfter bool, patterns ...string) error {
+func (r *FilterRegistration) AddMappingForURLPatterns(
+	dispatchers DispatcherTypes,
+	matchAfter bool,
+	patterns ...string,
+) error {
 	if r == nil || r.owner == nil {
 		return ErrNilRegistry
 	}
@@ -65,7 +69,11 @@ func (r *FilterRegistration) AddMappingForURLPatterns(dispatchers DispatcherType
 }
 
 // AddMappingForServletNames 为 Filter 增加 Servlet 名称映射。
-func (r *FilterRegistration) AddMappingForServletNames(dispatchers DispatcherTypes, matchAfter bool, names ...string) error {
+func (r *FilterRegistration) AddMappingForServletNames(
+	dispatchers DispatcherTypes,
+	matchAfter bool,
+	names ...string,
+) error {
 	if r == nil || r.owner == nil {
 		return ErrNilRegistry
 	}

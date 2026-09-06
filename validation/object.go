@@ -49,7 +49,10 @@ func (f ObjectConstraintFunc) Name() string {
 }
 
 // ValidateObject 执行对象级约束函数。
-func (f ObjectConstraintFunc) ValidateObject(ctx context.Context, object ObjectContext) ([]Violation, error) {
+func (f ObjectConstraintFunc) ValidateObject(
+	ctx context.Context,
+	object ObjectContext,
+) ([]Violation, error) {
 	if f.Fn == nil {
 		return nil, nil
 	}
@@ -61,7 +64,11 @@ type objectConstraintRegistration struct {
 	groups     []string
 }
 
-func (v *DefaultValidator) registerObjectConstraint(sample any, constraint ObjectConstraint, groups []string) {
+func (v *DefaultValidator) registerObjectConstraint(
+	sample any,
+	constraint ObjectConstraint,
+	groups []string,
+) {
 	if constraint == nil || constraint.Name() == "" {
 		return
 	}
@@ -69,10 +76,13 @@ func (v *DefaultValidator) registerObjectConstraint(sample any, constraint Objec
 	if !ok {
 		return
 	}
-	v.objectConstraints[objectType] = append(v.objectConstraints[objectType], objectConstraintRegistration{
-		constraint: constraint,
-		groups:     normalizeGroups(groups),
-	})
+	v.objectConstraints[objectType] = append(
+		v.objectConstraints[objectType],
+		objectConstraintRegistration{
+			constraint: constraint,
+			groups:     normalizeGroups(groups),
+		},
+	)
 }
 
 func objectSampleType(sample any) (reflect.Type, bool) {

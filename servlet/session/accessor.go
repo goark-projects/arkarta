@@ -45,7 +45,11 @@ func NewAccessor(manager Manager, options ...AccessorOption) (*Accessor, error) 
 }
 
 // NewAccessorForWebApp 创建使用 WebApp 级 Session 配置的访问器。
-func NewAccessorForWebApp(manager Manager, app *servlet.WebApp, options ...AccessorOption) (*Accessor, error) {
+func NewAccessorForWebApp(
+	manager Manager,
+	app *servlet.WebApp,
+	options ...AccessorOption,
+) (*Accessor, error) {
 	if config, ok := CookieConfigFor(app); ok {
 		options = append([]AccessorOption{WithCookieConfig(config)}, options...)
 	}
@@ -77,7 +81,12 @@ func (a *Accessor) TrackingPolicy() TrackingPolicy {
 }
 
 // Get 返回当前请求 Session；create 为 true 时会创建并写回 Cookie。
-func (a *Accessor) Get(ctx context.Context, req *servlet.Request, res servlet.Response, create bool) (Session, bool, error) {
+func (a *Accessor) Get(
+	ctx context.Context,
+	req *servlet.Request,
+	res servlet.Response,
+	create bool,
+) (Session, bool, error) {
 	if a == nil || a.manager == nil {
 		return nil, false, ErrNilManager
 	}
@@ -169,8 +178,12 @@ func (a *Accessor) requestedID(req *servlet.Request) (string, TrackingMode, bool
 	return "", "", false
 }
 
-func (a *Accessor) createSession(ctx context.Context, req *servlet.Request) (Session, error) {
-	if !a.tracking.Allows(TrackingCookie) && !a.tracking.Allows(TrackingURL) && a.tracking.Allows(TrackingSSL) {
+func (a *Accessor) createSession(
+	ctx context.Context,
+	req *servlet.Request,
+) (Session, error) {
+	if !a.tracking.Allows(TrackingCookie) && !a.tracking.Allows(TrackingURL) &&
+		a.tracking.Allows(TrackingSSL) {
 		if id, source, ok := a.requestedID(req); ok && source == TrackingSSL {
 			if manager, supports := a.manager.(IDBoundManager); supports {
 				return manager.CreateWithID(ctx, id)
@@ -207,7 +220,11 @@ func splitPathParameters(segment string) []string {
 	return parts[1:]
 }
 
-func (a *Accessor) writeCookie(req *servlet.Request, res servlet.Response, id string) error {
+func (a *Accessor) writeCookie(
+	req *servlet.Request,
+	res servlet.Response,
+	id string,
+) error {
 	if !a.tracking.Allows(TrackingCookie) {
 		return nil
 	}
@@ -215,7 +232,10 @@ func (a *Accessor) writeCookie(req *servlet.Request, res servlet.Response, id st
 }
 
 // RequestedIDValid 判断客户端提交的 Session ID 是否仍然有效。
-func (a *Accessor) RequestedIDValid(ctx context.Context, req *servlet.Request) (bool, error) {
+func (a *Accessor) RequestedIDValid(
+	ctx context.Context,
+	req *servlet.Request,
+) (bool, error) {
 	if a == nil || a.manager == nil {
 		return false, ErrNilManager
 	}
@@ -231,7 +251,11 @@ func (a *Accessor) RequestedIDValid(ctx context.Context, req *servlet.Request) (
 }
 
 // ChangeID 轮换当前请求关联的 Session ID 并写回 Cookie。
-func (a *Accessor) ChangeID(ctx context.Context, req *servlet.Request, res servlet.Response) (string, error) {
+func (a *Accessor) ChangeID(
+	ctx context.Context,
+	req *servlet.Request,
+	res servlet.Response,
+) (string, error) {
 	if a == nil || a.manager == nil {
 		return "", ErrNilManager
 	}

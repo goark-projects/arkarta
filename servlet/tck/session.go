@@ -132,7 +132,10 @@ func runSessionAttributeNamesSnapshot(t *testing.T, factory SessionManagerFactor
 	}
 }
 
-func runSessionStorePassivateActivateCallbacks(t *testing.T, factory MemorySessionManagerFactory) {
+func runSessionStorePassivateActivateCallbacks(
+	t *testing.T,
+	factory MemorySessionManagerFactory,
+) {
 	t.Helper()
 	manager := factory(session.WithIDGenerator(sequenceSessionIDs("S1")))
 	current, err := manager.Create(context.Background())
@@ -157,7 +160,11 @@ func runSessionStorePassivateActivateCallbacks(t *testing.T, factory MemorySessi
 		t.Fatalf("Activate ok/err = %v/%v, want true/nil", ok, err)
 	}
 	if restored.ID() != "S1" || restored.IsNew() {
-		t.Fatalf("restored id/new = %q/%v, want S1/false", restored.ID(), restored.IsNew())
+		t.Fatalf(
+			"restored id/new = %q/%v, want S1/false",
+			restored.ID(),
+			restored.IsNew(),
+		)
 	}
 	if got, exists := restored.Attribute("token"); !exists || got != value {
 		t.Fatalf("restored token = %v/%v, want original value", got, exists)
@@ -167,14 +174,25 @@ func runSessionStorePassivateActivateCallbacks(t *testing.T, factory MemorySessi
 	}
 }
 
-func runSSLTrackingBindsConnectionID(t *testing.T, factory MemorySessionManagerFactory) {
+func runSSLTrackingBindsConnectionID(
+	t *testing.T,
+	factory MemorySessionManagerFactory,
+) {
 	t.Helper()
 	manager := factory()
-	accessor, err := session.NewAccessor(manager, session.WithTrackingModes(session.TrackingSSL))
+	accessor, err := session.NewAccessor(
+		manager,
+		session.WithTrackingModes(session.TrackingSSL),
+	)
 	if err != nil {
 		t.Fatalf("NewAccessor failed: %v", err)
 	}
-	req := newTCKRequest(t, http.MethodGet, "https://example.com/orders", servlet.WithRequestConnectionID("tls-conn-1"))
+	req := newTCKRequest(
+		t,
+		http.MethodGet,
+		"https://example.com/orders",
+		servlet.WithRequestConnectionID("tls-conn-1"),
+	)
 
 	current, ok, err := accessor.Get(context.Background(), req, nil, true)
 	if err != nil || !ok {
@@ -189,7 +207,10 @@ func runSSLTrackingBindsConnectionID(t *testing.T, factory MemorySessionManagerF
 	}
 }
 
-func runWebAppCookieConfigIsInherited(t *testing.T, factory MemorySessionManagerFactory) {
+func runWebAppCookieConfigIsInherited(
+	t *testing.T,
+	factory MemorySessionManagerFactory,
+) {
 	t.Helper()
 	app, err := servlet.NewWebApp("orders")
 	if err != nil {
@@ -206,18 +227,28 @@ func runWebAppCookieConfigIsInherited(t *testing.T, factory MemorySessionManager
 	if err := session.ConfigureCookie(app, config); err != nil {
 		t.Fatalf("ConfigureCookie failed: %v", err)
 	}
-	accessor, err := session.NewAccessorForWebApp(factory(session.WithIDGenerator(sequenceSessionIDs("S2"))), app)
+	accessor, err := session.NewAccessorForWebApp(
+		factory(session.WithIDGenerator(sequenceSessionIDs("S2"))),
+		app,
+	)
 	if err != nil {
 		t.Fatalf("NewAccessorForWebApp failed: %v", err)
 	}
-	req := newTCKRequest(t, http.MethodGet, "http://example.com/orders/cart", servlet.WithRequestContextPath("/orders"))
+	req := newTCKRequest(
+		t,
+		http.MethodGet,
+		"http://example.com/orders/cart",
+		servlet.WithRequestContextPath("/orders"),
+	)
 	res := newResponseStub()
 
 	if _, _, err := accessor.Get(context.Background(), req, res, true); err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}
 	header := res.Header().Get("Set-Cookie")
-	if !strings.Contains(header, "ARKSESSION=S2") || !strings.Contains(header, "Path=/orders") || !strings.Contains(header, "Secure") {
+	if !strings.Contains(header, "ARKSESSION=S2") ||
+		!strings.Contains(header, "Path=/orders") ||
+		!strings.Contains(header, "Secure") {
 		t.Fatalf("Set-Cookie = %q, want configured application cookie", header)
 	}
 }

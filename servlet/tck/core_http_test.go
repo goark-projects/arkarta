@@ -25,9 +25,12 @@ func TestRunSessionManagerWithMemoryManager(t *testing.T) {
 }
 
 func TestRunMemorySessionProfile(t *testing.T) {
-	tck.RunMemorySessionProfile(t, func(options ...session.MemoryManagerOption) *session.MemoryManager {
-		return session.NewMemoryManager(options...)
-	})
+	tck.RunMemorySessionProfile(
+		t,
+		func(options ...session.MemoryManagerOption) *session.MemoryManager {
+			return session.NewMemoryManager(options...)
+		},
+	)
 }
 
 func TestRunSessionRequestBindingWithMemoryManager(t *testing.T) {
@@ -37,9 +40,12 @@ func TestRunSessionRequestBindingWithMemoryManager(t *testing.T) {
 }
 
 func TestRunLifecycleWithManagedApplication(t *testing.T) {
-	tck.RunLifecycle(t, func(deployment *servletcontainer.Deployment) (servletcontainer.Application, error) {
-		return servletcontainer.NewApplication(t.Context(), deployment)
-	})
+	tck.RunLifecycle(
+		t,
+		func(deployment *servletcontainer.Deployment) (servletcontainer.Application, error) {
+			return servletcontainer.NewApplication(t.Context(), deployment)
+		},
+	)
 }
 
 func TestRunDispatcher(t *testing.T) {
@@ -47,9 +53,12 @@ func TestRunDispatcher(t *testing.T) {
 }
 
 func TestRunErrorPagesWithNetHTTPAdapter(t *testing.T) {
-	tck.RunErrorPages(t, func(handler servlet.Handler, registry *servlet.ErrorPageRegistry) http.Handler {
-		return nethttp.HandlerWithOptions(handler, nethttp.WithErrorPages(registry))
-	})
+	tck.RunErrorPages(
+		t,
+		func(handler servlet.Handler, registry *servlet.ErrorPageRegistry) http.Handler {
+			return nethttp.HandlerWithOptions(handler, nethttp.WithErrorPages(registry))
+		},
+	)
 }
 
 func TestRunMultipartParser(t *testing.T) {

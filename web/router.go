@@ -51,7 +51,11 @@ func (r *Router) Handle(method, pattern string, handler Handler) error {
 	return r.handle(method, pattern, handler, nil)
 }
 
-func (r *Router) handle(method, pattern string, handler Handler, interceptors []Interceptor) error {
+func (r *Router) handle(
+	method, pattern string,
+	handler Handler,
+	interceptors []Interceptor,
+) error {
 	if r == nil {
 		return ErrNilContext
 	}
@@ -106,13 +110,24 @@ func (r *Router) UseResponseAdvice(advice ResponseAdvice) {
 }
 
 // Serve 执行 Web 路由匹配、拦截器链和结果写出。
-func (r *Router) Serve(ctx context.Context, req *servlet.Request, res servlet.Response) error {
+func (r *Router) Serve(
+	ctx context.Context,
+	req *servlet.Request,
+	res servlet.Response,
+) error {
 	if r == nil {
 		return ErrNilContext
 	}
 	webCtx := newContext(ctx, req, res, nil, r.codec, r.validator)
 	if req == nil || res == nil {
-		return r.writeError(webCtx, servlet.NewHTTPError(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError), ErrNilContext))
+		return r.writeError(
+			webCtx,
+			servlet.NewHTTPError(
+				http.StatusInternalServerError,
+				http.StatusText(http.StatusInternalServerError),
+				ErrNilContext,
+			),
+		)
 	}
 
 	method := strings.ToUpper(strings.TrimSpace(req.Method()))
@@ -123,9 +138,23 @@ func (r *Router) Serve(ctx context.Context, req *servlet.Request, res servlet.Re
 			if method == http.MethodOptions {
 				return NoContent().Write(webCtx)
 			}
-			return r.writeError(webCtx, servlet.NewHTTPError(http.StatusMethodNotAllowed, http.StatusText(http.StatusMethodNotAllowed), nil))
+			return r.writeError(
+				webCtx,
+				servlet.NewHTTPError(
+					http.StatusMethodNotAllowed,
+					http.StatusText(http.StatusMethodNotAllowed),
+					nil,
+				),
+			)
 		}
-		return r.writeError(webCtx, servlet.NewHTTPError(http.StatusNotFound, http.StatusText(http.StatusNotFound), nil))
+		return r.writeError(
+			webCtx,
+			servlet.NewHTTPError(
+				http.StatusNotFound,
+				http.StatusText(http.StatusNotFound),
+				nil,
+			),
+		)
 	}
 
 	if method == http.MethodHead {
@@ -175,7 +204,12 @@ func (r *Router) lookup(method, requestPath string) (routeMatch, []string, bool)
 			if method == http.MethodHead && candidate.method == http.MethodGet {
 				if !fallbackFound || betterRoute(candidate, fallback.route) {
 					fallbackFound = true
-					fallback = newRouteMatch(candidate, pathValues, r.interceptors, r.advice)
+					fallback = newRouteMatch(
+						candidate,
+						pathValues,
+						r.interceptors,
+						r.advice,
+					)
 				}
 			}
 			continue
@@ -220,8 +254,17 @@ type routeMatch struct {
 	advice       []ResponseAdvice
 }
 
-func newRouteMatch(candidate route, pathValues map[string]string, globalInterceptors []Interceptor, advice []ResponseAdvice) routeMatch {
-	interceptors := make([]Interceptor, 0, len(globalInterceptors)+len(candidate.interceptors))
+func newRouteMatch(
+	candidate route,
+	pathValues map[string]string,
+	globalInterceptors []Interceptor,
+	advice []ResponseAdvice,
+) routeMatch {
+	interceptors := make(
+		[]Interceptor,
+		0,
+		len(globalInterceptors)+len(candidate.interceptors),
+	)
 	interceptors = append(interceptors, globalInterceptors...)
 	interceptors = append(interceptors, candidate.interceptors...)
 	return routeMatch{

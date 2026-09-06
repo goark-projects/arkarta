@@ -82,14 +82,27 @@ func (m *MemoryManager) fireAttributeAdded(target Session, name string, value an
 	}
 }
 
-func (m *MemoryManager) fireAttributeReplaced(target Session, name string, value, oldValue any) {
-	event := AttributeEvent{Session: target, Name: name, Value: value, OldValue: oldValue}
+func (m *MemoryManager) fireAttributeReplaced(
+	target Session,
+	name string,
+	value, oldValue any,
+) {
+	event := AttributeEvent{
+		Session:  target,
+		Name:     name,
+		Value:    value,
+		OldValue: oldValue,
+	}
 	for _, listener := range m.attributeListenerSnapshot() {
 		listener.AttributeReplaced(event)
 	}
 }
 
-func (m *MemoryManager) fireAttributeRemoved(target Session, name string, oldValue any) {
+func (m *MemoryManager) fireAttributeRemoved(
+	target Session,
+	name string,
+	oldValue any,
+) {
 	event := AttributeEvent{Session: target, Name: name, OldValue: oldValue}
 	for _, listener := range m.attributeListenerSnapshot() {
 		listener.AttributeRemoved(event)

@@ -29,18 +29,35 @@ type Response struct {
 
 // Driver 执行一次 Servlet Handler 请求交换。
 type Driver interface {
-	Exchange(ctx context.Context, handler servlet.Handler, request Request) (Response, error)
+	Exchange(
+		ctx context.Context,
+		handler servlet.Handler,
+		request Request,
+	) (Response, error)
 }
 
 // DriverFunc 将函数适配为 TCK 驱动。
-type DriverFunc func(ctx context.Context, handler servlet.Handler, request Request) (Response, error)
+type DriverFunc func(
+	ctx context.Context,
+	handler servlet.Handler,
+	request Request,
+) (Response, error)
 
 // Exchange 执行一次 Servlet Handler 请求交换。
-func (f DriverFunc) Exchange(ctx context.Context, handler servlet.Handler, request Request) (Response, error) {
+func (f DriverFunc) Exchange(
+	ctx context.Context,
+	handler servlet.Handler,
+	request Request,
+) (Response, error) {
 	return f(ctx, handler, request)
 }
 
-func exchange(t *testing.T, driver Driver, handler servlet.Handler, request Request) Response {
+func exchange(
+	t *testing.T,
+	driver Driver,
+	handler servlet.Handler,
+	request Request,
+) Response {
 	t.Helper()
 	if request.Header == nil {
 		request.Header = servlet.NewHeader()

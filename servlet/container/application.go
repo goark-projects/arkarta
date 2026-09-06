@@ -24,7 +24,10 @@ type ManagedApplication struct {
 }
 
 // NewApplication 初始化并启动部署描述对应的标准应用。
-func NewApplication(ctx context.Context, deployment *Deployment) (*ManagedApplication, error) {
+func NewApplication(
+	ctx context.Context,
+	deployment *Deployment,
+) (*ManagedApplication, error) {
 	if deployment == nil {
 		return nil, ErrNilDeployment
 	}
@@ -49,17 +52,23 @@ func (a *ManagedApplication) WebApp() *servlet.WebApp {
 
 // Handler 返回带生命周期保护和请求事件的处理器。
 func (a *ManagedApplication) Handler() servlet.Handler {
-	return servlet.HandlerFunc(func(ctx context.Context, req *servlet.Request, res servlet.Response) error {
-		if a.webApp.State() != servlet.WebAppStateStarted {
-			return servlet.NewHTTPError(http.StatusServiceUnavailable, http.StatusText(http.StatusServiceUnavailable), nil)
-		}
-		a.webApp.AttachRequestAttributeListeners(req)
-		if err := a.webApp.RequestInitialized(ctx, req); err != nil {
-			return err
-		}
-		err := a.handler.Serve(ctx, req, res)
-		return errors.Join(err, a.webApp.RequestDestroyed(ctx, req, err))
-	})
+	return servlet.HandlerFunc(
+		func(ctx context.Context, req *servlet.Request, res servlet.Response) error {
+			if a.webApp.State() != servlet.WebAppStateStarted {
+				return servlet.NewHTTPError(
+					http.StatusServiceUnavailable,
+					http.StatusText(http.StatusServiceUnavailable),
+					nil,
+				)
+			}
+			a.webApp.AttachRequestAttributeListeners(req)
+			if err := a.webApp.RequestInitialized(ctx, req); err != nil {
+				return err
+			}
+			err := a.handler.Serve(ctx, req, res)
+			return errors.Join(err, a.webApp.RequestDestroyed(ctx, req, err))
+		},
+	)
 }
 
 // Stop 停止应用并销毁 Servlet 与上下文。
@@ -84,19 +93,24 @@ func (a *ManagedApplication) Stop(ctx context.Context) error {
 	return result
 }
 
-func (a *ManagedApplication) initialize(ctx context.Context, deployment *Deployment) error {
+func (a *ManagedApplication) initialize(
+	ctx context.Context,
+	deployment *Deployment,
+) error {
 	if err := a.webApp.Initialize(ctx); err != nil {
 		return err
 	}
 	for _, item := range deployment.filterInitializations() {
-		if err := item.filter.Init(ctx, servlet.NewFilterConfig(item.name, a.webApp, item.initParam)); err != nil {
+		config := servlet.NewFilterConfig(item.name, a.webApp, item.initParam)
+		if err := item.filter.Init(ctx, config); err != nil {
 			_ = a.destroyInitialized(ctx)
 			return err
 		}
 		a.filters = append(a.filters, item.filter)
 	}
 	for _, item := range deployment.servletInitializations() {
-		if err := item.target.Init(ctx, servlet.NewServletConfig(item.name, a.webApp, item.initParam)); err != nil {
+		config := servlet.NewServletConfig(item.name, a.webApp, item.initParam)
+		if err := item.target.Init(ctx, config); err != nil {
 			_ = a.destroyInitialized(ctx)
 			return err
 		}

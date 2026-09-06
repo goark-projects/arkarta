@@ -172,8 +172,11 @@ func NewRequestFromInput(input *RequestInput, options ...RequestOption) (*Reques
 		requestURI:      input.RequestURI,
 		queryString:     input.QueryString,
 		contextPath:     normalizeRequestContextPath(input.ContextPath),
-		path:            stripRequestContextPath(input.Path, normalizeRequestContextPath(input.ContextPath)),
-		attribute:       make(map[string]any),
+		path: stripRequestContextPath(
+			input.Path,
+			normalizeRequestContextPath(input.ContextPath),
+		),
+		attribute: make(map[string]any),
 	}
 	for _, option := range options {
 		if option != nil {

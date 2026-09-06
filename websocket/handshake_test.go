@@ -28,12 +28,17 @@ func TestHandshakerSelectsSubprotocolByClientOrder(t *testing.T) {
 	t.Parallel()
 
 	request := newHandshakeRequest()
-	handshake, err := NewHandshaker(WithSubprotocols("chat", "superchat")).Accept(request)
+	handshake, err := NewHandshaker(
+		WithSubprotocols("chat", "superchat"),
+	).Accept(request)
 	if err != nil {
 		t.Fatalf("Accept failed: %v", err)
 	}
 	if handshake.Subprotocol() != "superchat" {
-		t.Fatalf("subprotocol = %q, want client preferred superchat", handshake.Subprotocol())
+		t.Fatalf(
+			"subprotocol = %q, want client preferred superchat",
+			handshake.Subprotocol(),
+		)
 	}
 }
 
@@ -41,7 +46,10 @@ func TestHandshakerNegotiatesExtensionsAndWritesHTTP(t *testing.T) {
 	t.Parallel()
 
 	request := newHandshakeRequest()
-	request.Header.Set("Sec-WebSocket-Extensions", "permessage-deflate; client_max_window_bits")
+	request.Header.Set(
+		"Sec-WebSocket-Extensions",
+		"permessage-deflate; client_max_window_bits",
+	)
 	recorder := httptest.NewRecorder()
 	handshake, err := NewHandshaker(
 		WithExtensions(NewPerMessageDeflate(
@@ -57,7 +65,10 @@ func TestHandshakerNegotiatesExtensionsAndWritesHTTP(t *testing.T) {
 		t.Fatalf("status = %d, want 101", recorder.Code)
 	}
 	if recorder.Header().Get("Sec-WebSocket-Accept") != handshake.AcceptValue() {
-		t.Fatalf("response accept = %q, want handshake value", recorder.Header().Get("Sec-WebSocket-Accept"))
+		t.Fatalf(
+			"response accept = %q, want handshake value",
+			recorder.Header().Get("Sec-WebSocket-Accept"),
+		)
 	}
 	extension := recorder.Header().Get("Sec-WebSocket-Extensions")
 	if !strings.Contains(extension, ExtensionPerMessageDeflate) ||
@@ -94,7 +105,8 @@ func TestHandshakerRejectsInvalidRequests(t *testing.T) {
 	request := httptest.NewRequest(http.MethodPost, "/ws", nil)
 	_, err := NewHandshaker().Accept(request)
 	var handshakeErr *HandshakeError
-	if !errors.As(err, &handshakeErr) || !errors.Is(err, ErrInvalidHandshake) || handshakeErr.StatusCode() != http.StatusMethodNotAllowed {
+	if !errors.As(err, &handshakeErr) || !errors.Is(err, ErrInvalidHandshake) ||
+		handshakeErr.StatusCode() != http.StatusMethodNotAllowed {
 		t.Fatalf("POST err = %v, want 405 invalid handshake", err)
 	}
 
@@ -105,8 +117,13 @@ func TestHandshakerRejectsInvalidRequests(t *testing.T) {
 	if !errors.Is(err, ErrUnsupportedVersion) {
 		t.Fatalf("version err = %v, want ErrUnsupportedVersion", err)
 	}
-	if recorder.Code != http.StatusUpgradeRequired || recorder.Header().Get("Sec-WebSocket-Version") != ProtocolVersion {
-		t.Fatalf("status/version = %d/%q, want 426/13", recorder.Code, recorder.Header().Get("Sec-WebSocket-Version"))
+	if recorder.Code != http.StatusUpgradeRequired ||
+		recorder.Header().Get("Sec-WebSocket-Version") != ProtocolVersion {
+		t.Fatalf(
+			"status/version = %d/%q, want 426/13",
+			recorder.Code,
+			recorder.Header().Get("Sec-WebSocket-Version"),
+		)
 	}
 }
 
@@ -128,7 +145,10 @@ func TestPerMessageDeflateRoundTripAndLimit(t *testing.T) {
 	if string(data) != strings.Repeat("arkarta", 16) {
 		t.Fatalf("data = %q, want original", string(data))
 	}
-	if _, err := extension.DecompressMessage(compressed, 8); !errors.Is(err, ErrMessageTooLarge) {
+	if _, err := extension.DecompressMessage(compressed, 8); !errors.Is(
+		err,
+		ErrMessageTooLarge,
+	) {
 		t.Fatalf("limited DecompressMessage err = %v, want ErrMessageTooLarge", err)
 	}
 }

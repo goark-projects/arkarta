@@ -45,7 +45,11 @@ func WithBasicRealmName(name string) BasicOption {
 }
 
 // Authenticate 从请求 Authorization 头执行 Basic 认证。
-func (a *BasicAuthenticator) Authenticate(ctx context.Context, req *servlet.Request, res servlet.Response) (Identity, bool, error) {
+func (a *BasicAuthenticator) Authenticate(
+	ctx context.Context,
+	req *servlet.Request,
+	res servlet.Response,
+) (Identity, bool, error) {
 	if a == nil || a.realm == nil {
 		return Identity{}, false, ErrNilAuthenticator
 	}
@@ -82,7 +86,11 @@ func basicCredentials(authorization string) (string, string, bool) {
 }
 
 // Login 使用显式凭证执行 Basic 认证。
-func (a *BasicAuthenticator) Login(ctx context.Context, _ *servlet.Request, username, password string) (Identity, error) {
+func (a *BasicAuthenticator) Login(
+	ctx context.Context,
+	_ *servlet.Request,
+	username, password string,
+) (Identity, error) {
 	if a == nil || a.realm == nil {
 		return Identity{}, ErrNilAuthenticator
 	}
@@ -97,7 +105,11 @@ func (a *BasicAuthenticator) Login(ctx context.Context, _ *servlet.Request, user
 }
 
 // Logout 退出 Basic 认证；Basic 本身无服务端状态。
-func (a *BasicAuthenticator) Logout(ctx context.Context, _ *servlet.Request, _ servlet.Response) error {
+func (a *BasicAuthenticator) Logout(
+	ctx context.Context,
+	_ *servlet.Request,
+	_ servlet.Response,
+) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -149,7 +161,10 @@ func WithStaticUser(username, password string, roles ...string) StaticRealmOptio
 }
 
 // Verify 校验用户名密码并返回身份。
-func (r *StaticRealm) Verify(ctx context.Context, username, password string) (Identity, bool, error) {
+func (r *StaticRealm) Verify(
+	ctx context.Context,
+	username, password string,
+) (Identity, bool, error) {
 	if err := ctx.Err(); err != nil {
 		return Identity{}, false, err
 	}
@@ -164,5 +179,8 @@ func (r *StaticRealm) Verify(ctx context.Context, username, password string) (Id
 	}
 	roles := append([]string(nil), user.roles...)
 	sort.Strings(roles)
-	return NewIdentity(PrincipalFunc(func() string { return username }), AuthTypeBasic, roles...), true, nil
+	return NewIdentity(
+		PrincipalFunc(func() string { return username }),
+		AuthTypeBasic,
+		roles...), true, nil
 }

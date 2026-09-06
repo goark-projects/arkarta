@@ -43,7 +43,10 @@ func (c *Context) Registry() *Registry {
 }
 
 // AddServlet 注册 Servlet 处理器。
-func (c *Context) AddServlet(name string, target servlet.Handler) (*ServletRegistration, error) {
+func (c *Context) AddServlet(
+	name string,
+	target servlet.Handler,
+) (*ServletRegistration, error) {
 	if c == nil || c.registry == nil {
 		return nil, ErrNilRegistry
 	}
@@ -54,7 +57,10 @@ func (c *Context) AddServlet(name string, target servlet.Handler) (*ServletRegis
 }
 
 // AddFilter 注册 Filter。
-func (c *Context) AddFilter(name string, target servlet.Filter) (*FilterRegistration, error) {
+func (c *Context) AddFilter(
+	name string,
+	target servlet.Filter,
+) (*FilterRegistration, error) {
 	if c == nil || c.registry == nil {
 		return nil, ErrNilRegistry
 	}

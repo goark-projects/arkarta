@@ -23,7 +23,10 @@ type DefaultServlet struct {
 type DefaultServletOption func(*DefaultServlet) error
 
 // NewDefaultServlet 创建静态资源 default servlet。
-func NewDefaultServlet(provider Provider, options ...DefaultServletOption) (*DefaultServlet, error) {
+func NewDefaultServlet(
+	provider Provider,
+	options ...DefaultServletOption,
+) (*DefaultServlet, error) {
 	if provider == nil {
 		return nil, ErrNilProvider
 	}
@@ -48,16 +51,28 @@ func (s *DefaultServlet) Init(ctx context.Context, _ servlet.ServletConfig) erro
 }
 
 // Serve 按请求路径写出静态资源。
-func (s *DefaultServlet) Serve(ctx context.Context, req *servlet.Request, res servlet.Response) error {
+func (s *DefaultServlet) Serve(
+	ctx context.Context,
+	req *servlet.Request,
+	res servlet.Response,
+) error {
 	if req == nil {
-		return servlet.NewHTTPError(http.StatusBadRequest, http.StatusText(http.StatusBadRequest), nil)
+		return servlet.NewHTTPError(
+			http.StatusBadRequest,
+			http.StatusText(http.StatusBadRequest),
+			nil,
+		)
 	}
 	if res == nil {
 		return servlet.ErrNilResponse
 	}
 	if req.Method() != http.MethodGet && req.Method() != http.MethodHead {
 		res.Header().Set("Allow", http.MethodGet+", "+http.MethodHead)
-		return servlet.NewHTTPError(http.StatusMethodNotAllowed, http.StatusText(http.StatusMethodNotAllowed), nil)
+		return servlet.NewHTTPError(
+			http.StatusMethodNotAllowed,
+			http.StatusText(http.StatusMethodNotAllowed),
+			nil,
+		)
 	}
 	item, err := s.openResource(ctx, resourcePath(req))
 	if err != nil {
@@ -88,7 +103,10 @@ func resourcePath(req *servlet.Request) string {
 	return req.Path()
 }
 
-func (s *DefaultServlet) openResource(ctx context.Context, path string) (Resource, error) {
+func (s *DefaultServlet) openResource(
+	ctx context.Context,
+	path string,
+) (Resource, error) {
 	item, err := s.provider.Open(ctx, path)
 	if errors.Is(err, ErrDirectory) {
 		return s.openWelcome(ctx, path)
@@ -115,7 +133,11 @@ func writeResourceHeaders(res servlet.Response, item Resource) {
 	}
 }
 
-func serveRange(req *servlet.Request, res servlet.Response, item Resource) (bool, error) {
+func serveRange(
+	req *servlet.Request,
+	res servlet.Response,
+	item Resource,
+) (bool, error) {
 	if !ifRangeAllows(req, item) {
 		return false, nil
 	}
@@ -145,7 +167,12 @@ func serveRange(req *servlet.Request, res servlet.Response, item Resource) (bool
 	return true, err
 }
 
-func serveMultipleRanges(req *servlet.Request, res servlet.Response, item Resource, targets []byteRange) (bool, error) {
+func serveMultipleRanges(
+	req *servlet.Request,
+	res servlet.Response,
+	item Resource,
+	targets []byteRange,
+) (bool, error) {
 	const boundary = "arkarta-resource-boundary"
 	res.Header().Set("Content-Type", "multipart/byteranges; boundary="+boundary)
 	res.Header().Delete("Content-Length")
@@ -172,7 +199,8 @@ func serveMultipleRanges(req *servlet.Request, res servlet.Response, item Resour
 		); err != nil {
 			return true, err
 		}
-		if _, err := io.CopyN(res.BodyWriter(), bytes.NewReader(data[start:end]), target.length()); err != nil {
+		reader := bytes.NewReader(data[start:end])
+		if _, err := io.CopyN(res.BodyWriter(), reader, target.length()); err != nil {
 			return true, err
 		}
 		if _, err := io.WriteString(res.BodyWriter(), "\r\n"); err != nil {
@@ -192,7 +220,8 @@ func ifRangeAllows(req *servlet.Request, item Resource) bool {
 		return false
 	}
 	if strings.HasPrefix(value, `"`) {
-		return item.ETag() != "" && !strings.HasPrefix(item.ETag(), "W/") && value == item.ETag()
+		return item.ETag() != "" && !strings.HasPrefix(item.ETag(), "W/") &&
+			value == item.ETag()
 	}
 	if item.ModTime().IsZero() {
 		return false
@@ -206,8 +235,14 @@ func ifRangeAllows(req *servlet.Request, item Resource) bool {
 
 func mapResourceError(err error) error {
 	switch {
-	case errors.Is(err, ErrInvalidPath), errors.Is(err, ErrNotFound), errors.Is(err, ErrDirectory):
-		return servlet.NewHTTPError(http.StatusNotFound, http.StatusText(http.StatusNotFound), err)
+	case errors.Is(err, ErrInvalidPath),
+		errors.Is(err, ErrNotFound),
+		errors.Is(err, ErrDirectory):
+		return servlet.NewHTTPError(
+			http.StatusNotFound,
+			http.StatusText(http.StatusNotFound),
+			err,
+		)
 	default:
 		return err
 	}

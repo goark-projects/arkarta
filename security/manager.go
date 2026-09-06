@@ -8,10 +8,16 @@ type AuthenticationManager interface {
 }
 
 // AuthenticationManagerFunc 将普通函数适配为 AuthenticationManager。
-type AuthenticationManagerFunc func(ctx context.Context, credential Credential) (Authentication, error)
+type AuthenticationManagerFunc func(
+	ctx context.Context,
+	credential Credential,
+) (Authentication, error)
 
 // Authenticate 执行底层认证函数。
-func (f AuthenticationManagerFunc) Authenticate(ctx context.Context, credential Credential) (Authentication, error) {
+func (f AuthenticationManagerFunc) Authenticate(
+	ctx context.Context,
+	credential Credential,
+) (Authentication, error) {
 	if f == nil {
 		return Authentication{}, ErrBadCredentials
 	}

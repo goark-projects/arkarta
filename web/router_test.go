@@ -31,33 +31,42 @@ func TestRouterBindsJSONValidatesAndWritesJSON(t *testing.T) {
 		web.WithJSONCodec(arkjson.NewCodec(arkjson.WithDisallowUnknownFields(true))),
 		web.WithValidator(validation.NewValidator()),
 	)
-	if err := router.Handle(http.MethodPost, "/users/{id}", web.HandlerFunc(func(ctx *web.Context) (web.Result, error) {
-		if got := ctx.PathValue("id"); got != "42" {
-			t.Fatalf("path id = %q, want 42", got)
-		}
-		if got := ctx.QueryValue("trace"); got != "on" {
-			t.Fatalf("query trace = %q, want on", got)
-		}
-		var input createUserRequest
-		if err := ctx.BindAndValidateJSON(&input); err != nil {
-			return nil, err
-		}
-		return web.JSON(http.StatusCreated, map[string]string{
-			"id":   ctx.PathValue("id"),
-			"name": input.Name,
-		}), nil
-	})); err != nil {
+	if err := router.Handle(http.MethodPost, "/users/{id}", web.HandlerFunc(
+		func(ctx *web.Context) (web.Result, error) {
+			if got := ctx.PathValue("id"); got != "42" {
+				t.Fatalf("path id = %q, want 42", got)
+			}
+			if got := ctx.QueryValue("trace"); got != "on" {
+				t.Fatalf("query trace = %q, want on", got)
+			}
+			var input createUserRequest
+			if err := ctx.BindAndValidateJSON(&input); err != nil {
+				return nil, err
+			}
+			return web.JSON(http.StatusCreated, map[string]string{
+				"id":   ctx.PathValue("id"),
+				"name": input.Name,
+			}), nil
+		})); err != nil {
 		t.Fatalf("Handle failed: %v", err)
 	}
 
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, "/users/42?trace=on", strings.NewReader(`{"name":"arkarta"}`))
+	request := httptest.NewRequest(
+		http.MethodPost,
+		"/users/42?trace=on",
+		strings.NewReader(`{"name":"arkarta"}`),
+	)
 	request.Header.Set("Accept", arkjson.ContentType)
 	request.Header.Set("Content-Type", arkjson.ContentType)
 	nethttp.Handler(router).ServeHTTP(recorder, request)
 
 	if recorder.Code != http.StatusCreated {
-		t.Fatalf("status = %d, want 201, body=%s", recorder.Code, recorder.Body.String())
+		t.Fatalf(
+			"status = %d, want 201, body=%s",
+			recorder.Code,
+			recorder.Body.String(),
+		)
 	}
 	if got := recorder.Header().Get("Content-Type"); got != arkjson.ContentType {
 		t.Fatalf("content type = %q, want application/json", got)
@@ -80,30 +89,47 @@ func TestRouterBindAndValidateJSONGroups(t *testing.T) {
 		Code string `json:"code" arkarta:"required"`
 	}
 	router := web.NewRouter(web.WithValidator(validation.NewValidator()))
-	if err := router.Handle(http.MethodPost, "/users", web.HandlerFunc(func(ctx *web.Context) (web.Result, error) {
-		var input createUserRequest
-		if err := ctx.BindAndValidateJSONGroups(&input, "create"); err != nil {
-			return nil, err
-		}
-		return web.JSON(http.StatusCreated, map[string]string{"name": input.Name}), nil
-	})); err != nil {
+	if err := router.Handle(http.MethodPost, "/users", web.HandlerFunc(
+		func(ctx *web.Context) (web.Result, error) {
+			var input createUserRequest
+			if err := ctx.BindAndValidateJSONGroups(&input, "create"); err != nil {
+				return nil, err
+			}
+			return web.JSON(http.StatusCreated, map[string]string{"name": input.Name}), nil
+		})); err != nil {
 		t.Fatalf("Handle failed: %v", err)
 	}
 
 	successRecorder := httptest.NewRecorder()
-	successRequest := httptest.NewRequest(http.MethodPost, "/users", strings.NewReader(`{"name":"arkarta"}`))
+	successRequest := httptest.NewRequest(
+		http.MethodPost,
+		"/users",
+		strings.NewReader(`{"name":"arkarta"}`),
+	)
 	successRequest.Header.Set("Content-Type", arkjson.ContentType)
 	nethttp.Handler(router).ServeHTTP(successRecorder, successRequest)
 	if successRecorder.Code != http.StatusCreated {
-		t.Fatalf("status = %d, want 201, body=%s", successRecorder.Code, successRecorder.Body.String())
+		t.Fatalf(
+			"status = %d, want 201, body=%s",
+			successRecorder.Code,
+			successRecorder.Body.String(),
+		)
 	}
 
 	failedRecorder := httptest.NewRecorder()
-	failedRequest := httptest.NewRequest(http.MethodPost, "/users", strings.NewReader(`{}`))
+	failedRequest := httptest.NewRequest(
+		http.MethodPost,
+		"/users",
+		strings.NewReader(`{}`),
+	)
 	failedRequest.Header.Set("Content-Type", arkjson.ContentType)
 	nethttp.Handler(router).ServeHTTP(failedRecorder, failedRequest)
 	if failedRecorder.Code != http.StatusUnprocessableEntity {
-		t.Fatalf("status = %d, want 422, body=%s", failedRecorder.Code, failedRecorder.Body.String())
+		t.Fatalf(
+			"status = %d, want 422, body=%s",
+			failedRecorder.Code,
+			failedRecorder.Body.String(),
+		)
 	}
 	var payload struct {
 		Error struct {
@@ -116,8 +142,12 @@ func TestRouterBindAndValidateJSONGroups(t *testing.T) {
 	if err := arkjson.Unmarshal(nil, failedRecorder.Body.Bytes(), &payload); err != nil {
 		t.Fatalf("error response json invalid: %v", err)
 	}
-	if len(payload.Error.Details) != 1 || payload.Error.Details[0].Path != "name" || payload.Error.Details[0].Code != "required" {
-		t.Fatalf("details = %#v, want only create-group name violation", payload.Error.Details)
+	if len(payload.Error.Details) != 1 || payload.Error.Details[0].Path != "name" ||
+		payload.Error.Details[0].Code != "required" {
+		t.Fatalf(
+			"details = %#v, want only create-group name violation",
+			payload.Error.Details,
+		)
 	}
 }
 
@@ -125,20 +155,27 @@ func TestContextValidateGroupsRequiresGroupValidator(t *testing.T) {
 	t.Parallel()
 
 	router := web.NewRouter(web.WithValidator(defaultOnlyValidator{}))
-	if err := router.Handle(http.MethodGet, "/validate", web.HandlerFunc(func(ctx *web.Context) (web.Result, error) {
-		var input struct{}
-		if _, err := ctx.ValidateGroups(&input, "create"); !errors.Is(err, validation.ErrUnsupportedGroups) {
-			t.Fatalf("ValidateGroups err = %v, want ErrUnsupportedGroups", err)
-		}
-		return web.NoContent(), nil
-	})); err != nil {
+	if err := router.Handle(http.MethodGet, "/validate", web.HandlerFunc(
+		func(ctx *web.Context) (web.Result, error) {
+			var input struct{}
+			_, err := ctx.ValidateGroups(&input, "create")
+			if !errors.Is(err, validation.ErrUnsupportedGroups) {
+				t.Fatalf("ValidateGroups err = %v, want ErrUnsupportedGroups", err)
+			}
+			return web.NoContent(), nil
+		})); err != nil {
 		t.Fatalf("Handle failed: %v", err)
 	}
 
 	recorder := httptest.NewRecorder()
-	nethttp.Handler(router).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/validate", nil))
+	nethttp.Handler(router).
+		ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/validate", nil))
 	if recorder.Code != http.StatusNoContent {
-		t.Fatalf("status = %d, want 204, body=%s", recorder.Code, recorder.Body.String())
+		t.Fatalf(
+			"status = %d, want 204, body=%s",
+			recorder.Code,
+			recorder.Body.String(),
+		)
 	}
 }
 
@@ -149,24 +186,33 @@ func TestRouterMapsValidationErrors(t *testing.T) {
 		Name string `json:"name" arkarta:"required,min=2"`
 	}
 	router := web.NewRouter(web.WithValidator(validation.NewValidator()))
-	if err := router.Handle(http.MethodPost, "/users", web.HandlerFunc(func(ctx *web.Context) (web.Result, error) {
-		var input createUserRequest
-		if err := ctx.BindAndValidateJSON(&input); err != nil {
-			return nil, err
-		}
-		return web.NoContent(), nil
-	})); err != nil {
+	if err := router.Handle(http.MethodPost, "/users", web.HandlerFunc(
+		func(ctx *web.Context) (web.Result, error) {
+			var input createUserRequest
+			if err := ctx.BindAndValidateJSON(&input); err != nil {
+				return nil, err
+			}
+			return web.NoContent(), nil
+		})); err != nil {
 		t.Fatalf("Handle failed: %v", err)
 	}
 
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, "/users", strings.NewReader(`{"name":""}`))
+	request := httptest.NewRequest(
+		http.MethodPost,
+		"/users",
+		strings.NewReader(`{"name":""}`),
+	)
 	request.Header.Set("Accept", arkjson.ContentType)
 	request.Header.Set("Content-Type", arkjson.ContentType)
 	nethttp.Handler(router).ServeHTTP(recorder, request)
 
 	if recorder.Code != http.StatusUnprocessableEntity {
-		t.Fatalf("status = %d, want 422, body=%s", recorder.Code, recorder.Body.String())
+		t.Fatalf(
+			"status = %d, want 422, body=%s",
+			recorder.Code,
+			recorder.Body.String(),
+		)
 	}
 	var payload struct {
 		Error struct {
@@ -200,9 +246,10 @@ func TestRouterReturnsMethodNotAllowed(t *testing.T) {
 	t.Parallel()
 
 	router := web.NewRouter()
-	if err := router.Handle(http.MethodGet, "/users/{id}", web.HandlerFunc(func(ctx *web.Context) (web.Result, error) {
-		return web.NoContent(), nil
-	})); err != nil {
+	if err := router.Handle(http.MethodGet, "/users/{id}", web.HandlerFunc(
+		func(ctx *web.Context) (web.Result, error) {
+			return web.NoContent(), nil
+		})); err != nil {
 		t.Fatalf("Handle failed: %v", err)
 	}
 
@@ -224,17 +271,22 @@ func TestRouterRunsInterceptorsAroundHandler(t *testing.T) {
 
 	var order []string
 	router := web.NewRouter()
-	router.Use(web.InterceptorFunc(func(ctx *web.Context, next web.Handler) (web.Result, error) {
-		order = append(order, "before")
-		result, err := next.Handle(ctx)
-		order = append(order, "after")
-		ctx.Response().Header().Set("X-Trace", "ok")
-		return result, err
-	}))
-	if err := router.Handle(http.MethodGet, "/health", web.HandlerFunc(func(ctx *web.Context) (web.Result, error) {
-		order = append(order, "handler")
-		return web.Text(http.StatusOK, "UP"), nil
-	})); err != nil {
+	router.Use(
+		web.InterceptorFunc(
+			func(ctx *web.Context, next web.Handler) (web.Result, error) {
+				order = append(order, "before")
+				result, err := next.Handle(ctx)
+				order = append(order, "after")
+				ctx.Response().Header().Set("X-Trace", "ok")
+				return result, err
+			},
+		),
+	)
+	if err := router.Handle(http.MethodGet, "/health", web.HandlerFunc(
+		func(ctx *web.Context) (web.Result, error) {
+			order = append(order, "handler")
+			return web.Text(http.StatusOK, "UP"), nil
+		})); err != nil {
 		t.Fatalf("Handle failed: %v", err)
 	}
 

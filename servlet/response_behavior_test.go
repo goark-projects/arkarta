@@ -91,7 +91,8 @@ func TestResponseHelpersRejectCommittedResponse(t *testing.T) {
 	if err := Redirect(res, "/login", http.StatusFound); !errors.Is(err, ErrResponseCommitted) {
 		t.Fatalf("Redirect err = %v, want ErrResponseCommitted", err)
 	}
-	if err := AddCookie(res, &Cookie{Name: "sid", Value: "abc"}); !errors.Is(err, ErrResponseCommitted) {
+	err := AddCookie(res, &Cookie{Name: "sid", Value: "abc"})
+	if !errors.Is(err, ErrResponseCommitted) {
 		t.Fatalf("AddCookie err = %v, want ErrResponseCommitted", err)
 	}
 }
@@ -235,21 +236,22 @@ func TestRouterAppliesServletMappingElements(t *testing.T) {
 	t.Parallel()
 
 	router := NewRouter()
-	mustHandle(t, router, "/orders/*", HandlerFunc(func(_ context.Context, req *Request, _ Response) error {
-		if req.Mapping().Type() != MappingPrefix {
-			t.Fatalf("mapping type = %v, want prefix", req.Mapping().Type())
-		}
-		if req.Mapping().Pattern() != "/orders/*" {
-			t.Fatalf("mapping pattern = %q, want /orders/*", req.Mapping().Pattern())
-		}
-		if req.ServletPath() != "/orders" {
-			t.Fatalf("servlet path = %q, want /orders", req.ServletPath())
-		}
-		if req.PathInfo() != "/42" {
-			t.Fatalf("path info = %q, want /42", req.PathInfo())
-		}
-		return nil
-	}))
+	mustHandle(t, router, "/orders/*", HandlerFunc(
+		func(_ context.Context, req *Request, _ Response) error {
+			if req.Mapping().Type() != MappingPrefix {
+				t.Fatalf("mapping type = %v, want prefix", req.Mapping().Type())
+			}
+			if req.Mapping().Pattern() != "/orders/*" {
+				t.Fatalf("mapping pattern = %q, want /orders/*", req.Mapping().Pattern())
+			}
+			if req.ServletPath() != "/orders" {
+				t.Fatalf("servlet path = %q, want /orders", req.ServletPath())
+			}
+			if req.PathInfo() != "/42" {
+				t.Fatalf("path info = %q, want /42", req.PathInfo())
+			}
+			return nil
+		}))
 
 	req, err := NewRequest(httptest.NewRequest(http.MethodGet, "/orders/42", nil))
 	if err != nil {

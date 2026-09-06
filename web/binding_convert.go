@@ -39,7 +39,9 @@ func setScalarValue(field reflect.Value, raw string) error {
 	if field.CanAddr() {
 		addr := field.Addr()
 		if addr.Type().Implements(textUnmarshalerType) {
-			return addr.Interface().(interface{ UnmarshalText([]byte) error }).UnmarshalText([]byte(raw))
+			return addr.Interface().(interface{ UnmarshalText([]byte) error }).UnmarshalText(
+				[]byte(raw),
+			)
 		}
 	}
 	if field.Type().Implements(textUnmarshalerType) {
@@ -64,7 +66,12 @@ func setScalarValue(field reflect.Value, raw string) error {
 		}
 		field.SetInt(value)
 		return nil
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+	case reflect.Uint,
+		reflect.Uint8,
+		reflect.Uint16,
+		reflect.Uint32,
+		reflect.Uint64,
+		reflect.Uintptr:
 		value, err := strconv.ParseUint(raw, 10, field.Type().Bits())
 		if err != nil {
 			return err

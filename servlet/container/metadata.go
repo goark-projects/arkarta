@@ -9,7 +9,11 @@ type Metadata struct {
 }
 
 // NewMetadata 创建容器元数据。
-func NewMetadata(name, version string, profiles []Profile, limits map[string]string) Metadata {
+func NewMetadata(
+	name, version string,
+	profiles []Profile,
+	limits map[string]string,
+) Metadata {
 	return Metadata{
 		name:     name,
 		version:  version,

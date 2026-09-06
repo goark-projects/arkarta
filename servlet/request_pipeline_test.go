@@ -11,7 +11,6 @@ import (
 
 func TestRequestAttributeListenerEvents(t *testing.T) {
 	t.Parallel()
-
 	var events []string
 	listener := RequestAttributeListenerFunc{
 		Added: func(_ context.Context, event RequestAttributeEvent) {
@@ -24,7 +23,10 @@ func TestRequestAttributeListenerEvents(t *testing.T) {
 			events = append(events, "remove:"+event.Name)
 		},
 	}
-	req, err := NewRequest(httptest.NewRequest(http.MethodGet, "/", nil), WithRequestAttributeListener(listener))
+	req, err := NewRequest(
+		httptest.NewRequest(http.MethodGet, "/", nil),
+		WithRequestAttributeListener(listener),
+	)
 	if err != nil {
 		t.Fatalf("NewRequest failed: %v", err)
 	}
@@ -162,7 +164,10 @@ func TestChainFilterBindingsHonorsDispatchType(t *testing.T) {
 	}
 	handler := ChainFilterBindings(target, requestBinding, forwardBinding)
 
-	req, err := NewRequest(httptest.NewRequest(http.MethodGet, "/", nil), WithDispatchType(DispatchForward))
+	req, err := NewRequest(
+		httptest.NewRequest(http.MethodGet, "/", nil),
+		WithDispatchType(DispatchForward),
+	)
 	if err != nil {
 		t.Fatalf("NewRequest failed: %v", err)
 	}
@@ -179,7 +184,9 @@ func TestChainFilterBindingsHonorsDispatchType(t *testing.T) {
 func TestFilterBindingDefaultsToRequestDispatcher(t *testing.T) {
 	t.Parallel()
 
-	binding, err := NewFilterBinding("audit", FilterFunc(noopBindingFilter), WithFilterInitParam("level", "full"))
+	binding, err := NewFilterBinding(
+		"audit", FilterFunc(noopBindingFilter), WithFilterInitParam("level", "full"),
+	)
 	if err != nil {
 		t.Fatalf("NewFilterBinding failed: %v", err)
 	}
@@ -204,7 +211,9 @@ func TestFilterBindingHonorsURLPattern(t *testing.T) {
 		calls = append(calls, "handler")
 		return nil
 	})
-	binding, err := NewFilterBinding("secure", recordFilter("secure", &calls), WithFilterURLPattern("/secure/*"))
+	binding, err := NewFilterBinding(
+		"secure", recordFilter("secure", &calls), WithFilterURLPattern("/secure/*"),
+	)
 	if err != nil {
 		t.Fatalf("NewFilterBinding failed: %v", err)
 	}
@@ -241,13 +250,23 @@ func TestFilterBindingRejectsInvalidInput(t *testing.T) {
 	if _, err := NewFilterBinding("nil", nilFilter); !errors.Is(err, ErrNilFilter) {
 		t.Fatalf("nil filter err = %v, want ErrNilFilter", err)
 	}
-	if _, err := NewFilterBinding("bad", FilterFunc(noopBindingFilter), WithFilterDispatchTypes(DispatchTypes(1<<7))); !errors.Is(err, ErrInvalidDispatchTypes) {
+	_, err := NewFilterBinding(
+		"bad", FilterFunc(noopBindingFilter),
+		WithFilterDispatchTypes(DispatchTypes(1<<7)),
+	)
+	if !errors.Is(err, ErrInvalidDispatchTypes) {
 		t.Fatalf("invalid dispatch err = %v, want ErrInvalidDispatchTypes", err)
 	}
-	if _, err := NewFilterBinding("bad", FilterFunc(noopBindingFilter), WithFilterInitParam("", "bad")); !errors.Is(err, ErrInvalidFilterConfig) {
+	_, err = NewFilterBinding(
+		"bad", FilterFunc(noopBindingFilter), WithFilterInitParam("", "bad"),
+	)
+	if !errors.Is(err, ErrInvalidFilterConfig) {
 		t.Fatalf("invalid init param err = %v, want ErrInvalidFilterConfig", err)
 	}
-	if _, err := NewFilterBinding("bad", FilterFunc(noopBindingFilter), WithFilterURLPattern("bad")); !errors.Is(err, ErrInvalidMappingPattern) {
+	_, err = NewFilterBinding(
+		"bad", FilterFunc(noopBindingFilter), WithFilterURLPattern("bad"),
+	)
+	if !errors.Is(err, ErrInvalidMappingPattern) {
 		t.Fatalf("invalid URL pattern err = %v, want ErrInvalidMappingPattern", err)
 	}
 }

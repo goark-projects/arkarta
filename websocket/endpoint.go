@@ -40,7 +40,11 @@ func (f EndpointFunc) OnText(ctx context.Context, session Session, text string) 
 	return f.Text(ctx, session, text)
 }
 
-func (f EndpointFunc) OnBinary(ctx context.Context, session Session, data []byte) error {
+func (f EndpointFunc) OnBinary(
+	ctx context.Context,
+	session Session,
+	data []byte,
+) error {
 	if f.Binary == nil {
 		return nil
 	}
@@ -54,7 +58,11 @@ func (f EndpointFunc) OnPong(ctx context.Context, session Session, data []byte) 
 	return f.Pong(ctx, session, data)
 }
 
-func (f EndpointFunc) OnClose(ctx context.Context, session Session, reason CloseReason) error {
+func (f EndpointFunc) OnClose(
+	ctx context.Context,
+	session Session,
+	reason CloseReason,
+) error {
 	if f.Close == nil {
 		return nil
 	}
@@ -83,17 +91,27 @@ func Serve(ctx context.Context, session *StandardSession, endpoint Endpoint) err
 	for {
 		if err := ctx.Err(); err != nil {
 			endpoint.OnError(ctx, session, err)
-			_ = session.Close(context.Background(), NewCloseReason(CloseGoingAway, "context canceled"))
+			_ = session.Close(
+				context.Background(),
+				NewCloseReason(CloseGoingAway, "context canceled"),
+			)
 			return err
 		}
 		message, err := session.connection.Read(ctx)
 		if errors.Is(err, io.EOF) {
 			session.markClosed()
-			return endpoint.OnClose(ctx, session, NewCloseReason(CloseAbnormal, "connection closed"))
+			return endpoint.OnClose(
+				ctx,
+				session,
+				NewCloseReason(CloseAbnormal, "connection closed"),
+			)
 		}
 		if err != nil {
 			endpoint.OnError(ctx, session, err)
-			_ = session.Close(context.Background(), NewCloseReason(CloseUnexpectedCondition, "read failed"))
+			_ = session.Close(
+				context.Background(),
+				NewCloseReason(CloseUnexpectedCondition, "read failed"),
+			)
 			return err
 		}
 		if message.Type() == MessageClose {
@@ -102,13 +120,21 @@ func Serve(ctx context.Context, session *StandardSession, endpoint Endpoint) err
 		}
 		if err := dispatchMessage(ctx, session, endpoint, message); err != nil {
 			endpoint.OnError(ctx, session, err)
-			_ = session.Close(context.Background(), NewCloseReason(CloseUnexpectedCondition, "endpoint failed"))
+			_ = session.Close(
+				context.Background(),
+				NewCloseReason(CloseUnexpectedCondition, "endpoint failed"),
+			)
 			return err
 		}
 	}
 }
 
-func dispatchMessage(ctx context.Context, session Session, endpoint Endpoint, message Message) error {
+func dispatchMessage(
+	ctx context.Context,
+	session Session,
+	endpoint Endpoint,
+	message Message,
+) error {
 	switch message.Type() {
 	case MessageText:
 		return endpoint.OnText(ctx, session, message.Text())

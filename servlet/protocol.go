@@ -189,7 +189,9 @@ func validCookieName(name string) bool {
 
 func sanitizeCookieValue(value string) string {
 	return strings.Map(func(r rune) rune {
-		if r == 0x21 || r >= 0x23 && r <= 0x2b || r >= 0x2d && r <= 0x3a || r >= 0x3c && r <= 0x5b || r >= 0x5d && r <= 0x7e {
+		if r == 0x21 ||
+			r >= 0x23 && r <= 0x2b || r >= 0x2d && r <= 0x3a ||
+			r >= 0x3c && r <= 0x5b || r >= 0x5d && r <= 0x7e {
 			return r
 		}
 		return -1

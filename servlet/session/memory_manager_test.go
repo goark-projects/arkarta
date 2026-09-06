@@ -69,7 +69,10 @@ func TestSessionInvalidateRemovesSession(t *testing.T) {
 	if session.IsValid() {
 		t.Fatal("session should be invalid")
 	}
-	if err := session.SetAttribute("user", "alice"); !errors.Is(err, ErrInvalidSession) {
+	if err := session.SetAttribute("user", "alice"); !errors.Is(
+		err,
+		ErrInvalidSession,
+	) {
 		t.Fatalf("SetAttribute err = %v, want ErrInvalidSession", err)
 	}
 	if _, ok, err := manager.Get(context.Background(), "s1"); err != nil || ok {
@@ -115,7 +118,8 @@ func TestSessionNegativeInactiveIntervalNeverExpires(t *testing.T) {
 	}
 
 	now = now.Add(365 * 24 * time.Hour)
-	if _, ok, err := manager.Get(context.Background(), session.ID()); err != nil || !ok {
+	if _, ok, err := manager.Get(context.Background(), session.ID()); err != nil ||
+		!ok {
 		t.Fatalf("Get ok/err = %v/%v, want true/nil", ok, err)
 	}
 }

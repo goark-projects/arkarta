@@ -36,7 +36,8 @@ func TestRequestUsesTransportNeutralInput(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewRequest failed: %v", err)
 	}
-	if req.Method() != "POST" || req.Protocol() != "HTTP/1.1" || req.Path() != "/orders" || req.ContextPath() != "/app" {
+	if req.Method() != "POST" || req.Protocol() != "HTTP/1.1" ||
+		req.Path() != "/orders" || req.ContextPath() != "/app" {
 		t.Fatalf("request metadata = %s/%s/%s", req.Method(), req.Protocol(), req.Path())
 	}
 	if req.Header().Get("Content-Type") != "text/plain" || req.LocalAddr() != "192.0.2.20:8443" {
@@ -144,7 +145,9 @@ func TestNewRequestRejectsNilInput(t *testing.T) {
 func TestRequestParameterNamesAreSorted(t *testing.T) {
 	t.Parallel()
 
-	httpRequest := httptest.NewRequest(http.MethodPost, "/submit?b=1&a=query", strings.NewReader("c=3&a=form"))
+	httpRequest := httptest.NewRequest(
+		http.MethodPost, "/submit?b=1&a=query", strings.NewReader("c=3&a=form"),
+	)
 	httpRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req, err := NewRequest(httpRequest)
 	if err != nil {
@@ -271,7 +274,9 @@ func TestRequestHTTPMetadata(t *testing.T) {
 	httpRequest.Header.Set("If-Modified-Since", modified.Format(http.TimeFormat))
 	httpRequest.Trailer = http.Header{"X-Trailer": nil}
 
-	req, err := NewRequest(httpRequest, WithRequestContextPath("/app"), WithRequestConnectionID("conn-1"))
+	req, err := NewRequest(
+		httpRequest, WithRequestContextPath("/app"), WithRequestConnectionID("conn-1"),
+	)
 	if err != nil {
 		t.Fatalf("NewRequest failed: %v", err)
 	}

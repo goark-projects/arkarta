@@ -61,7 +61,10 @@ func (a *Assembler) Add(frame Frame) (Message, bool, error) {
 		return Message{}, false, err
 	}
 	if frame.opcode.Control() {
-		return Message{opcode: frame.opcode, payload: cloneBytes(frame.payload)}, true, nil
+		return Message{
+			opcode:  frame.opcode,
+			payload: cloneBytes(frame.payload),
+		}, true, nil
 	}
 	switch frame.opcode {
 	case OpText, OpBinary:
@@ -81,7 +84,11 @@ func (a *Assembler) addData(frame Frame) (Message, bool, error) {
 		return Message{}, false, err
 	}
 	if frame.fin {
-		return Message{opcode: frame.opcode, payload: cloneBytes(frame.payload), compressed: frame.rsv1}, true, nil
+		return Message{
+			opcode:     frame.opcode,
+			payload:    cloneBytes(frame.payload),
+			compressed: frame.rsv1,
+		}, true, nil
 	}
 	a.fragmented = true
 	a.opcode = frame.opcode
@@ -101,7 +108,11 @@ func (a *Assembler) addContinuation(frame Frame) (Message, bool, error) {
 	if !frame.fin {
 		return Message{}, false, nil
 	}
-	message := Message{opcode: a.opcode, payload: cloneBytes(a.payload), compressed: a.compressed}
+	message := Message{
+		opcode:     a.opcode,
+		payload:    cloneBytes(a.payload),
+		compressed: a.compressed,
+	}
 	a.reset()
 	return message, true, nil
 }

@@ -8,9 +8,12 @@ import (
 )
 
 func TestRunHandshake(t *testing.T) {
-	tck.RunHandshake(t, func(options ...websocket.HandshakeOption) *websocket.Handshaker {
-		return websocket.NewHandshaker(options...)
-	})
+	tck.RunHandshake(
+		t,
+		func(options ...websocket.HandshakeOption) *websocket.Handshaker {
+			return websocket.NewHandshaker(options...)
+		},
+	)
 }
 
 func TestRunEndpointLifecycle(t *testing.T) {

@@ -44,7 +44,11 @@ func WithBufferSize(size int) Option {
 }
 
 // SendFile 发送指定文件区段。
-func (s *StandardSender) SendFile(ctx context.Context, dst io.Writer, region FileRegion) (SendResult, error) {
+func (s *StandardSender) SendFile(
+	ctx context.Context,
+	dst io.Writer,
+	region FileRegion,
+) (SendResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}

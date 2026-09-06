@@ -32,7 +32,11 @@ func ParseRequest(req *servlet.Request, parser *Parser) (*Form, error) {
 }
 
 // RequestPart 返回当前请求指定字段的第一个文件段。
-func RequestPart(req *servlet.Request, name string, parser *Parser) (Part, bool, error) {
+func RequestPart(
+	req *servlet.Request,
+	name string,
+	parser *Parser,
+) (Part, bool, error) {
 	form, err := ParseRequest(req, parser)
 	if err != nil {
 		return Part{}, false, err

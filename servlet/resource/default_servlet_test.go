@@ -23,39 +23,63 @@ func TestDefaultServletServesGETAndHEAD(t *testing.T) {
 	handler := newTestDefaultServlet(t)
 
 	getRecorder := httptest.NewRecorder()
-	getReq, err := servlet.NewRequest(httptest.NewRequest(http.MethodGet, "/assets/app.json", nil))
+	getReq, err := servlet.NewRequest(
+		httptest.NewRequest(http.MethodGet, "/assets/app.json", nil),
+	)
 	if err != nil {
 		t.Fatalf("NewRequest GET failed: %v", err)
 	}
-	if err := handler.Serve(context.Background(), getReq, nethttp.NewResponse(getRecorder)); err != nil {
+	getResponse := nethttp.NewResponse(getRecorder)
+	if err := handler.Serve(context.Background(), getReq, getResponse); err != nil {
 		t.Fatalf("Serve GET failed: %v", err)
 	}
 	if getRecorder.Code != http.StatusOK || getRecorder.Body.String() != `{"ok":true}` {
-		t.Fatalf("GET status/body = %d/%q, want 200/json", getRecorder.Code, getRecorder.Body.String())
+		t.Fatalf(
+			"GET status/body = %d/%q, want 200/json",
+			getRecorder.Code,
+			getRecorder.Body.String(),
+		)
 	}
 	if getRecorder.Header().Get("Content-Type") != "application/json" {
-		t.Fatalf("GET content type = %q, want application/json", getRecorder.Header().Get("Content-Type"))
+		t.Fatalf(
+			"GET content type = %q, want application/json",
+			getRecorder.Header().Get("Content-Type"),
+		)
 	}
 	if getRecorder.Header().Get("Content-Length") != "11" {
-		t.Fatalf("GET content length = %q, want 11", getRecorder.Header().Get("Content-Length"))
+		t.Fatalf(
+			"GET content length = %q, want 11",
+			getRecorder.Header().Get("Content-Length"),
+		)
 	}
-	if getRecorder.Header().Get("ETag") == "" || getRecorder.Header().Get("Last-Modified") == "" {
+	if getRecorder.Header().Get("ETag") == "" ||
+		getRecorder.Header().Get("Last-Modified") == "" {
 		t.Fatal("GET should set ETag and Last-Modified")
 	}
 
 	headRecorder := httptest.NewRecorder()
-	headReq, err := servlet.NewRequest(httptest.NewRequest(http.MethodHead, "/assets/app.json", nil))
+	headReq, err := servlet.NewRequest(
+		httptest.NewRequest(http.MethodHead, "/assets/app.json", nil),
+	)
 	if err != nil {
 		t.Fatalf("NewRequest HEAD failed: %v", err)
 	}
-	if err := handler.Serve(context.Background(), headReq, nethttp.NewResponse(headRecorder)); err != nil {
+	headResponse := nethttp.NewResponse(headRecorder)
+	if err := handler.Serve(context.Background(), headReq, headResponse); err != nil {
 		t.Fatalf("Serve HEAD failed: %v", err)
 	}
 	if headRecorder.Code != http.StatusOK || headRecorder.Body.Len() != 0 {
-		t.Fatalf("HEAD status/body length = %d/%d, want 200/0", headRecorder.Code, headRecorder.Body.Len())
+		t.Fatalf(
+			"HEAD status/body length = %d/%d, want 200/0",
+			headRecorder.Code,
+			headRecorder.Body.Len(),
+		)
 	}
 	if headRecorder.Header().Get("Content-Length") != "11" {
-		t.Fatalf("HEAD content length = %q, want 11", headRecorder.Header().Get("Content-Length"))
+		t.Fatalf(
+			"HEAD content length = %q, want 11",
+			headRecorder.Header().Get("Content-Length"),
+		)
 	}
 }
 
@@ -64,11 +88,14 @@ func TestDefaultServletHandlesConditionalGET(t *testing.T) {
 
 	handler := newTestDefaultServlet(t)
 	firstRecorder := httptest.NewRecorder()
-	firstReq, err := servlet.NewRequest(httptest.NewRequest(http.MethodGet, "/assets/app.json", nil))
+	firstReq, err := servlet.NewRequest(
+		httptest.NewRequest(http.MethodGet, "/assets/app.json", nil),
+	)
 	if err != nil {
 		t.Fatalf("NewRequest first failed: %v", err)
 	}
-	if err := handler.Serve(context.Background(), firstReq, nethttp.NewResponse(firstRecorder)); err != nil {
+	firstResponse := nethttp.NewResponse(firstRecorder)
+	if err := handler.Serve(context.Background(), firstReq, firstResponse); err != nil {
 		t.Fatalf("Serve first failed: %v", err)
 	}
 
@@ -84,8 +111,13 @@ func TestDefaultServletHandlesConditionalGET(t *testing.T) {
 		t.Fatalf("Serve conditional failed: %v", err)
 	}
 
-	if conditionalResponse.Status() != http.StatusNotModified || conditionalRecorder.Body.Len() != 0 {
-		t.Fatalf("conditional status/body = %d/%q, want 304/empty", conditionalResponse.Status(), conditionalRecorder.Body.String())
+	if conditionalResponse.Status() != http.StatusNotModified ||
+		conditionalRecorder.Body.Len() != 0 {
+		t.Fatalf(
+			"conditional status/body = %d/%q, want 304/empty",
+			conditionalResponse.Status(),
+			conditionalRecorder.Body.String(),
+		)
 	}
 }
 
@@ -137,10 +169,17 @@ func TestDefaultServletIgnoresRangeWhenIfRangeDoesNotMatch(t *testing.T) {
 	}
 
 	if response.Status() != http.StatusOK || recorder.Body.String() != `{"ok":true}` {
-		t.Fatalf("status/body = %d/%q, want 200/full", response.Status(), recorder.Body.String())
+		t.Fatalf(
+			"status/body = %d/%q, want 200/full",
+			response.Status(),
+			recorder.Body.String(),
+		)
 	}
 	if recorder.Header().Get("Content-Range") != "" {
-		t.Fatalf("Content-Range = %q, want empty", recorder.Header().Get("Content-Range"))
+		t.Fatalf(
+			"Content-Range = %q, want empty",
+			recorder.Header().Get("Content-Range"),
+		)
 	}
 }
 
@@ -162,7 +201,11 @@ func TestDefaultServletIgnoresRangeForWeakETagValidator(t *testing.T) {
 	}
 
 	if response.Status() != http.StatusOK || recorder.Body.String() != `{"ok":true}` {
-		t.Fatalf("status/body = %d/%q, want 200/full", response.Status(), recorder.Body.String())
+		t.Fatalf(
+			"status/body = %d/%q, want 200/full",
+			response.Status(),
+			recorder.Body.String(),
+		)
 	}
 }
 
@@ -218,7 +261,10 @@ func TestDefaultServletRejectsInvalidRange(t *testing.T) {
 		t.Fatalf("status = %d, want 416", response.Status())
 	}
 	if recorder.Header().Get("Content-Range") != "bytes */11" {
-		t.Fatalf("Content-Range = %q, want bytes */11", recorder.Header().Get("Content-Range"))
+		t.Fatalf(
+			"Content-Range = %q, want bytes */11",
+			recorder.Header().Get("Content-Range"),
+		)
 	}
 	if recorder.Body.Len() != 0 {
 		t.Fatalf("body length = %d, want 0", recorder.Body.Len())
@@ -234,7 +280,11 @@ func TestDefaultServletMapsMissingAndDirectoryToNotFound(t *testing.T) {
 		if err != nil {
 			t.Fatalf("NewRequest %s failed: %v", target, err)
 		}
-		err = handler.Serve(context.Background(), req, nethttp.NewResponse(httptest.NewRecorder()))
+		err = handler.Serve(
+			context.Background(),
+			req,
+			nethttp.NewResponse(httptest.NewRecorder()),
+		)
 		var status servlet.StatusError
 		if !errors.As(err, &status) || status.StatusCode() != http.StatusNotFound {
 			t.Fatalf("%s err = %v, want 404 StatusError", target, err)
@@ -247,7 +297,9 @@ func TestDefaultServletRejectsUnsupportedMethod(t *testing.T) {
 
 	handler := newTestDefaultServlet(t)
 	recorder := httptest.NewRecorder()
-	req, err := servlet.NewRequest(httptest.NewRequest(http.MethodPost, "/assets/app.json", nil))
+	req, err := servlet.NewRequest(
+		httptest.NewRequest(http.MethodPost, "/assets/app.json", nil),
+	)
 	if err != nil {
 		t.Fatalf("NewRequest failed: %v", err)
 	}
@@ -264,8 +316,11 @@ func TestDefaultServletRejectsUnsupportedMethod(t *testing.T) {
 func newTestDefaultServlet(t *testing.T) *DefaultServlet {
 	t.Helper()
 	provider, err := NewFSProvider(fstest.MapFS{
-		"assets":          &fstest.MapFile{Mode: 0o755 | fs.ModeDir},
-		"assets/app.json": &fstest.MapFile{Data: []byte(`{"ok":true}`), ModTime: time.Date(2026, 8, 26, 10, 0, 0, 0, time.UTC)},
+		"assets": &fstest.MapFile{Mode: 0o755 | fs.ModeDir},
+		"assets/app.json": &fstest.MapFile{
+			Data:    []byte(`{"ok":true}`),
+			ModTime: time.Date(2026, 8, 26, 10, 0, 0, 0, time.UTC),
+		},
 	})
 	if err != nil {
 		t.Fatalf("NewFSProvider failed: %v", err)

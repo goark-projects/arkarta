@@ -25,7 +25,11 @@ func TestStandardSenderSendsFileRegion(t *testing.T) {
 		t.Fatalf("body = %q, want 2345", dst.String())
 	}
 	if result.Bytes() != 4 || result.Strategy() != StrategyReaderFrom {
-		t.Fatalf("result = %d/%s, want 4/reader-from", result.Bytes(), result.Strategy())
+		t.Fatalf(
+			"result = %d/%s, want 4/reader-from",
+			result.Bytes(),
+			result.Strategy(),
+		)
 	}
 }
 
@@ -45,7 +49,11 @@ func TestStandardSenderUsesBufferedFallback(t *testing.T) {
 		t.Fatalf("body = %q, want bcd", dst.writer.String())
 	}
 	if result.Bytes() != 3 || result.Strategy() != StrategyBufferedCopy {
-		t.Fatalf("result = %d/%s, want 3/buffered-copy", result.Bytes(), result.Strategy())
+		t.Fatalf(
+			"result = %d/%s, want 3/buffered-copy",
+			result.Bytes(),
+			result.Strategy(),
+		)
 	}
 }
 
@@ -57,15 +65,24 @@ func TestStandardSenderValidatesInputsAndContext(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewFileRegion failed: %v", err)
 	}
-	if _, err := sender.SendFile(context.Background(), nil, region); !errors.Is(err, ErrNilWriter) {
+	if _, err := sender.SendFile(context.Background(), nil, region); !errors.Is(
+		err,
+		ErrNilWriter,
+	) {
 		t.Fatalf("nil writer err = %v, want ErrNilWriter", err)
 	}
-	if _, err := sender.SendFile(context.Background(), io.Discard, FileRegion{}); !errors.Is(err, ErrNilSource) {
+	if _, err := sender.SendFile(context.Background(), io.Discard, FileRegion{}); !errors.Is(
+		err,
+		ErrNilSource,
+	) {
 		t.Fatalf("nil source err = %v, want ErrNilSource", err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if _, err := sender.SendFile(ctx, io.Discard, region); !errors.Is(err, context.Canceled) {
+	if _, err := sender.SendFile(ctx, io.Discard, region); !errors.Is(
+		err,
+		context.Canceled,
+	) {
 		t.Fatalf("canceled err = %v, want context.Canceled", err)
 	}
 }
@@ -73,12 +90,17 @@ func TestStandardSenderValidatesInputsAndContext(t *testing.T) {
 func TestCapabilitiesAreStable(t *testing.T) {
 	t.Parallel()
 
-	capabilities := NewCapabilities(CapabilityKqueue, CapabilitySendfile, CapabilitySendfile)
+	capabilities := NewCapabilities(
+		CapabilityKqueue,
+		CapabilitySendfile,
+		CapabilitySendfile,
+	)
 	if !capabilities.Has(CapabilitySendfile) || capabilities.Has(CapabilityIOUring) {
 		t.Fatalf("capability lookup mismatch")
 	}
 	values := capabilities.Values()
-	if len(values) != 2 || values[0] != CapabilityKqueue || values[1] != CapabilitySendfile {
+	if len(values) != 2 || values[0] != CapabilityKqueue ||
+		values[1] != CapabilitySendfile {
 		t.Fatalf("values = %#v, want stable sorted list", values)
 	}
 }

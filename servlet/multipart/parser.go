@@ -88,7 +88,10 @@ func (p *Parser) validateFiles(form *Form) error {
 	return nil
 }
 
-func (p *Parser) parseWithLocation(req *servlet.Request, reader *stdmultipart.Reader) (*Form, error) {
+func (p *Parser) parseWithLocation(
+	req *servlet.Request,
+	reader *stdmultipart.Reader,
+) (*Form, error) {
 	if err := os.MkdirAll(p.location, 0o700); err != nil {
 		return nil, err
 	}
@@ -134,7 +137,8 @@ func readValuePart(part interface {
 	defer part.Close()
 	var buffer bytes.Buffer
 	if maxMemory > 0 {
-		if _, err := io.CopyN(&buffer, part, maxMemory+1); err != nil && !errors.Is(err, io.EOF) {
+		if _, err := io.CopyN(&buffer, part, maxMemory+1); err != nil &&
+			!errors.Is(err, io.EOF) {
 			return "", err
 		}
 		if int64(buffer.Len()) > maxMemory {
@@ -230,7 +234,8 @@ func multipartBoundary(req *servlet.Request) (string, bool) {
 	if err != nil {
 		return "", false
 	}
-	if !strings.HasPrefix(strings.ToLower(mediaType), "multipart/") || params["boundary"] == "" {
+	if !strings.HasPrefix(strings.ToLower(mediaType), "multipart/") ||
+		params["boundary"] == "" {
 		return "", false
 	}
 	return params["boundary"], true

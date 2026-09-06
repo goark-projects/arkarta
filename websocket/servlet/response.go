@@ -8,7 +8,10 @@ import (
 )
 
 // WriteHandshakeResponse 向升级后的连接写出标准 HTTP 101 握手响应。
-func WriteHandshakeResponse(conn upgrade.Connection, handshake websocket.Handshake) error {
+func WriteHandshakeResponse(
+	conn upgrade.Connection,
+	handshake websocket.Handshake,
+) error {
 	if conn == nil {
 		return ErrNilConnection
 	}
@@ -20,7 +23,8 @@ func WriteHandshakeResponse(conn upgrade.Connection, handshake websocket.Handsha
 		ProtoMinor: 1,
 		Header:     handshake.Header(),
 	}
-	if buffered, ok := conn.(upgrade.BufferedConnection); ok && buffered.Writer() != nil {
+	if buffered, ok := conn.(upgrade.BufferedConnection); ok &&
+		buffered.Writer() != nil {
 		writer := buffered.Writer()
 		if err := response.Write(writer); err != nil {
 			return err

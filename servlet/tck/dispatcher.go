@@ -16,14 +16,23 @@ func RunDispatcher(t *testing.T) {
 	t.Helper()
 	t.Run("forward", func(t *testing.T) {
 		router := servlet.NewRouter()
-		mustHandle(t, router, "/target", servlet.HandlerFunc(func(_ context.Context, req *servlet.Request, res servlet.Response) error {
-			if req.DispatchType() != servlet.DispatchForward {
-				t.Fatalf("dispatch = %v, want forward", req.DispatchType())
-			}
-			_, err := res.WriteString("forward:" + req.Path())
-			return err
-		}))
-		req, err := servlet.NewRequest(httptest.NewRequest(http.MethodGet, "/source", nil))
+		mustHandle(
+			t,
+			router,
+			"/target",
+			servlet.HandlerFunc(
+				func(_ context.Context, req *servlet.Request, res servlet.Response) error {
+					if req.DispatchType() != servlet.DispatchForward {
+						t.Fatalf("dispatch = %v, want forward", req.DispatchType())
+					}
+					_, err := res.WriteString("forward:" + req.Path())
+					return err
+				},
+			),
+		)
+		req, err := servlet.NewRequest(
+			httptest.NewRequest(http.MethodGet, "/source", nil),
+		)
 		if err != nil {
 			t.Fatalf("NewRequest failed: %v", err)
 		}
@@ -41,13 +50,22 @@ func RunDispatcher(t *testing.T) {
 	})
 	t.Run("include", func(t *testing.T) {
 		router := servlet.NewRouter()
-		mustHandle(t, router, "/fragment", servlet.HandlerFunc(func(_ context.Context, _ *servlet.Request, res servlet.Response) error {
-			res.SetStatus(http.StatusCreated)
-			res.Header().Set("X-Leak", "true")
-			_, err := res.WriteString("fragment")
-			return err
-		}))
-		req, err := servlet.NewRequest(httptest.NewRequest(http.MethodGet, "/page", nil))
+		mustHandle(
+			t,
+			router,
+			"/fragment",
+			servlet.HandlerFunc(
+				func(_ context.Context, _ *servlet.Request, res servlet.Response) error {
+					res.SetStatus(http.StatusCreated)
+					res.Header().Set("X-Leak", "true")
+					_, err := res.WriteString("fragment")
+					return err
+				},
+			),
+		)
+		req, err := servlet.NewRequest(
+			httptest.NewRequest(http.MethodGet, "/page", nil),
+		)
 		if err != nil {
 			t.Fatalf("NewRequest failed: %v", err)
 		}
@@ -60,7 +78,8 @@ func RunDispatcher(t *testing.T) {
 		if err := dispatcher.Include(context.Background(), req, response); err != nil {
 			t.Fatalf("Include failed: %v", err)
 		}
-		if response.Status() != http.StatusAccepted || response.Header().Get("X-Leak") != "" {
+		if response.Status() != http.StatusAccepted ||
+			response.Header().Get("X-Leak") != "" {
 			t.Fatalf("include leaked response metadata")
 		}
 	})

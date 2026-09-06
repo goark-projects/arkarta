@@ -29,8 +29,17 @@ func NewDriver(factory HandlerFactory) *Driver {
 }
 
 // Exchange 执行一次标准库 HTTP 请求交换。
-func (d *Driver) Exchange(ctx context.Context, handler servlet.Handler, request tck.Request) (tck.Response, error) {
-	httpRequest := httptest.NewRequestWithContext(ctx, request.Method, request.Target, bytes.NewReader(request.Body))
+func (d *Driver) Exchange(
+	ctx context.Context,
+	handler servlet.Handler,
+	request tck.Request,
+) (tck.Response, error) {
+	httpRequest := httptest.NewRequestWithContext(
+		ctx,
+		request.Method,
+		request.Target,
+		bytes.NewReader(request.Body),
+	)
 	if request.Header != nil {
 		request.Header.Visit(func(name, value string) bool {
 			httpRequest.Header.Add(name, value)

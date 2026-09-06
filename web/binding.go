@@ -24,7 +24,8 @@ func (c *Context) BindJSON(target any) error {
 		if errors.Is(err, arkjson.ErrPayloadTooLarge) {
 			return err
 		}
-		if errors.Is(err, arkjson.ErrNilTarget) || errors.Is(err, arkjson.ErrNilReader) {
+		if errors.Is(err, arkjson.ErrNilTarget) ||
+			errors.Is(err, arkjson.ErrNilReader) {
 			return err
 		}
 		return newBindError(err)
@@ -41,7 +42,10 @@ func (c *Context) Validate(target any) (validation.Result, error) {
 }
 
 // ValidateGroups 使用当前校验器按显式分组校验目标对象。
-func (c *Context) ValidateGroups(target any, groups ...string) (validation.Result, error) {
+func (c *Context) ValidateGroups(
+	target any,
+	groups ...string,
+) (validation.Result, error) {
 	if c == nil {
 		return validation.Result{}, ErrNilContext
 	}

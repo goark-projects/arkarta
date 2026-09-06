@@ -29,18 +29,25 @@ func runGroupedRoute(t *testing.T, factory HTTPHandlerFactory) {
 	t.Helper()
 	router := web.NewRouter()
 	api := router.Group("/api")
-	api.Use(web.InterceptorFunc(func(ctx *web.Context, next web.Handler) (web.Result, error) {
-		ctx.Response().Header().Set("X-Group", "api")
-		return next.Handle(ctx)
-	}))
-	if err := api.Handle(http.MethodGet, "/users/{id}", web.HandlerFunc(func(ctx *web.Context) (web.Result, error) {
-		return web.Text(http.StatusOK, ctx.PathValue("id")), nil
-	})); err != nil {
+	api.Use(
+		web.InterceptorFunc(
+			func(ctx *web.Context, next web.Handler) (web.Result, error) {
+				ctx.Response().Header().Set("X-Group", "api")
+				return next.Handle(ctx)
+			},
+		),
+	)
+	if err := api.Handle(http.MethodGet, "/users/{id}", web.HandlerFunc(
+		func(ctx *web.Context) (web.Result, error) {
+			return web.Text(http.StatusOK, ctx.PathValue("id")), nil
+		})); err != nil {
 		t.Fatalf("Handle(GET /users/{id}) failed: %v", err)
 	}
 
 	recorder := httptest.NewRecorder()
-	factory(router).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/api/users/9", nil))
+	factory(
+		router,
+	).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/api/users/9", nil))
 
 	if recorder.Code != http.StatusOK || recorder.Body.String() != "9" {
 		t.Fatalf("response = %d %q, want 200 9", recorder.Code, recorder.Body.String())
@@ -53,23 +60,40 @@ func runGroupedRoute(t *testing.T, factory HTTPHandlerFactory) {
 func runAutomaticMethods(t *testing.T, factory HTTPHandlerFactory) {
 	t.Helper()
 	router := web.NewRouter()
-	mustHandle(t, router, http.MethodGet, "/health", web.HandlerFunc(func(ctx *web.Context) (web.Result, error) {
-		return web.Text(http.StatusOK, "UP"), nil
-	}))
+	mustHandle(
+		t,
+		router,
+		http.MethodGet,
+		"/health",
+		web.HandlerFunc(func(ctx *web.Context) (web.Result, error) {
+			return web.Text(http.StatusOK, "UP"), nil
+		}),
+	)
 
 	headRecorder := httptest.NewRecorder()
-	factory(router).ServeHTTP(headRecorder, httptest.NewRequest(http.MethodHead, "/health", nil))
+	factory(
+		router,
+	).ServeHTTP(headRecorder, httptest.NewRequest(http.MethodHead, "/health", nil))
 	if headRecorder.Code != http.StatusOK || headRecorder.Body.Len() != 0 {
-		t.Fatalf("HEAD response = %d %q, want 200 empty", headRecorder.Code, headRecorder.Body.String())
+		t.Fatalf(
+			"HEAD response = %d %q, want 200 empty",
+			headRecorder.Code,
+			headRecorder.Body.String(),
+		)
 	}
 
 	optionsRecorder := httptest.NewRecorder()
-	factory(router).ServeHTTP(optionsRecorder, httptest.NewRequest(http.MethodOptions, "/health", nil))
+	factory(
+		router,
+	).ServeHTTP(optionsRecorder, httptest.NewRequest(http.MethodOptions, "/health", nil))
 	if optionsRecorder.Code != http.StatusNoContent {
 		t.Fatalf("OPTIONS status = %d, want 204", optionsRecorder.Code)
 	}
 	if optionsRecorder.Header().Get("Allow") != "GET, HEAD, OPTIONS" {
-		t.Fatalf("Allow = %q, want GET, HEAD, OPTIONS", optionsRecorder.Header().Get("Allow"))
+		t.Fatalf(
+			"Allow = %q, want GET, HEAD, OPTIONS",
+			optionsRecorder.Header().Get("Allow"),
+		)
 	}
 }
 
@@ -80,33 +104,47 @@ func runFormBinding(t *testing.T, factory HTTPHandlerFactory) {
 		Count int    `form:"count"`
 	}
 	router := web.NewRouter()
-	mustHandle(t, router, http.MethodPost, "/items/{id}", web.HandlerFunc(func(ctx *web.Context) (web.Result, error) {
-		id, ok, err := ctx.PathInt("id")
-		if err != nil || !ok {
-			return nil, err
-		}
-		var body input
-		if err := ctx.BindForm(&body); err != nil {
-			return nil, err
-		}
-		return web.JSON(http.StatusOK, map[string]any{
-			"id":    id,
-			"name":  body.Name,
-			"count": body.Count,
-		}), nil
-	}))
+	mustHandle(
+		t,
+		router,
+		http.MethodPost,
+		"/items/{id}",
+		web.HandlerFunc(func(ctx *web.Context) (web.Result, error) {
+			id, ok, err := ctx.PathInt("id")
+			if err != nil || !ok {
+				return nil, err
+			}
+			var body input
+			if err := ctx.BindForm(&body); err != nil {
+				return nil, err
+			}
+			return web.JSON(http.StatusOK, map[string]any{
+				"id":    id,
+				"name":  body.Name,
+				"count": body.Count,
+			}), nil
+		}),
+	)
 
 	values := url.Values{}
 	values.Set("name", "arkarta")
 	values.Set("count", "3")
-	request := httptest.NewRequest(http.MethodPost, "/items/42", strings.NewReader(values.Encode()))
+	request := httptest.NewRequest(
+		http.MethodPost,
+		"/items/42",
+		strings.NewReader(values.Encode()),
+	)
 	request.Header.Set("Accept", arkjson.ContentType)
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	recorder := httptest.NewRecorder()
 	factory(router).ServeHTTP(recorder, request)
 
 	if recorder.Code != http.StatusOK {
-		t.Fatalf("status = %d, want 200, body=%s", recorder.Code, recorder.Body.String())
+		t.Fatalf(
+			"status = %d, want 200, body=%s",
+			recorder.Code,
+			recorder.Body.String(),
+		)
 	}
 	var payload struct {
 		ID    int    `json:"id"`

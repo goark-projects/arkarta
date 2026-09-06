@@ -18,7 +18,14 @@ type Context struct {
 	validator  validation.Validator
 }
 
-func newContext(ctx context.Context, request *servlet.Request, response servlet.Response, pathValues map[string]string, codec arkjson.Codec, validator validation.Validator) *Context {
+func newContext(
+	ctx context.Context,
+	request *servlet.Request,
+	response servlet.Response,
+	pathValues map[string]string,
+	codec arkjson.Codec,
+	validator validation.Validator,
+) *Context {
 	if ctx == nil {
 		ctx = context.Background()
 	}

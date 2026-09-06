@@ -39,7 +39,10 @@ func WithMaxMessageBytes(maxBytes int64) FrameConnectionOption {
 }
 
 // NewFrameConnection 创建基于 RFC 6455 帧层的 WebSocket 连接适配器。
-func NewFrameConnection(conn upgrade.Connection, options ...FrameConnectionOption) (*FrameConnection, error) {
+func NewFrameConnection(
+	conn upgrade.Connection,
+	options ...FrameConnectionOption,
+) (*FrameConnection, error) {
 	if conn == nil {
 		return nil, ErrNilConnection
 	}
@@ -59,8 +62,10 @@ func NewFrameConnection(conn upgrade.Connection, options ...FrameConnectionOptio
 			frame.WithMaskPolicy(frame.MaskRequired),
 			frame.WithMaxPayloadBytes(config.maxFrameBytes),
 		),
-		writer:    frame.NewWriter(conn),
-		assembler: frame.NewAssembler(frame.WithMaxMessageBytes(config.maxMessageBytes)),
+		writer: frame.NewWriter(conn),
+		assembler: frame.NewAssembler(
+			frame.WithMaxMessageBytes(config.maxMessageBytes),
+		),
 	}, nil
 }
 
@@ -102,9 +107,13 @@ func (c *FrameConnection) Read(ctx context.Context) (websocket.Message, error) {
 				return websocket.Message{}, err
 			}
 			if code == 0 {
-				return websocket.CloseMessage(websocket.NewCloseReason(websocket.CloseNoStatus, reason)), nil
+				return websocket.CloseMessage(
+					websocket.NewCloseReason(websocket.CloseNoStatus, reason),
+				), nil
 			}
-			return websocket.CloseMessage(websocket.NewCloseReason(websocket.CloseCode(code), reason)), nil
+			return websocket.CloseMessage(
+				websocket.NewCloseReason(websocket.CloseCode(code), reason),
+			), nil
 		default:
 			return websocket.Message{}, frame.ErrInvalidOpcode
 		}
@@ -133,7 +142,10 @@ func (c *FrameConnection) Write(ctx context.Context, message websocket.Message) 
 }
 
 // Close 写出关闭帧并关闭底层连接。
-func (c *FrameConnection) Close(ctx context.Context, reason websocket.CloseReason) error {
+func (c *FrameConnection) Close(
+	ctx context.Context,
+	reason websocket.CloseReason,
+) error {
 	if c == nil || c.writer == nil || c.conn == nil {
 		return ErrNilConnection
 	}
@@ -158,7 +170,8 @@ func (c *FrameConnection) writeFrame(ctx context.Context, next frame.Frame) erro
 
 func closePayload(reason websocket.CloseReason) ([]byte, error) {
 	code := reason.Code()
-	if code == websocket.CloseNoStatus || code == websocket.CloseAbnormal || code == websocket.CloseTLSFailure {
+	if code == websocket.CloseNoStatus || code == websocket.CloseAbnormal ||
+		code == websocket.CloseTLSFailure {
 		if reason.Reason() == "" {
 			return nil, nil
 		}

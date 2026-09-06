@@ -25,7 +25,10 @@ func (s *DefaultServlet) WelcomeFiles() []string {
 	return cloneStrings(s.welcomeFiles)
 }
 
-func (s *DefaultServlet) openWelcome(ctx context.Context, dir string) (Resource, error) {
+func (s *DefaultServlet) openWelcome(
+	ctx context.Context,
+	dir string,
+) (Resource, error) {
 	if len(s.welcomeFiles) == 0 {
 		return Resource{}, ErrDirectory
 	}

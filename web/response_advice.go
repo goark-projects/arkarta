@@ -16,7 +16,11 @@ func (f ResponseAdviceFunc) BeforeWrite(ctx *Context, result Result) (Result, er
 	return f(ctx, result)
 }
 
-func applyResponseAdvice(ctx *Context, result Result, advice []ResponseAdvice) (Result, error) {
+func applyResponseAdvice(
+	ctx *Context,
+	result Result,
+	advice []ResponseAdvice,
+) (Result, error) {
 	var err error
 	for _, item := range advice {
 		if item == nil {

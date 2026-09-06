@@ -10,7 +10,9 @@ import (
 )
 
 // CompressionFactory 创建 permessage-deflate 压缩协商器。
-type CompressionFactory func(options ...websocket.PerMessageDeflateOption) *websocket.PerMessageDeflate
+type CompressionFactory func(
+	options ...websocket.PerMessageDeflateOption,
+) *websocket.PerMessageDeflate
 
 // RunCompression 执行 WebSocket 压缩扩展兼容性测试。
 func RunCompression(t *testing.T, factory CompressionFactory) {
@@ -39,7 +41,10 @@ func RunCompression(t *testing.T, factory CompressionFactory) {
 		if err != nil {
 			t.Fatalf("CompressMessage failed: %v", err)
 		}
-		if _, err := codec.DecompressMessage(compressed, 8); !errors.Is(err, websocket.ErrMessageTooLarge) {
+		if _, err := codec.DecompressMessage(compressed, 8); !errors.Is(
+			err,
+			websocket.ErrMessageTooLarge,
+		) {
 			t.Fatalf("DecompressMessage err = %v, want ErrMessageTooLarge", err)
 		}
 	})

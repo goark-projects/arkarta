@@ -24,4 +24,6 @@ var ErrMaskForbidden = errors.New("arkarta/websocket/frame: mask forbidden")
 var ErrPayloadTooLarge = errors.New("arkarta/websocket/frame: payload too large")
 
 // ErrInvalidClosePayload 表示关闭帧载荷非法。
-var ErrInvalidClosePayload = errors.New("arkarta/websocket/frame: invalid close payload")
+var ErrInvalidClosePayload = errors.New(
+	"arkarta/websocket/frame: invalid close payload",
+)

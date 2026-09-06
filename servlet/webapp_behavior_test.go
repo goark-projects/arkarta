@@ -18,7 +18,6 @@ import (
 
 func TestWebAppDefaultCapabilities(t *testing.T) {
 	t.Parallel()
-
 	app, err := NewWebApp("orders")
 	if err != nil {
 		t.Fatalf("NewWebApp failed: %v", err)
@@ -27,13 +26,16 @@ func TestWebAppDefaultCapabilities(t *testing.T) {
 	if app.VirtualServerName() != DefaultVirtualServerName {
 		t.Fatalf("virtual server = %q, want default", app.VirtualServerName())
 	}
-	if app.RequestCharacterEncoding() != DefaultCharacterEncoding || app.ResponseCharacterEncoding() != DefaultCharacterEncoding {
-		t.Fatalf("charsets = %q/%q, want defaults", app.RequestCharacterEncoding(), app.ResponseCharacterEncoding())
+	requestEncoding := app.RequestCharacterEncoding()
+	responseEncoding := app.ResponseCharacterEncoding()
+	if requestEncoding != DefaultCharacterEncoding || responseEncoding != DefaultCharacterEncoding {
+		t.Fatalf("charsets = %q/%q, want defaults", requestEncoding, responseEncoding)
 	}
 	if app.SessionTimeout() != DefaultSessionTimeout {
 		t.Fatalf("session timeout = %s, want %s", app.SessionTimeout(), DefaultSessionTimeout)
 	}
-	if app.EffectiveMajorVersion() != ServletSpecMajorVersion || app.EffectiveMinorVersion() != ServletSpecMinorVersion {
+	if app.EffectiveMajorVersion() != ServletSpecMajorVersion ||
+		app.EffectiveMinorVersion() != ServletSpecMinorVersion {
 		t.Fatalf("effective version = %d.%d, want %d.%d",
 			app.EffectiveMajorVersion(),
 			app.EffectiveMinorVersion(),
@@ -41,7 +43,8 @@ func TestWebAppDefaultCapabilities(t *testing.T) {
 			ServletSpecMinorVersion,
 		)
 	}
-	if app.ArkartaMajorVersion() != ArkartaServletMajorVersion || app.ArkartaMinorVersion() != ArkartaServletMinorVersion {
+	if app.ArkartaMajorVersion() != ArkartaServletMajorVersion ||
+		app.ArkartaMinorVersion() != ArkartaServletMinorVersion {
 		t.Fatalf("arkarta version = %d.%d, want %d.%d",
 			app.ArkartaMajorVersion(),
 			app.ArkartaMinorVersion(),
@@ -53,7 +56,6 @@ func TestWebAppDefaultCapabilities(t *testing.T) {
 
 func TestWebAppCustomCapabilities(t *testing.T) {
 	t.Parallel()
-
 	app, err := NewWebApp("orders",
 		WithVirtualServerName("api.internal"),
 		WithRequestCharacterEncoding("gb18030"),
@@ -70,7 +72,10 @@ func TestWebAppCustomCapabilities(t *testing.T) {
 		t.Fatalf("virtual server = %q, want api.internal", app.VirtualServerName())
 	}
 	if app.RequestCharacterEncoding() != "gb18030" || app.ResponseCharacterEncoding() != "utf-16" {
-		t.Fatalf("charsets = %q/%q, want custom", app.RequestCharacterEncoding(), app.ResponseCharacterEncoding())
+		t.Fatalf(
+			"charsets = %q/%q, want custom",
+			app.RequestCharacterEncoding(), app.ResponseCharacterEncoding(),
+		)
 	}
 	if app.SessionTimeout() != 45*time.Minute {
 		t.Fatalf("session timeout = %s, want 45m", app.SessionTimeout())
@@ -94,7 +99,6 @@ func TestWebAppCustomCapabilities(t *testing.T) {
 
 func TestWebAppInitParamsAreMutableOnlyBeforeStart(t *testing.T) {
 	t.Parallel()
-
 	app, err := NewWebApp("orders")
 	if err != nil {
 		t.Fatalf("NewWebApp failed: %v", err)
@@ -126,7 +130,6 @@ func TestWebAppInitParamsAreMutableOnlyBeforeStart(t *testing.T) {
 
 func TestWebAppMimeMappingsAreIsolated(t *testing.T) {
 	t.Parallel()
-
 	app, err := NewWebApp("orders")
 	if err != nil {
 		t.Fatalf("NewWebApp failed: %v", err)
@@ -149,7 +152,6 @@ func TestWebAppMimeMappingsAreIsolated(t *testing.T) {
 
 func TestWebAppResourceLookup(t *testing.T) {
 	t.Parallel()
-
 	app, err := NewWebApp("orders", WithResourceFS(fstest.MapFS{
 		"static/app.txt": &fstest.MapFile{Data: []byte("ok")},
 	}))
@@ -164,14 +166,16 @@ func TestWebAppResourceLookup(t *testing.T) {
 	if err != nil || exists {
 		t.Fatalf("ResourceExists missing = %v/%v, want false/nil", exists, err)
 	}
-	if _, err := app.OpenResource(context.Background(), "/../secret.txt"); !errors.Is(err, ErrInvalidWebAppConfig) {
+	_, err = app.OpenResource(context.Background(), "/../secret.txt")
+	if !errors.Is(err, ErrInvalidWebAppConfig) {
 		t.Fatalf("unsafe resource err = %v, want ErrInvalidWebAppConfig", err)
 	}
 	empty, err := NewWebApp("empty")
 	if err != nil {
 		t.Fatalf("NewWebApp empty failed: %v", err)
 	}
-	if _, err := empty.OpenResource(context.Background(), "/missing.txt"); !errors.Is(err, fs.ErrNotExist) {
+	_, err = empty.OpenResource(context.Background(), "/missing.txt")
+	if !errors.Is(err, fs.ErrNotExist) {
 		t.Fatalf("empty resource err = %v, want fs.ErrNotExist", err)
 	}
 }
@@ -210,10 +214,11 @@ func TestWebAppDispatcherProvider(t *testing.T) {
 	t.Parallel()
 
 	router := NewRouter()
-	if err := router.Handle("/target", HandlerFunc(func(_ context.Context, _ *Request, res Response) error {
-		_, err := res.WriteString("target")
-		return err
-	})); err != nil {
+	if err := router.Handle("/target", HandlerFunc(
+		func(_ context.Context, _ *Request, res Response) error {
+			_, err := res.WriteString("target")
+			return err
+		})); err != nil {
 		t.Fatalf("Handle failed: %v", err)
 	}
 	registry := NewDispatcherRegistry(router)

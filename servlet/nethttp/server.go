@@ -47,9 +47,15 @@ func (s *Server) HTTPServer() *http.Server {
 // Handler 返回容器聚合后的 HTTP Handler。
 func (s *Server) Handler() http.Handler {
 	if s == nil || s.container == nil {
-		return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-			http.Error(writer, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		})
+		return http.HandlerFunc(
+			func(writer http.ResponseWriter, request *http.Request) {
+				http.Error(
+					writer,
+					http.StatusText(http.StatusInternalServerError),
+					http.StatusInternalServerError,
+				)
+			},
+		)
 	}
 	return s.container.Handler()
 }

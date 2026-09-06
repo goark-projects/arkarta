@@ -51,7 +51,9 @@ func TestCodecOptions(t *testing.T) {
 	var target struct {
 		Name string `json:"name"`
 	}
-	err := NewCodec(WithDisallowUnknownFields(true)).Unmarshal([]byte(`{"name":"a","extra":1}`), &target)
+	err := NewCodec(
+		WithDisallowUnknownFields(true),
+	).Unmarshal([]byte(`{"name":"a","extra":1}`), &target)
 	if err == nil || !strings.Contains(err.Error(), "unknown") {
 		t.Fatalf("unknown field err = %v", err)
 	}
@@ -81,7 +83,10 @@ func TestCodecStreamAndLimit(t *testing.T) {
 		t.Fatalf("target = %#v", target)
 	}
 
-	if err := NewCodec(WithMaxBytes(4)).Unmarshal([]byte(`{"name":"arkarta"}`), &target); !errors.Is(err, arkjson.ErrPayloadTooLarge) {
+	if err := NewCodec(WithMaxBytes(4)).Unmarshal([]byte(`{"name":"arkarta"}`), &target); !errors.Is(
+		err,
+		arkjson.ErrPayloadTooLarge,
+	) {
 		t.Fatalf("large payload err = %v, want ErrPayloadTooLarge", err)
 	}
 }

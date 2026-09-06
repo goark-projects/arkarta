@@ -21,7 +21,9 @@ var ErrNilResponseWriter = errors.New("arkarta/websocket: response writer is nil
 var ErrInvalidHandshake = errors.New("arkarta/websocket: invalid handshake")
 
 // ErrUnsupportedVersion 表示客户端 WebSocket 版本不受支持。
-var ErrUnsupportedVersion = errors.New("arkarta/websocket: unsupported websocket version")
+var ErrUnsupportedVersion = errors.New(
+	"arkarta/websocket: unsupported websocket version",
+)
 
 // ErrMessageTooLarge 表示解压后的消息超过限制。
 var ErrMessageTooLarge = errors.New("arkarta/websocket: message too large")

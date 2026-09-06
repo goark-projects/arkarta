@@ -35,22 +35,29 @@ func TestCookieConfigCanBeBoundToWebApp(t *testing.T) {
 		t.Fatalf("cookie config = %#v/%v", got, ok)
 	}
 
-	accessor, err := NewAccessorForWebApp(NewMemoryManager(WithIDGenerator(sequenceID("s1"))), app)
+	accessor, err := NewAccessorForWebApp(
+		NewMemoryManager(WithIDGenerator(sequenceID("s1"))),
+		app,
+	)
 	if err != nil {
 		t.Fatalf("NewAccessorForWebApp failed: %v", err)
 	}
-	req, err := servlet.NewRequest(httptest.NewRequest(http.MethodGet, "http://example.com/app/orders", nil),
+	req, err := servlet.NewRequest(
+		httptest.NewRequest(http.MethodGet, "http://example.com/app/orders", nil),
 		servlet.WithRequestContextPath("/app"),
 	)
 	if err != nil {
 		t.Fatalf("NewRequest failed: %v", err)
 	}
 	recorder := httptest.NewRecorder()
-	if _, _, err := accessor.Get(context.Background(), req, nethttp.NewResponse(recorder), true); err != nil {
+	response := nethttp.NewResponse(recorder)
+	if _, _, err := accessor.Get(context.Background(), req, response, true); err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}
 	header := recorder.Header().Get("Set-Cookie")
-	if !strings.Contains(header, "ARKSESSION=s1") || !strings.Contains(header, "Path=/app") || !strings.Contains(header, "Secure") {
+	if !strings.Contains(header, "ARKSESSION=s1") ||
+		!strings.Contains(header, "Path=/app") ||
+		!strings.Contains(header, "Secure") {
 		t.Fatalf("Set-Cookie = %q, want configured cookie", header)
 	}
 }

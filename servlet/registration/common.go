@@ -10,7 +10,11 @@ type commonRegistration struct {
 	asyncSupported bool
 }
 
-func newCommonRegistration(owner *Registry, name string, target any) commonRegistration {
+func newCommonRegistration(
+	owner *Registry,
+	name string,
+	target any,
+) commonRegistration {
 	return commonRegistration{
 		owner:     owner,
 		name:      name,

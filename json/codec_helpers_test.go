@@ -49,7 +49,9 @@ func TestNewCodecDecodeOptions(t *testing.T) {
 	var target struct {
 		Name string `json:"name"`
 	}
-	err := NewCodec(WithDisallowUnknownFields(true)).Unmarshal([]byte(`{"name":"a","extra":1}`), &target)
+	err := NewCodec(
+		WithDisallowUnknownFields(true),
+	).Unmarshal([]byte(`{"name":"a","extra":1}`), &target)
 	if err == nil || !strings.Contains(strings.ToLower(err.Error()), "unknown") {
 		t.Fatalf("unknown field err = %v", err)
 	}
@@ -60,7 +62,10 @@ func TestNewCodecLimitAndNilGuards(t *testing.T) {
 
 	codec := NewCodec(WithMaxBytes(4))
 	var target map[string]any
-	if err := codec.Unmarshal([]byte(`{"name":"arkarta"}`), &target); !errors.Is(err, ErrPayloadTooLarge) {
+	if err := codec.Unmarshal([]byte(`{"name":"arkarta"}`), &target); !errors.Is(
+		err,
+		ErrPayloadTooLarge,
+	) {
 		t.Fatalf("large payload err = %v, want ErrPayloadTooLarge", err)
 	}
 	if err := codec.Unmarshal([]byte(`{}`), nil); !errors.Is(err, ErrNilTarget) {

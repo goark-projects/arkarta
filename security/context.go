@@ -25,7 +25,10 @@ func (c SecurityContext) Authenticated() bool {
 }
 
 // ContextWithSecurity 将安全上下文写入标准库 context。
-func ContextWithSecurity(parent context.Context, securityContext SecurityContext) context.Context {
+func ContextWithSecurity(
+	parent context.Context,
+	securityContext SecurityContext,
+) context.Context {
 	if parent == nil {
 		parent = context.Background()
 	}

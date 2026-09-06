@@ -61,7 +61,11 @@ func (v *DefaultValidator) Validate(ctx context.Context, value any) (Result, err
 }
 
 // ValidateGroups 校验结构体、结构体指针或结构体切片。
-func (v *DefaultValidator) ValidateGroups(ctx context.Context, value any, groups ...string) (Result, error) {
+func (v *DefaultValidator) ValidateGroups(
+	ctx context.Context,
+	value any,
+	groups ...string,
+) (Result, error) {
 	if v == nil {
 		return Result{}, ErrNilValidator
 	}
@@ -87,7 +91,13 @@ func (v *DefaultValidator) register(constraint Constraint) {
 	v.constraints[constraint.Name()] = constraint
 }
 
-func (v *DefaultValidator) validateValue(ctx context.Context, path string, value reflect.Value, groups groupSet, violations *[]Violation) error {
+func (v *DefaultValidator) validateValue(
+	ctx context.Context,
+	path string,
+	value reflect.Value,
+	groups groupSet,
+	violations *[]Violation,
+) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -117,7 +127,13 @@ func (v *DefaultValidator) validateValue(ctx context.Context, path string, value
 	}
 }
 
-func (v *DefaultValidator) validateStruct(ctx context.Context, path string, value reflect.Value, groups groupSet, violations *[]Violation) error {
+func (v *DefaultValidator) validateStruct(
+	ctx context.Context,
+	path string,
+	value reflect.Value,
+	groups groupSet,
+	violations *[]Violation,
+) error {
 	valueType := value.Type()
 	for i := 0; i < value.NumField(); i++ {
 		field := valueType.Field(i)
@@ -151,7 +167,10 @@ func (v *DefaultValidator) validateStruct(ctx context.Context, path string, valu
 					return fmt.Errorf("%w: %s", err, currentPath)
 				}
 				if failed {
-					*violations = append(*violations, v.resolveMessage(ctx, violation, fieldCtx))
+					*violations = append(
+						*violations,
+						v.resolveMessage(ctx, violation, fieldCtx),
+					)
 				}
 			}
 		}
@@ -162,7 +181,8 @@ func (v *DefaultValidator) validateStruct(ctx context.Context, path string, valu
 			continue
 		}
 		fieldValue = unwrapValue(fieldValue)
-		if fieldValue.IsValid() && (fieldValue.Kind() == reflect.Slice || fieldValue.Kind() == reflect.Array) {
+		if fieldValue.IsValid() &&
+			(fieldValue.Kind() == reflect.Slice || fieldValue.Kind() == reflect.Array) {
 			if err := v.validateValue(ctx, currentPath, fieldValue, groups, violations); err != nil {
 				return err
 			}
@@ -171,7 +191,13 @@ func (v *DefaultValidator) validateStruct(ctx context.Context, path string, valu
 	return v.validateObjectConstraints(ctx, path, value, groups, violations)
 }
 
-func (v *DefaultValidator) validateObjectConstraints(ctx context.Context, path string, value reflect.Value, groups groupSet, violations *[]Violation) error {
+func (v *DefaultValidator) validateObjectConstraints(
+	ctx context.Context,
+	path string,
+	value reflect.Value,
+	groups groupSet,
+	violations *[]Violation,
+) error {
 	registrations := v.objectConstraints[value.Type()]
 	for _, registration := range registrations {
 		if !newGroupSet(registration.groups...).activeIn(groups) {

@@ -30,23 +30,29 @@ func newStructBinder(target any) (structBinder, error) {
 }
 
 func (b structBinder) bindValues(values url.Values) error {
-	return walkStructFields(b.value, func(field reflect.StructField, value reflect.Value) error {
-		name, ok := bindingName(field, "form")
-		if !ok {
+	return walkStructFields(
+		b.value,
+		func(field reflect.StructField, value reflect.Value) error {
+			name, ok := bindingName(field, "form")
+			if !ok {
+				return nil
+			}
+			list, exists := values[name]
+			if !exists || len(list) == 0 || !value.CanSet() {
+				return nil
+			}
+			if err := setFieldValue(value, list); err != nil {
+				return fmt.Errorf("%s: %w", name, err)
+			}
 			return nil
-		}
-		list, exists := values[name]
-		if !exists || len(list) == 0 || !value.CanSet() {
-			return nil
-		}
-		if err := setFieldValue(value, list); err != nil {
-			return fmt.Errorf("%s: %w", name, err)
-		}
-		return nil
-	})
+		},
+	)
 }
 
-func walkStructFields(value reflect.Value, visit func(reflect.StructField, reflect.Value) error) error {
+func walkStructFields(
+	value reflect.Value,
+	visit func(reflect.StructField, reflect.Value) error,
+) error {
 	valueType := value.Type()
 	for i := 0; i < value.NumField(); i++ {
 		field := valueType.Field(i)
@@ -68,7 +74,8 @@ func walkStructFields(value reflect.Value, visit func(reflect.StructField, refle
 }
 
 func shouldRecurseField(field reflect.StructField, value reflect.Value) bool {
-	if !field.Anonymous || field.Tag.Get("form") != "" || field.Tag.Get("multipart") != "" {
+	if !field.Anonymous || field.Tag.Get("form") != "" ||
+		field.Tag.Get("multipart") != "" {
 		return false
 	}
 	value = indirectStructValue(value)

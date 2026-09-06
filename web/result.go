@@ -33,7 +33,11 @@ func Text(statusCode int, value string) Result {
 			return err
 		}
 		if ok := accepts(ctx, "text/plain"); !ok {
-			return servlet.NewHTTPError(http.StatusNotAcceptable, http.StatusText(http.StatusNotAcceptable), nil)
+			return servlet.NewHTTPError(
+				http.StatusNotAcceptable,
+				http.StatusText(http.StatusNotAcceptable),
+				nil,
+			)
 		}
 		if err := servlet.SetContentType(ctx.response, textContentType); err != nil {
 			return err
@@ -66,7 +70,11 @@ func jsonResult(statusCode int, value any, negotiate bool) Result {
 		}
 		if negotiate {
 			if ok := accepts(ctx, arkjson.ContentType); !ok {
-				return servlet.NewHTTPError(http.StatusNotAcceptable, http.StatusText(http.StatusNotAcceptable), nil)
+				return servlet.NewHTTPError(
+					http.StatusNotAcceptable,
+					http.StatusText(http.StatusNotAcceptable),
+					nil,
+				)
 			}
 		}
 		if err := servlet.SetContentType(ctx.response, arkjson.ContentType); err != nil {

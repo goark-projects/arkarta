@@ -53,7 +53,8 @@ func TestParserParsesValuesAndFiles(t *testing.T) {
 		t.Fatalf("files = %#v/%v, want readme.txt", files, ok)
 	}
 	part, ok := form.Part("artifact")
-	if !ok || part.Name() != "artifact" || part.SubmittedFileName() != "readme.txt" || part.Size() != int64(len("hello")) {
+	if !ok || part.Name() != "artifact" || part.SubmittedFileName() != "readme.txt" ||
+		part.Size() != int64(len("hello")) {
 		t.Fatalf("part = %#v/%v", part, ok)
 	}
 	target := filepath.Join(t.TempDir(), "copy.txt")
@@ -75,7 +76,11 @@ func TestParserParsesValuesAndFiles(t *testing.T) {
 func TestParserRejectsNonMultipartRequest(t *testing.T) {
 	t.Parallel()
 
-	httpRequest := httptest.NewRequest(http.MethodPost, "/upload", bytes.NewBufferString("plain"))
+	httpRequest := httptest.NewRequest(
+		http.MethodPost,
+		"/upload",
+		bytes.NewBufferString("plain"),
+	)
 	httpRequest.Header.Set("Content-Type", "text/plain")
 	req, err := servlet.NewRequest(httpRequest)
 	if err != nil {
@@ -219,7 +224,11 @@ func TestParserNormalizesSubmittedFileName(t *testing.T) {
 
 	part, ok := form.Part("artifact")
 	if !ok || part.SubmittedFileName() != "readme.txt" {
-		t.Fatalf("submitted filename = %q/%v, want readme.txt/true", part.SubmittedFileName(), ok)
+		t.Fatalf(
+			"submitted filename = %q/%v, want readme.txt/true",
+			part.SubmittedFileName(),
+			ok,
+		)
 	}
 }
 

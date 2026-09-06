@@ -21,7 +21,13 @@ type Resource struct {
 	body        io.ReadCloser
 }
 
-func newResource(path string, size int64, modTime time.Time, contentType, etag string, body io.ReadCloser) Resource {
+func newResource(
+	path string,
+	size int64,
+	modTime time.Time,
+	contentType, etag string,
+	body io.ReadCloser,
+) Resource {
 	return Resource{
 		path:        path,
 		size:        size,

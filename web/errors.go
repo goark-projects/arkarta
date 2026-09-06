@@ -67,7 +67,13 @@ func (e *ParameterError) Error() string {
 	if e.Cause == nil {
 		return fmt.Sprintf("arkarta/web: invalid parameter %q as %s", e.Name, e.Type)
 	}
-	return fmt.Sprintf("arkarta/web: invalid parameter %q=%q as %s: %v", e.Name, e.Value, e.Type, e.Cause)
+	return fmt.Sprintf(
+		"arkarta/web: invalid parameter %q=%q as %s: %v",
+		e.Name,
+		e.Value,
+		e.Type,
+		e.Cause,
+	)
 }
 
 // Unwrap 返回底层转换错误。

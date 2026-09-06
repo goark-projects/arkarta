@@ -10,7 +10,9 @@ import (
 var ErrNilWebApp = errors.New("arkarta/servlet/container: web app is nil")
 
 // ErrEmptyDeployment 表示部署描述没有任何路径映射。
-var ErrEmptyDeployment = errors.New("arkarta/servlet/container: deployment has no mapping")
+var ErrEmptyDeployment = errors.New(
+	"arkarta/servlet/container: deployment has no mapping",
+)
 
 // Deployment 描述一个待部署的 Web 应用。
 type Deployment struct {
@@ -23,7 +25,11 @@ type Deployment struct {
 type DeploymentOption func(*Deployment) error
 
 // WithMapping 添加路径映射。
-func WithMapping(pattern string, handler servlet.Handler, filters ...servlet.Filter) DeploymentOption {
+func WithMapping(
+	pattern string,
+	handler servlet.Handler,
+	filters ...servlet.Filter,
+) DeploymentOption {
 	return func(deployment *Deployment) error {
 		mapping, err := NewMapping(pattern, handler, filters...)
 		if err != nil {
@@ -35,7 +41,11 @@ func WithMapping(pattern string, handler servlet.Handler, filters ...servlet.Fil
 }
 
 // WithServlet 添加带生命周期的 Servlet 路径映射。
-func WithServlet(pattern, name string, handler servlet.Servlet, filters ...servlet.Filter) DeploymentOption {
+func WithServlet(
+	pattern, name string,
+	handler servlet.Servlet,
+	filters ...servlet.Filter,
+) DeploymentOption {
 	return func(deployment *Deployment) error {
 		mapping, err := newServletMapping(pattern, name, handler, filters...)
 		if err != nil {
@@ -58,7 +68,10 @@ func WithProfile(profile Profile) DeploymentOption {
 }
 
 // NewDeployment 创建部署描述。
-func NewDeployment(webApp *servlet.WebApp, options ...DeploymentOption) (*Deployment, error) {
+func NewDeployment(
+	webApp *servlet.WebApp,
+	options ...DeploymentOption,
+) (*Deployment, error) {
 	if webApp == nil {
 		return nil, ErrNilWebApp
 	}

@@ -42,21 +42,30 @@ type ContextAttributeListenerFunc struct {
 }
 
 // AttributeAdded 触发属性新增回调。
-func (f ContextAttributeListenerFunc) AttributeAdded(ctx context.Context, event ContextAttributeEvent) {
+func (f ContextAttributeListenerFunc) AttributeAdded(
+	ctx context.Context,
+	event ContextAttributeEvent,
+) {
 	if f.Added != nil {
 		f.Added(ctx, event)
 	}
 }
 
 // AttributeReplaced 触发属性替换回调。
-func (f ContextAttributeListenerFunc) AttributeReplaced(ctx context.Context, event ContextAttributeEvent) {
+func (f ContextAttributeListenerFunc) AttributeReplaced(
+	ctx context.Context,
+	event ContextAttributeEvent,
+) {
 	if f.Replaced != nil {
 		f.Replaced(ctx, event)
 	}
 }
 
 // AttributeRemoved 触发属性移除回调。
-func (f ContextAttributeListenerFunc) AttributeRemoved(ctx context.Context, event ContextAttributeEvent) {
+func (f ContextAttributeListenerFunc) AttributeRemoved(
+	ctx context.Context,
+	event ContextAttributeEvent,
+) {
 	if f.Removed != nil {
 		f.Removed(ctx, event)
 	}
@@ -70,21 +79,30 @@ type RequestAttributeListenerFunc struct {
 }
 
 // AttributeAdded 触发属性新增回调。
-func (f RequestAttributeListenerFunc) AttributeAdded(ctx context.Context, event RequestAttributeEvent) {
+func (f RequestAttributeListenerFunc) AttributeAdded(
+	ctx context.Context,
+	event RequestAttributeEvent,
+) {
 	if f.Added != nil {
 		f.Added(ctx, event)
 	}
 }
 
 // AttributeReplaced 触发属性替换回调。
-func (f RequestAttributeListenerFunc) AttributeReplaced(ctx context.Context, event RequestAttributeEvent) {
+func (f RequestAttributeListenerFunc) AttributeReplaced(
+	ctx context.Context,
+	event RequestAttributeEvent,
+) {
 	if f.Replaced != nil {
 		f.Replaced(ctx, event)
 	}
 }
 
 // AttributeRemoved 触发属性移除回调。
-func (f RequestAttributeListenerFunc) AttributeRemoved(ctx context.Context, event RequestAttributeEvent) {
+func (f RequestAttributeListenerFunc) AttributeRemoved(
+	ctx context.Context,
+	event RequestAttributeEvent,
+) {
 	if f.Removed != nil {
 		f.Removed(ctx, event)
 	}
@@ -136,21 +154,39 @@ func (r *Request) setAttribute(ctx context.Context, key string, value any) {
 	}
 }
 
-func fireRequestAttributeAdded(ctx context.Context, listeners []RequestAttributeListener, req *Request, name string, value any) {
+func fireRequestAttributeAdded(
+	ctx context.Context,
+	listeners []RequestAttributeListener,
+	req *Request,
+	name string,
+	value any,
+) {
 	event := RequestAttributeEvent{Request: req, Name: name, Value: value}
 	for _, listener := range listeners {
 		listener.AttributeAdded(ctx, event)
 	}
 }
 
-func fireRequestAttributeReplaced(ctx context.Context, listeners []RequestAttributeListener, req *Request, name string, value, oldValue any) {
+func fireRequestAttributeReplaced(
+	ctx context.Context,
+	listeners []RequestAttributeListener,
+	req *Request,
+	name string,
+	value, oldValue any,
+) {
 	event := RequestAttributeEvent{Request: req, Name: name, Value: value, OldValue: oldValue}
 	for _, listener := range listeners {
 		listener.AttributeReplaced(ctx, event)
 	}
 }
 
-func fireRequestAttributeRemoved(ctx context.Context, listeners []RequestAttributeListener, req *Request, name string, oldValue any) {
+func fireRequestAttributeRemoved(
+	ctx context.Context,
+	listeners []RequestAttributeListener,
+	req *Request,
+	name string,
+	oldValue any,
+) {
 	event := RequestAttributeEvent{Request: req, Name: name, OldValue: oldValue}
 	for _, listener := range listeners {
 		listener.AttributeRemoved(ctx, event)
@@ -246,21 +282,39 @@ func (a *WebApp) SetAttributeContext(ctx context.Context, key string, value any)
 	}
 }
 
-func fireContextAttributeAdded(ctx context.Context, listeners []ContextAttributeListener, app *WebApp, name string, value any) {
+func fireContextAttributeAdded(
+	ctx context.Context,
+	listeners []ContextAttributeListener,
+	app *WebApp,
+	name string,
+	value any,
+) {
 	event := ContextAttributeEvent{WebApp: app, Name: name, Value: value}
 	for _, listener := range listeners {
 		listener.AttributeAdded(ctx, event)
 	}
 }
 
-func fireContextAttributeReplaced(ctx context.Context, listeners []ContextAttributeListener, app *WebApp, name string, value, oldValue any) {
+func fireContextAttributeReplaced(
+	ctx context.Context,
+	listeners []ContextAttributeListener,
+	app *WebApp,
+	name string,
+	value, oldValue any,
+) {
 	event := ContextAttributeEvent{WebApp: app, Name: name, Value: value, OldValue: oldValue}
 	for _, listener := range listeners {
 		listener.AttributeReplaced(ctx, event)
 	}
 }
 
-func fireContextAttributeRemoved(ctx context.Context, listeners []ContextAttributeListener, app *WebApp, name string, oldValue any) {
+func fireContextAttributeRemoved(
+	ctx context.Context,
+	listeners []ContextAttributeListener,
+	app *WebApp,
+	name string,
+	oldValue any,
+) {
 	event := ContextAttributeEvent{WebApp: app, Name: name, OldValue: oldValue}
 	for _, listener := range listeners {
 		listener.AttributeRemoved(ctx, event)

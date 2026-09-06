@@ -12,7 +12,9 @@ import (
 )
 
 // ApplicationFactory 从部署描述创建容器应用。
-type ApplicationFactory func(deployment *servletcontainer.Deployment) (servletcontainer.Application, error)
+type ApplicationFactory func(
+	deployment *servletcontainer.Deployment,
+) (servletcontainer.Application, error)
 
 // RunLifecycle 执行 Servlet 生命周期兼容性测试。
 func RunLifecycle(t *testing.T, factory ApplicationFactory) {
@@ -35,7 +37,10 @@ func RunLifecycle(t *testing.T, factory ApplicationFactory) {
 			t.Fatalf("NewWebApp failed: %v", err)
 		}
 		target := &lifecycleServlet{calls: &calls}
-		deployment, err := servletcontainer.NewDeployment(app, servletcontainer.WithServlet("/", "tckServlet", target))
+		deployment, err := servletcontainer.NewDeployment(
+			app,
+			servletcontainer.WithServlet("/", "tckServlet", target),
+		)
 		if err != nil {
 			t.Fatalf("NewDeployment failed: %v", err)
 		}
@@ -54,7 +59,13 @@ func RunLifecycle(t *testing.T, factory ApplicationFactory) {
 			t.Fatalf("Stop failed: %v", err)
 		}
 
-		want := []string{"init:tckServlet", "request-init", "serve", "request-destroy", "destroy"}
+		want := []string{
+			"init:tckServlet",
+			"request-init",
+			"serve",
+			"request-destroy",
+			"destroy",
+		}
 		if !reflect.DeepEqual(calls, want) {
 			t.Fatalf("calls = %#v, want %#v", calls, want)
 		}
@@ -65,11 +76,16 @@ func RunLifecycle(t *testing.T, factory ApplicationFactory) {
 		if err != nil {
 			t.Fatalf("NewWebApp failed: %v", err)
 		}
-		target := servlet.HandlerFunc(func(context.Context, *servlet.Request, servlet.Response) error {
-			calls = append(calls, "handler")
-			return nil
-		})
-		deployment, err := servletcontainer.NewDeployment(app, servletcontainer.WithMapping("/", target, &lifecycleFilter{calls: &calls}))
+		target := servlet.HandlerFunc(
+			func(context.Context, *servlet.Request, servlet.Response) error {
+				calls = append(calls, "handler")
+				return nil
+			},
+		)
+		deployment, err := servletcontainer.NewDeployment(
+			app,
+			servletcontainer.WithMapping("/", target, &lifecycleFilter{calls: &calls}),
+		)
 		if err != nil {
 			t.Fatalf("NewDeployment failed: %v", err)
 		}
@@ -104,7 +120,11 @@ func (s *lifecycleServlet) Init(_ context.Context, cfg servlet.ServletConfig) er
 	return nil
 }
 
-func (s *lifecycleServlet) Serve(context.Context, *servlet.Request, servlet.Response) error {
+func (s *lifecycleServlet) Serve(
+	context.Context,
+	*servlet.Request,
+	servlet.Response,
+) error {
 	*s.calls = append(*s.calls, "serve")
 	return nil
 }
@@ -123,7 +143,12 @@ func (f *lifecycleFilter) Init(_ context.Context, cfg servlet.FilterConfig) erro
 	return nil
 }
 
-func (f *lifecycleFilter) Filter(ctx context.Context, req *servlet.Request, res servlet.Response, chain servlet.Chain) error {
+func (f *lifecycleFilter) Filter(
+	ctx context.Context,
+	req *servlet.Request,
+	res servlet.Response,
+	chain servlet.Chain,
+) error {
 	*f.calls = append(*f.calls, "filter")
 	return chain.Next(ctx, req, res)
 }

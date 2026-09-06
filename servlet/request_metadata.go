@@ -147,7 +147,8 @@ func requestInputFromHTTP(httpRequest *http.Request) RequestInput {
 		scheme = "https"
 	}
 	localAddr := ""
-	if addr, ok := httpRequest.Context().Value(http.LocalAddrContextKey).(interface{ String() string }); ok && addr != nil {
+	localAddress := httpRequest.Context().Value(http.LocalAddrContextKey)
+	if addr, ok := localAddress.(interface{ String() string }); ok && addr != nil {
 		localAddr = addr.String()
 	}
 	return RequestInput{

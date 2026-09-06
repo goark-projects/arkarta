@@ -47,14 +47,23 @@ func (d AuthorizationDecision) Reason() string {
 
 // Authorizer 表示授权决策入口。
 type Authorizer interface {
-	Authorize(ctx context.Context, request AuthorizationRequest) (AuthorizationDecision, error)
+	Authorize(
+		ctx context.Context,
+		request AuthorizationRequest,
+	) (AuthorizationDecision, error)
 }
 
 // AuthorizerFunc 将普通函数适配为 Authorizer。
-type AuthorizerFunc func(ctx context.Context, request AuthorizationRequest) (AuthorizationDecision, error)
+type AuthorizerFunc func(
+	ctx context.Context,
+	request AuthorizationRequest,
+) (AuthorizationDecision, error)
 
 // Authorize 执行底层授权函数。
-func (f AuthorizerFunc) Authorize(ctx context.Context, request AuthorizationRequest) (AuthorizationDecision, error) {
+func (f AuthorizerFunc) Authorize(
+	ctx context.Context,
+	request AuthorizationRequest,
+) (AuthorizationDecision, error) {
 	if f == nil {
 		return Deny(ErrAccessDenied.Error()), nil
 	}
@@ -63,16 +72,18 @@ func (f AuthorizerFunc) Authorize(ctx context.Context, request AuthorizationRequ
 
 // RequireAuthority 创建要求指定权限的授权器。
 func RequireAuthority(authority Authority) Authorizer {
-	return AuthorizerFunc(func(ctx context.Context, request AuthorizationRequest) (AuthorizationDecision, error) {
-		if err := ctx.Err(); err != nil {
-			return AuthorizationDecision{}, err
-		}
-		if !request.Authentication.Authenticated() {
-			return Deny(ErrUnauthenticated.Error()), nil
-		}
-		if request.Authentication.HasAuthority(authority) {
-			return Grant(), nil
-		}
-		return Deny(ErrAccessDenied.Error()), nil
-	})
+	return AuthorizerFunc(
+		func(ctx context.Context, request AuthorizationRequest) (AuthorizationDecision, error) {
+			if err := ctx.Err(); err != nil {
+				return AuthorizationDecision{}, err
+			}
+			if !request.Authentication.Authenticated() {
+				return Deny(ErrUnauthenticated.Error()), nil
+			}
+			if request.Authentication.HasAuthority(authority) {
+				return Grant(), nil
+			}
+			return Deny(ErrAccessDenied.Error()), nil
+		},
+	)
 }

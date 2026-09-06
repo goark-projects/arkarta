@@ -153,7 +153,10 @@ func (s *memorySession) expired(now time.Time) bool {
 	return now.Sub(s.lastAccessedTime) > s.maxInactiveInterval
 }
 
-func (s *memorySession) renewIDLockedByManager(oldID, newID string, now time.Time) bool {
+func (s *memorySession) renewIDLockedByManager(
+	oldID, newID string,
+	now time.Time,
+) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if !s.valid || s.id != oldID {

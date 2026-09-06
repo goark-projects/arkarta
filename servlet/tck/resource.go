@@ -23,21 +23,36 @@ func RunStaticResources(t *testing.T, factory HTTPHandlerFactory) {
 		t.Helper()
 		handler := staticResourceHandler(t)
 		recorder := httptest.NewRecorder()
-		factory(handler).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/public/app.json", nil))
+		factory(
+			handler,
+		).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/public/app.json", nil))
 		if recorder.Code != http.StatusOK || recorder.Body.String() != `{"ok":true}` {
-			t.Fatalf("status/body = %d/%q, want 200/json", recorder.Code, recorder.Body.String())
+			t.Fatalf(
+				"status/body = %d/%q, want 200/json",
+				recorder.Code,
+				recorder.Body.String(),
+			)
 		}
 		if recorder.Header().Get("Content-Type") != "application/json" {
-			t.Fatalf("content type = %q, want application/json", recorder.Header().Get("Content-Type"))
+			t.Fatalf(
+				"content type = %q, want application/json",
+				recorder.Header().Get("Content-Type"),
+			)
 		}
 	})
 	t.Run("honors_static_head", func(t *testing.T) {
 		t.Helper()
 		handler := staticResourceHandler(t)
 		recorder := httptest.NewRecorder()
-		factory(handler).ServeHTTP(recorder, httptest.NewRequest(http.MethodHead, "/public/app.json", nil))
+		factory(
+			handler,
+		).ServeHTTP(recorder, httptest.NewRequest(http.MethodHead, "/public/app.json", nil))
 		if recorder.Code != http.StatusOK || recorder.Body.Len() != 0 {
-			t.Fatalf("status/body length = %d/%d, want 200/0", recorder.Code, recorder.Body.Len())
+			t.Fatalf(
+				"status/body length = %d/%d, want 200/0",
+				recorder.Code,
+				recorder.Body.Len(),
+			)
 		}
 	})
 	t.Run("honors_static_range", func(t *testing.T) {
@@ -47,20 +62,34 @@ func RunStaticResources(t *testing.T, factory HTTPHandlerFactory) {
 		request := httptest.NewRequest(http.MethodGet, "/public/app.json", nil)
 		request.Header.Set("Range", "bytes=1-4")
 		factory(handler).ServeHTTP(recorder, request)
-		if recorder.Code != http.StatusPartialContent || recorder.Body.String() != `"ok"` {
-			t.Fatalf("status/body = %d/%q, want 206/range", recorder.Code, recorder.Body.String())
+		if recorder.Code != http.StatusPartialContent ||
+			recorder.Body.String() != `"ok"` {
+			t.Fatalf(
+				"status/body = %d/%q, want 206/range",
+				recorder.Code,
+				recorder.Body.String(),
+			)
 		}
 		if recorder.Header().Get("Content-Range") != "bytes 1-4/11" {
-			t.Fatalf("content range = %q, want bytes 1-4/11", recorder.Header().Get("Content-Range"))
+			t.Fatalf(
+				"content range = %q, want bytes 1-4/11",
+				recorder.Header().Get("Content-Range"),
+			)
 		}
 	})
 	t.Run("serves_welcome_file", func(t *testing.T) {
 		t.Helper()
 		handler := staticResourceHandler(t)
 		recorder := httptest.NewRecorder()
-		factory(handler).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/docs", nil))
+		factory(
+			handler,
+		).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/docs", nil))
 		if recorder.Code != http.StatusOK || recorder.Body.String() != "welcome" {
-			t.Fatalf("status/body = %d/%q, want 200/welcome", recorder.Code, recorder.Body.String())
+			t.Fatalf(
+				"status/body = %d/%q, want 200/welcome",
+				recorder.Code,
+				recorder.Body.String(),
+			)
 		}
 	})
 	t.Run("if_range_mismatch_serves_full_body", func(t *testing.T) {
@@ -72,10 +101,17 @@ func RunStaticResources(t *testing.T, factory HTTPHandlerFactory) {
 		recorder := httptest.NewRecorder()
 		factory(handler).ServeHTTP(recorder, request)
 		if recorder.Code != http.StatusOK || recorder.Body.String() != `{"ok":true}` {
-			t.Fatalf("status/body = %d/%q, want 200/full body", recorder.Code, recorder.Body.String())
+			t.Fatalf(
+				"status/body = %d/%q, want 200/full body",
+				recorder.Code,
+				recorder.Body.String(),
+			)
 		}
 		if recorder.Header().Get("Content-Range") != "" {
-			t.Fatalf("Content-Range = %q, want empty", recorder.Header().Get("Content-Range"))
+			t.Fatalf(
+				"Content-Range = %q, want empty",
+				recorder.Header().Get("Content-Range"),
+			)
 		}
 	})
 	t.Run("weak_if_range_does_not_allow_range", func(t *testing.T) {
@@ -87,7 +123,11 @@ func RunStaticResources(t *testing.T, factory HTTPHandlerFactory) {
 		recorder := httptest.NewRecorder()
 		factory(handler).ServeHTTP(recorder, request)
 		if recorder.Code != http.StatusOK || recorder.Body.String() != `{"ok":true}` {
-			t.Fatalf("status/body = %d/%q, want 200/full body", recorder.Code, recorder.Body.String())
+			t.Fatalf(
+				"status/body = %d/%q, want 200/full body",
+				recorder.Code,
+				recorder.Body.String(),
+			)
 		}
 	})
 	t.Run("serves_multiple_ranges", func(t *testing.T) {
@@ -100,7 +140,10 @@ func RunStaticResources(t *testing.T, factory HTTPHandlerFactory) {
 		if recorder.Code != http.StatusPartialContent {
 			t.Fatalf("status = %d, want 206", recorder.Code)
 		}
-		if contentType := recorder.Header().Get("Content-Type"); !strings.HasPrefix(contentType, "multipart/byteranges; boundary=") {
+		if contentType := recorder.Header().Get("Content-Type"); !strings.HasPrefix(
+			contentType,
+			"multipart/byteranges; boundary=",
+		) {
 			t.Fatalf("Content-Type = %q, want multipart/byteranges", contentType)
 		}
 		body := recorder.Body.String()

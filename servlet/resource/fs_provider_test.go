@@ -15,7 +15,10 @@ func TestFSProviderOpensStaticResource(t *testing.T) {
 
 	modTime := time.Date(2026, 8, 26, 10, 0, 0, 0, time.UTC)
 	provider, err := NewFSProvider(fstest.MapFS{
-		"assets/app.json": &fstest.MapFile{Data: []byte(`{"ok":true}`), ModTime: modTime},
+		"assets/app.json": &fstest.MapFile{
+			Data:    []byte(`{"ok":true}`),
+			ModTime: modTime,
+		},
 	})
 	if err != nil {
 		t.Fatalf("NewFSProvider failed: %v", err)
@@ -58,13 +61,22 @@ func TestFSProviderRejectsUnsafeAndDirectoryPaths(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewFSProvider failed: %v", err)
 	}
-	if _, err := provider.Open(context.Background(), "/../secret.txt"); !errors.Is(err, ErrInvalidPath) {
+	if _, err := provider.Open(context.Background(), "/../secret.txt"); !errors.Is(
+		err,
+		ErrInvalidPath,
+	) {
 		t.Fatalf("traversal err = %v, want ErrInvalidPath", err)
 	}
-	if _, err := provider.Open(context.Background(), "/docs"); !errors.Is(err, ErrDirectory) {
+	if _, err := provider.Open(context.Background(), "/docs"); !errors.Is(
+		err,
+		ErrDirectory,
+	) {
 		t.Fatalf("directory err = %v, want ErrDirectory", err)
 	}
-	if _, err := provider.Open(context.Background(), "/missing.txt"); !errors.Is(err, ErrNotFound) {
+	if _, err := provider.Open(context.Background(), "/missing.txt"); !errors.Is(
+		err,
+		ErrNotFound,
+	) {
 		t.Fatalf("missing err = %v, want ErrNotFound", err)
 	}
 }

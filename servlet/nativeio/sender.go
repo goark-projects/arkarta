@@ -58,6 +58,10 @@ type Sender interface {
 type SenderFunc func(ctx context.Context, dst io.Writer, region FileRegion) (SendResult, error)
 
 // SendFile 执行文件区段发送。
-func (f SenderFunc) SendFile(ctx context.Context, dst io.Writer, region FileRegion) (SendResult, error) {
+func (f SenderFunc) SendFile(
+	ctx context.Context,
+	dst io.Writer,
+	region FileRegion,
+) (SendResult, error) {
 	return f(ctx, dst, region)
 }

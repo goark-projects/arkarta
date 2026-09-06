@@ -5,12 +5,16 @@ import (
 )
 
 // AddContextListener 注册上下文生命周期监听器。
-func (r *Registry) AddContextListener(listener servlet.ContextListener) (*ListenerRegistration, error) {
+func (r *Registry) AddContextListener(
+	listener servlet.ContextListener,
+) (*ListenerRegistration, error) {
 	return r.addListener(ListenerContext, listener)
 }
 
 // AddRequestListener 注册请求生命周期监听器。
-func (r *Registry) AddRequestListener(listener servlet.RequestListener) (*ListenerRegistration, error) {
+func (r *Registry) AddRequestListener(
+	listener servlet.RequestListener,
+) (*ListenerRegistration, error) {
 	return r.addListener(ListenerRequest, listener)
 }
 
@@ -23,17 +27,23 @@ func (r *Registry) AddSessionListener(listener any) (*ListenerRegistration, erro
 }
 
 // AddContextAttributeListener 注册上下文属性监听器。
-func (r *Registry) AddContextAttributeListener(listener servlet.ContextAttributeListener) (*ListenerRegistration, error) {
+func (r *Registry) AddContextAttributeListener(
+	listener servlet.ContextAttributeListener,
+) (*ListenerRegistration, error) {
 	return r.addListener(ListenerContextAttribute, listener)
 }
 
 // AddRequestAttributeListener 注册请求属性监听器。
-func (r *Registry) AddRequestAttributeListener(listener servlet.RequestAttributeListener) (*ListenerRegistration, error) {
+func (r *Registry) AddRequestAttributeListener(
+	listener servlet.RequestAttributeListener,
+) (*ListenerRegistration, error) {
 	return r.addListener(ListenerRequestAttribute, listener)
 }
 
 // AddSessionAttributeListener 注册会话属性监听器。
-func (r *Registry) AddSessionAttributeListener(listener any) (*ListenerRegistration, error) {
+func (r *Registry) AddSessionAttributeListener(
+	listener any,
+) (*ListenerRegistration, error) {
 	if !isSessionAttributeListener(listener) {
 		return nil, ErrNilListener
 	}
@@ -62,7 +72,10 @@ func (r *Registry) AddListener(listener any) (*ListenerRegistration, error) {
 	}
 }
 
-func (r *Registry) addListener(kind ListenerKind, listener any) (*ListenerRegistration, error) {
+func (r *Registry) addListener(
+	kind ListenerKind,
+	listener any,
+) (*ListenerRegistration, error) {
 	if isNil(listener) {
 		return nil, ErrNilListener
 	}

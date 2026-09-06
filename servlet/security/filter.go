@@ -17,7 +17,12 @@ func NewFilter(constraint Constraint) *Filter {
 }
 
 // Filter 执行安全校验。
-func (f *Filter) Filter(ctx context.Context, req *servlet.Request, res servlet.Response, chain servlet.Chain) error {
+func (f *Filter) Filter(
+	ctx context.Context,
+	req *servlet.Request,
+	res servlet.Response,
+	chain servlet.Chain,
+) error {
 	if err := f.constraint.Authorize(ctx, req); err != nil {
 		return err
 	}

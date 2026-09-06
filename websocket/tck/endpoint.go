@@ -10,7 +10,11 @@ import (
 )
 
 // SessionFactory 创建标准 WebSocket 会话。
-type SessionFactory func(id string, connection websocket.Connection, options ...websocket.SessionOption) (*websocket.StandardSession, error)
+type SessionFactory func(
+	id string,
+	connection websocket.Connection,
+	options ...websocket.SessionOption,
+) (*websocket.StandardSession, error)
 
 // RunEndpointLifecycle 执行 WebSocket Endpoint 兼容性测试。
 func RunEndpointLifecycle(t *testing.T, factory SessionFactory) {
@@ -21,7 +25,12 @@ func RunEndpointLifecycle(t *testing.T, factory SessionFactory) {
 		websocket.PongMessage([]byte("pong")),
 		websocket.CloseMessage(websocket.NewCloseReason(websocket.CloseNormal, "bye")),
 	)
-	session, err := factory("s1", conn, websocket.WithSubprotocol("chat"), websocket.WithAttribute("tenant", "alpha"))
+	session, err := factory(
+		"s1",
+		conn,
+		websocket.WithSubprotocol("chat"),
+		websocket.WithAttribute("tenant", "alpha"),
+	)
 	if err != nil {
 		t.Fatalf("factory failed: %v", err)
 	}
@@ -84,7 +93,10 @@ func (c *recordingConnection) Read(context.Context) (websocket.Message, error) {
 	return message, nil
 }
 
-func (c *recordingConnection) Write(_ context.Context, message websocket.Message) error {
+func (c *recordingConnection) Write(
+	_ context.Context,
+	message websocket.Message,
+) error {
 	c.writes = append(c.writes, message)
 	return nil
 }

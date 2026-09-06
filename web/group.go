@@ -46,7 +46,12 @@ func (g *Group) Handle(method, pattern string, handler Handler) error {
 	if g == nil || g.router == nil {
 		return ErrNilContext
 	}
-	return g.router.handle(method, joinRoutePath(g.prefix, pattern), handler, g.interceptors)
+	return g.router.handle(
+		method,
+		joinRoutePath(g.prefix, pattern),
+		handler,
+		g.interceptors,
+	)
 }
 
 // GET 注册 GET 路由。

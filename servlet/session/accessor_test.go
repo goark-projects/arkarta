@@ -80,7 +80,8 @@ func TestAccessorLoadsRequestedSession(t *testing.T) {
 	}
 	req := newSessionRequest(t, http.MethodGet, "/orders", "JSESSIONID="+created.ID())
 
-	if valid, err := accessor.RequestedIDValid(context.Background(), req); err != nil || !valid {
+	if valid, err := accessor.RequestedIDValid(context.Background(), req); err != nil ||
+		!valid {
 		t.Fatalf("RequestedIDValid = %v/%v, want true/nil", valid, err)
 	}
 	current, ok, err := accessor.Get(context.Background(), req, nil, false)
@@ -149,7 +150,12 @@ func TestAccessorCreatesSSLTrackedSessionFromConnectionID(t *testing.T) {
 
 	loaded, ok, err := accessor.Get(context.Background(), req, nil, false)
 	if err != nil || !ok || loaded.ID() != "tls-session-1" {
-		t.Fatalf("loaded session = %v/%v/%v, want tls-session-1/true/nil", loaded, ok, err)
+		t.Fatalf(
+			"loaded session = %v/%v/%v, want tls-session-1/true/nil",
+			loaded,
+			ok,
+			err,
+		)
 	}
 }
 
@@ -209,7 +215,10 @@ func TestAccessorChangeIDWritesNewCookie(t *testing.T) {
 	if _, ok, err := manager.Get(context.Background(), "new"); err != nil || !ok {
 		t.Fatalf("new id ok/err = %v/%v, want true/nil", ok, err)
 	}
-	if header := recorder.Header().Get("Set-Cookie"); !strings.Contains(header, "JSESSIONID=new") {
+	if header := recorder.Header().Get("Set-Cookie"); !strings.Contains(
+		header,
+		"JSESSIONID=new",
+	) {
 		t.Fatalf("Set-Cookie = %q, want new session id", header)
 	}
 }
@@ -225,19 +234,32 @@ func TestAccessorRejectsInvalidInput(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewAccessor failed: %v", err)
 	}
-	if _, _, err := accessor.Get(context.Background(), nil, nil, false); !errors.Is(err, ErrNilRequest) {
+	if _, _, err := accessor.Get(context.Background(), nil, nil, false); !errors.Is(
+		err,
+		ErrNilRequest,
+	) {
 		t.Fatalf("nil request err = %v, want ErrNilRequest", err)
 	}
 	req := newSessionRequest(t, http.MethodGet, "/orders", "")
-	if _, _, err := accessor.Get(context.Background(), req, nil, true); !errors.Is(err, servlet.ErrNilResponse) {
+	if _, _, err := accessor.Get(context.Background(), req, nil, true); !errors.Is(
+		err,
+		servlet.ErrNilResponse,
+	) {
 		t.Fatalf("nil response err = %v, want ErrNilResponse", err)
 	}
-	if _, err := NewAccessor(manager, WithCookieName("")); !errors.Is(err, ErrInvalidCookieConfig) {
+	if _, err := NewAccessor(manager, WithCookieName("")); !errors.Is(
+		err,
+		ErrInvalidCookieConfig,
+	) {
 		t.Fatalf("empty cookie name err = %v, want ErrInvalidCookieConfig", err)
 	}
 }
 
-func newSessionRequest(t *testing.T, method, target, cookie string, options ...servlet.RequestOption) *servlet.Request {
+func newSessionRequest(
+	t *testing.T,
+	method, target, cookie string,
+	options ...servlet.RequestOption,
+) *servlet.Request {
 	t.Helper()
 	httpRequest := httptest.NewRequest(method, target, nil)
 	if cookie != "" {

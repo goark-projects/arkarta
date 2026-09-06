@@ -19,7 +19,12 @@ func TestServeDispatchesEndpointLifecycle(t *testing.T) {
 		PongMessage([]byte("pong")),
 		CloseMessage(NewCloseReason(CloseNormal, "bye")),
 	)
-	session, err := NewSession("s1", conn, WithSubprotocol("chat"), WithAttribute("tenant", "alpha"))
+	session, err := NewSession(
+		"s1",
+		conn,
+		WithSubprotocol("chat"),
+		WithAttribute("tenant", "alpha"),
+	)
 	if err != nil {
 		t.Fatalf("NewSession failed: %v", err)
 	}
@@ -27,7 +32,11 @@ func TestServeDispatchesEndpointLifecycle(t *testing.T) {
 	endpoint := EndpointFunc{
 		Open: func(ctx context.Context, session Session) error {
 			if session.ID() != "s1" || session.Subprotocol() != "chat" {
-				t.Fatalf("session id/subprotocol = %q/%q", session.ID(), session.Subprotocol())
+				t.Fatalf(
+					"session id/subprotocol = %q/%q",
+					session.ID(),
+					session.Subprotocol(),
+				)
 			}
 			if tenant, ok := session.Attribute("tenant"); !ok || tenant != "alpha" {
 				t.Fatalf("tenant = %v/%v, want alpha/true", tenant, ok)

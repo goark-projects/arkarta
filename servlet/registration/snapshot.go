@@ -110,7 +110,10 @@ func (r *Registry) snapshotLocked() Snapshot {
 		listeners: make([]ListenerDescriptor, 0, len(r.listeners)),
 	}
 	for _, name := range r.servletOrder {
-		snapshot.servlets = append(snapshot.servlets, r.servlets[name].descriptorLocked())
+		snapshot.servlets = append(
+			snapshot.servlets,
+			r.servlets[name].descriptorLocked(),
+		)
 	}
 	for _, name := range r.filterOrder {
 		snapshot.filters = append(snapshot.filters, r.filters[name].descriptorLocked())
