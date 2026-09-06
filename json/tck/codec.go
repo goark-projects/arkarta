@@ -126,7 +126,7 @@ func runDecodeOptions(t *testing.T, factory CodecFactory) {
 func requireCodec(t *testing.T, name string, codec arkjson.Codec) arkjson.Codec {
 	t.Helper()
 	if codec == nil {
-		t.Fatal(fmt.Sprintf("%s returned nil codec", name))
+		t.Fatalf("%s returned nil codec", name)
 	}
 	return codec
 }

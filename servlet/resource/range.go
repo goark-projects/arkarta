@@ -12,17 +12,6 @@ type byteRange struct {
 	end   int64
 }
 
-func parseRange(header string, size int64) (byteRange, bool, bool) {
-	ranges, ok, invalid := parseRanges(header, size)
-	if invalid || !ok {
-		return byteRange{}, false, invalid
-	}
-	if len(ranges) != 1 {
-		return byteRange{}, false, true
-	}
-	return ranges[0], true, false
-}
-
 func parseRanges(header string, size int64) ([]byteRange, bool, bool) {
 	if header == "" || size < 0 {
 		return nil, false, false

@@ -133,10 +133,6 @@ func (m Mapping) servletHandler() servlet.Handler {
 	})
 }
 
-func (m Mapping) servletConfig(app *servlet.WebApp) servlet.ServletConfig {
-	return servlet.NewServletConfig(m.name, app, m.initParam)
-}
-
 func requestFilterBindings(filters []servlet.Filter) ([]servlet.FilterBinding, error) {
 	bindings := make([]servlet.FilterBinding, 0, len(filters))
 	for _, filter := range filters {

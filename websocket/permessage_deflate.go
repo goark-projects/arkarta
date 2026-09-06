@@ -94,10 +94,7 @@ func (p *PerMessageDeflate) CompressMessage(data []byte) ([]byte, error) {
 		_ = writer.Close()
 		return nil, err
 	}
-	compressed := buffer.Bytes()
-	if bytes.HasSuffix(compressed, perMessageDeflateTail) {
-		compressed = compressed[:len(compressed)-len(perMessageDeflateTail)]
-	}
+	compressed := bytes.TrimSuffix(buffer.Bytes(), perMessageDeflateTail)
 	result := append([]byte(nil), compressed...)
 	_ = writer.Close()
 	return result, nil

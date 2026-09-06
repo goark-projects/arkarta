@@ -54,13 +54,3 @@ func (d *Deployment) servletInitializations() []servletInitialization {
 	})
 	return result
 }
-
-func (d *Deployment) servletMappings() []Mapping {
-	result := make([]Mapping, 0, len(d.mappings))
-	for _, mapping := range d.mappings {
-		if _, ok := mapping.Handler().(servlet.Servlet); ok {
-			result = append(result, mapping)
-		}
-	}
-	return result
-}

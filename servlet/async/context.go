@@ -248,15 +248,6 @@ func (a *Context) Response() servlet.Response {
 	return a.res
 }
 
-func (a *Context) ensureActive() error {
-	a.mu.RLock()
-	defer a.mu.RUnlock()
-	if a.completed {
-		return ErrCompleted
-	}
-	return a.ctx.Err()
-}
-
 func (a *Context) markDispatch() error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
