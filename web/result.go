@@ -1,6 +1,7 @@
 package web
 
 import (
+	"io"
 	"net/http"
 
 	arkjson "goark.dev/arkarta/json"
@@ -99,4 +100,20 @@ func normalizeStatus(statusCode, fallback int) int {
 		return http.StatusInternalServerError
 	}
 	return statusCode
+}
+
+type noBodyResponse struct {
+	servlet.Response
+}
+
+func (r noBodyResponse) Write(data []byte) (int, error) {
+	return len(data), nil
+}
+
+func (r noBodyResponse) WriteString(value string) (int, error) {
+	return len(value), nil
+}
+
+func (r noBodyResponse) BodyWriter() io.Writer {
+	return r
 }
