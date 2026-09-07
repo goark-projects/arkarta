@@ -8,7 +8,7 @@ Release notes: [v0.0.3](docs/releases/v0.0.3.md) | [v0.0.2](docs/releases/v0.0.2
 
 ## [Unreleased]
 
-## [0.0.3] - 2026-09-06
+## [0.0.3] - 2026-09-07
 
 ### Changed
 
